@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS store_settings (
     bank_account_holder VARCHAR(100) DEFAULT 'THICHGAPOS STORE',
     kds_enabled BOOLEAN DEFAULT TRUE,
     kds_auto_print BOOLEAN DEFAULT FALSE,
+    workflow_definition JSONB DEFAULT '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -90,6 +91,15 @@ CREATE TABLE IF NOT EXISTS user_stores (
     is_default BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, store_id)
+);
+
+-- Feature visibility by role. Store type features and role features are evaluated together.
+CREATE TABLE IF NOT EXISTS role_features (
+    role VARCHAR(30) NOT NULL,
+    feature_code VARCHAR(50) NOT NULL,
+    enabled BOOLEAN DEFAULT TRUE,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (role, feature_code)
 );
 
 -- 4. CATEGORIES & PRODUCTS
@@ -190,17 +200,24 @@ CREATE TABLE IF NOT EXISTS orders (
     customer_name VARCHAR(100),
     customer_phone VARCHAR(20),
     cashier_id INT REFERENCES users(id),
+    confirmed_by INT REFERENCES users(id),
+    confirmed_at TIMESTAMP WITH TIME ZONE,
     subtotal NUMERIC(15, 2) NOT NULL DEFAULT 0,
     discount_amount NUMERIC(15, 2) DEFAULT 0,
     tax_amount NUMERIC(15, 2) DEFAULT 0,
     total_amount NUMERIC(15, 2) NOT NULL DEFAULT 0,
     payment_status VARCHAR(20) DEFAULT 'UNPAID', -- UNPAID, PARTIALLY_PAID, PAID, REFUNDED
-    order_status VARCHAR(20) DEFAULT 'CONFIRMED', -- DRAFT, CONFIRMED, PREPARING, READY, COMPLETED, CANCELLED
+    order_status VARCHAR(20) DEFAULT 'CONFIRMED', -- PENDING_CONFIRMATION, CONFIRMED, PREPARING, READY, COMPLETED, CANCELLED
+    workflow_stage_index INT DEFAULT 0,
+    workflow_snapshot JSONB,
     note TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP WITH TIME ZONE
 );
+
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_by INT REFERENCES users(id);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMP WITH TIME ZONE;
 
 CREATE TABLE IF NOT EXISTS order_items (
     id SERIAL PRIMARY KEY,

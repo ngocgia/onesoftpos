@@ -3,6 +3,25 @@ const bcrypt = require('bcryptjs');
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
 const { JWT_SECRET } = require('../middleware/authMiddleware');
 
+const DEFAULT_ROLE_FEATURES = ['POS', 'TABLES', 'KDS', 'ORDERS', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT'];
+
+async function getRoleFeatures(role) {
+  if (role === 'SUPER_ADMIN') {
+    return Object.fromEntries(DEFAULT_ROLE_FEATURES.map(code => [code, true]));
+  }
+  let rows;
+  if (isPostgresConnected()) {
+    const result = await pool.query('SELECT feature_code, enabled FROM role_features WHERE role = $1', [role]);
+    rows = result.rows;
+  } else {
+    rows = memoryStore.role_features.filter(item => item.role === role);
+  }
+  return Object.fromEntries(DEFAULT_ROLE_FEATURES.map(code => {
+    const found = rows.find(item => item.feature_code === code);
+    return [code, found ? !!found.enabled : true];
+  }));
+}
+
 async function login(req, res) {
   const { username, password } = req.body;
   if (!username || !password) {
@@ -35,7 +54,7 @@ async function login(req, res) {
       isMatch = await bcrypt.compare(password, user.password_hash);
     }
     // Fallback for simple demo logins
-    if (!isMatch && (password === '123456' || password === 'admin' || password === user.username)) {
+    if (!isMatch && !user.password_hash && (password === '123456' || password === 'admin' || password === user.username)) {
       isMatch = true;
     }
 
@@ -77,6 +96,7 @@ async function login(req, res) {
     }
 
     const defaultStore = stores.find(s => s.is_default) || stores[0] || null;
+    const roleFeatures = await getRoleFeatures(user.role);
 
     // Generate JWT
     const token = jwt.sign(
@@ -102,7 +122,8 @@ async function login(req, res) {
         role: user.role
       },
       stores,
-      defaultStore
+      defaultStore,
+      roleFeatures
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -149,7 +170,8 @@ async function getMe(req, res) {
     res.json({
       success: true,
       user,
-      stores
+      stores,
+      roleFeatures: await getRoleFeatures(user.role)
     });
   } catch (error) {
     console.error('getMe error:', error);

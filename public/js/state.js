@@ -17,6 +17,16 @@ window.appState = {
     enableInventory: true
   },
   currentShift: null,
+  roleFeatures: {
+    POS: true,
+    TABLES: true,
+    KDS: true,
+    ORDERS: true,
+    PAYMENT: true,
+    ADMIN: true,
+    SHIFT: true,
+    DISCOUNT: true
+  },
 
   // Active Cart state
   cart: {
@@ -39,6 +49,28 @@ window.appState = {
     this.listeners.forEach(fn => fn(event, data));
   },
 
+  applyRoleFeatures(features) {
+    if (!features) return;
+    this.roleFeatures = { ...this.roleFeatures, ...features };
+    const visibility = {
+      navItemPos: 'POS',
+      navItemTables: 'TABLES',
+      navItemKds: 'KDS',
+      navItemOrders: 'ORDERS',
+      navItemAdmin: 'ADMIN',
+      btnShiftStatus: 'SHIFT',
+      btnOpenDiscountModal: 'DISCOUNT'
+    };
+    Object.entries(visibility).forEach(([id, code]) => {
+      const element = document.getElementById(id);
+      if (element) element.style.display = this.roleFeatures[code] ? '' : 'none';
+    });
+    const checkoutButton = document.getElementById('btnProceedCheckout');
+    if (checkoutButton) checkoutButton.style.display = this.roleFeatures.PAYMENT ? '' : 'none';
+    this.setOrderType(this.cart.orderType);
+    this.notify('role_features_updated', this.roleFeatures);
+  },
+
   // Rule 46: Cập nhật giao diện động theo STORE_TYPE_FEATURES
   // Tuyệt đối không hard-code if(store.name === ...) hay if(store.id === 1)
   applyStoreFeatures(features) {
@@ -52,7 +84,7 @@ window.appState = {
     const featurePillsContainer = document.getElementById('featurePillsContainer');
 
     // 1. Kiểm tra tính năng Tại Chỗ (Dine-in) & Quản lý bàn (Table)
-    if (this.features.enableDineIn && this.features.enableTable) {
+    if (this.features.enableDineIn && this.features.enableTable && this.roleFeatures.TABLES) {
       if (btnDineInTab) btnDineInTab.style.display = 'inline-flex';
       if (navItemTables) navItemTables.style.display = 'flex';
     } else {
@@ -64,7 +96,7 @@ window.appState = {
 
     // 2. Kiểm tra tính năng KDS
     if (navItemKds) {
-      navItemKds.style.display = this.features.enableKds ? 'flex' : 'none';
+      navItemKds.style.display = (this.features.enableKds && this.roleFeatures.KDS) ? 'flex' : 'none';
     }
 
     // 3. Render feature chips lên banner
@@ -91,6 +123,18 @@ window.appState = {
     this.notify('features_updated', this.features);
   },
 
+  applyOrderWorkflow() {
+    const workflow = this.storeSettings?.workflow_definition;
+    const checkoutButton = document.getElementById('btnProceedCheckout');
+
+    // Cả hai luồng đều yêu cầu bếp hoàn tất trước khi thu tiền. Thanh toán
+    // được thực hiện từ danh sách đơn sau khi đơn chuyển sang READY.
+    if (checkoutButton) checkoutButton.style.display = 'none';
+
+    this.setOrderType(this.cart.orderType);
+    this.notify('order_workflow_updated', workflow);
+  },
+
   setOrderType(type) {
     if (type === 'DINE_IN' && (!this.features.enableDineIn || !this.features.enableTable)) {
       window.api.showToast('Cửa hàng này không hỗ trợ bán tại bàn', 'error');
@@ -110,7 +154,13 @@ window.appState = {
 
     const btnSendKitchen = document.getElementById('btnSendKitchen');
     if (btnSendKitchen) {
-      btnSendKitchen.style.display = (type === 'DINE_IN' && this.features.enableKds) ? 'inline-flex' : 'none';
+      const workflow = this.storeSettings?.workflow_definition || { steps: [] };
+      const role = this.user?.role;
+      const createStep = workflow.steps?.[0];
+      const nextStep = workflow.steps?.[1];
+      const canCreate = role === 'SUPER_ADMIN' || createStep?.roles?.includes(role);
+      btnSendKitchen.style.display = canCreate ? 'inline-flex' : 'none';
+      btnSendKitchen.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ${nextStep ? `Chuyển: ${nextStep.name}` : 'Tạo đơn'}`;
     }
 
     this.notify('order_type_changed', type);

@@ -69,8 +69,32 @@ function requireRole(allowedRoles = []) {
   };
 }
 
+function requireFeature(featureCode) {
+  return async (req, res, next) => {
+    if (!req.user) return res.status(401).json({ success: false, message: 'Chưa xác thực danh tính' });
+    if (req.user.role === 'SUPER_ADMIN') return next();
+    try {
+      let setting;
+      if (isPostgresConnected()) {
+        const result = await pool.query('SELECT enabled FROM role_features WHERE role = $1 AND feature_code = $2', [req.user.role, featureCode]);
+        setting = result.rows[0];
+      } else {
+        setting = memoryStore.role_features.find(item => item.role === req.user.role && item.feature_code === featureCode);
+      }
+      if (setting && !setting.enabled) {
+        return res.status(403).json({ success: false, message: 'Nhóm người dùng của bạn không được cấp chức năng này' });
+      }
+      next();
+    } catch (error) {
+      console.error('requireFeature error:', error);
+      res.status(500).json({ success: false, message: 'Không thể kiểm tra quyền chức năng' });
+    }
+  };
+}
+
 module.exports = {
   authenticateToken,
   requireRole,
+  requireFeature,
   JWT_SECRET
 };

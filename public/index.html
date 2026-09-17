@@ -281,6 +281,7 @@
             </div>
             <div class="order-status-tabs" id="orderStatusTabs">
               <button class="status-tab active" data-status="">Tất cả</button>
+              <button class="status-tab" data-status="PENDING_CONFIRMATION">Chờ thu ngân xác nhận</button>
               <button class="status-tab" data-status="CONFIRMED">Chờ xử lý</button>
               <button class="status-tab" data-status="COMPLETED">Hoàn tất</button>
               <button class="status-tab" data-status="CANCELLED">Đã hủy</button>
@@ -433,7 +434,7 @@
 
     <!-- BOTTOM NAVIGATION BAR (Mobile-First touch menu) -->
     <nav class="bottom-nav-bar">
-      <button class="nav-item active" data-view="viewPos">
+      <button class="nav-item active" data-view="viewPos" id="navItemPos">
         <i class="fa-solid fa-cash-register"></i>
         <span>Bán hàng</span>
       </button>
@@ -445,11 +446,11 @@
         <i class="fa-solid fa-kitchen-set"></i>
         <span>Bếp KDS</span>
       </button>
-      <button class="nav-item" data-view="viewOrders">
+      <button class="nav-item" data-view="viewOrders" id="navItemOrders">
         <i class="fa-solid fa-clock-rotate-left"></i>
         <span>Đơn hàng</span>
       </button>
-      <button class="nav-item" data-view="viewAdmin">
+      <button class="nav-item" data-view="viewAdmin" id="navItemAdmin">
         <i class="fa-solid fa-gear"></i>
         <span>Quản trị</span>
       </button>
@@ -816,6 +817,7 @@
         <div class="quick-login-grid">
           <button type="button" class="btn-quick-login" data-user="admin">Admin (Toàn quyền)</button>
           <button type="button" class="btn-quick-login" data-user="manager">Quản lý cửa hàng</button>
+          <button type="button" class="btn-quick-login" data-user="order">Nhân viên Order</button>
           <button type="button" class="btn-quick-login" data-user="cashier">Thu ngân (POS)</button>
           <button type="button" class="btn-quick-login" data-user="kitchen">Đầu bếp (KDS)</button>
         </div>

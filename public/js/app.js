@@ -4,6 +4,12 @@ window.appNavigation = {
   currentView: 'viewPos',
 
   switchView(viewId) {
+    const featureByView = { viewPos: 'POS', viewTables: 'TABLES', viewKds: 'KDS', viewOrders: 'ORDERS', viewAdmin: 'ADMIN' };
+    const requiredFeature = featureByView[viewId];
+    if (requiredFeature && window.appState.roleFeatures[requiredFeature] === false) {
+      window.api.showToast('Nhóm người dùng của bạn không được cấp chức năng này', 'error');
+      return;
+    }
     this.currentView = viewId;
 
     // Toggle active view
@@ -38,6 +44,7 @@ window.appNavigation = {
       window.appState.storeSettings = res.settings;
       window.appState.storeType = res.storeType;
       window.appState.applyStoreFeatures(res.features);
+      window.appState.applyOrderWorkflow();
 
       const storeTypeBadge = document.getElementById('storeTypeBadge');
       const storeAddressText = document.getElementById('storeAddressText');
@@ -59,14 +66,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initAuth();
 
   // Initialize modules
-  if (window.posModule) await window.posModule.init();
-  if (window.tablesModule) await window.tablesModule.init();
-  if (window.kdsModule) window.kdsModule.init();
-  if (window.ordersModule) window.ordersModule.init();
-  if (window.checkoutModule) window.checkoutModule.init();
-  if (window.invoiceModule) window.invoiceModule.init();
-  if (window.shiftsModule) window.shiftsModule.init();
-  if (window.adminModule) window.adminModule.init();
+  if (window.appState.roleFeatures.POS && window.posModule) await window.posModule.init();
+  if (window.appState.roleFeatures.TABLES && window.tablesModule) await window.tablesModule.init();
+  if (window.appState.roleFeatures.KDS && window.kdsModule) window.kdsModule.init();
+  if (window.appState.roleFeatures.ORDERS && window.ordersModule) window.ordersModule.init();
+  if (window.appState.roleFeatures.POS && window.checkoutModule) window.checkoutModule.init();
+  if (window.appState.roleFeatures.POS && window.invoiceModule) window.invoiceModule.init();
+  if (window.appState.roleFeatures.SHIFT && window.shiftsModule) window.shiftsModule.init();
+  if (window.appState.roleFeatures.ADMIN && window.adminModule) window.adminModule.init();
 });
 
 // Authentication Initialization
@@ -96,12 +103,25 @@ async function initAuth() {
     const meRes = await window.api.get('/auth/me');
     window.appState.user = meRes.user;
     window.appState.stores = meRes.stores || [];
+    window.appState.applyRoleFeatures(meRes.roleFeatures);
+
+    if (meRes.user.role === 'SUPER_ADMIN' && new URLSearchParams(window.location.search).get('mode') !== 'pos') {
+      window.location.replace('/admin.html');
+      return;
+    }
 
     updateUserProfileUI();
     populateStoreSelector();
 
     // Load active store features
     await window.appNavigation.reloadCurrentStoreFeatures();
+
+    const initialView = [
+      ['POS', 'viewPos'], ['TABLES', 'viewTables'], ['KDS', 'viewKds'], ['ORDERS', 'viewOrders'], ['ADMIN', 'viewAdmin']
+    ].find(([feature]) => window.appState.roleFeatures[feature] !== false)?.[1];
+    if (initialView && window.appNavigation.currentView !== initialView) {
+      window.appNavigation.switchView(initialView);
+    }
   } catch (err) {
     console.error('Auth verification failed:', err);
     showLoginModal();
@@ -316,6 +336,12 @@ async function executeLogin(username, password) {
     window.api.setToken(res.token);
     window.appState.user = res.user;
     window.appState.stores = res.stores || [];
+    window.appState.applyRoleFeatures(res.roleFeatures);
+
+    if (res.user.role === 'SUPER_ADMIN') {
+      window.location.replace('/admin.html');
+      return;
+    }
 
     const defaultStoreId = res.defaultStore ? res.defaultStore.id : (res.stores[0]?.id || 1);
     window.api.setCurrentStoreId(defaultStoreId);
@@ -327,8 +353,11 @@ async function executeLogin(username, password) {
     document.getElementById('loginModal').style.display = 'none';
     window.api.showToast(`Chào mừng ${res.user.full_name} (${res.user.role})!`, 'success');
 
-    // Refresh view
-    window.appNavigation.switchView('viewPos');
+    // Open the first feature available to this role.
+    const firstView = [
+      ['POS', 'viewPos'], ['TABLES', 'viewTables'], ['KDS', 'viewKds'], ['ORDERS', 'viewOrders'], ['ADMIN', 'viewAdmin']
+    ].find(([feature]) => window.appState.roleFeatures[feature] !== false)?.[1] || 'viewPos';
+    window.appNavigation.switchView(firstView);
     if (window.posModule) window.posModule.loadCatalog();
   } catch (err) {
     window.api.showToast('Đăng nhập thất bại: ' + err.message, 'error');

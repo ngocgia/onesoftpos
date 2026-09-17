@@ -39,9 +39,9 @@ ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, store_type_id = EXCLUDED.st
 SELECT setval(pg_get_serial_sequence('stores', 'id'), coalesce(max(id), 1)) FROM stores;
 
 -- 4. STORE SETTINGS
-INSERT INTO store_settings (store_id, allow_negative_stock, allow_discount, allow_custom_price, allow_cancel_item, allow_cancel_order, allow_refund, payment_cash, payment_transfer, payment_qr, payment_card, receipt_header, receipt_footer, receipt_paper_size, bank_name, bank_account_number, bank_account_holder, kds_enabled) VALUES
-(1, FALSE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 'HỆ THỐNG GÀ RÁN & TRÀ SỮA THÍCH GÀ', 'Cảm ơn Quý khách & Hẹn gặp lại!', '80mm', 'MB Bank', '090123456789', 'THICH GA POS CN1', TRUE),
-(2, FALSE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 'THÍCH GÀ EXPRESS - MANG ĐI SIÊU TỐC', 'Chúc Quý khách ngon miệng!', '58mm', 'MB Bank', '090988899999', 'THICH GA EXPRESS', TRUE)
+INSERT INTO store_settings (store_id, allow_negative_stock, allow_discount, allow_custom_price, allow_cancel_item, allow_cancel_order, allow_refund, payment_cash, payment_transfer, payment_qr, payment_card, receipt_header, receipt_footer, receipt_paper_size, bank_name, bank_account_number, bank_account_holder, kds_enabled, workflow_definition) VALUES
+(1, FALSE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 'HỆ THỐNG GÀ RÁN & TRÀ SỮA THÍCH GÀ', 'Cảm ơn Quý khách & Hẹn gặp lại!', '80mm', 'MB Bank', '090123456789', 'THICH GA POS CN1', TRUE, '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb),
+(2, FALSE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 'THÍCH GÀ EXPRESS - MANG ĐI SIÊU TỐC', 'Chúc Quý khách ngon miệng!', '58mm', 'MB Bank', '090988899999', 'THICH GA EXPRESS', TRUE, '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb)
 ON CONFLICT (store_id) DO NOTHING;
 
 -- 5. USERS (Mật khẩu mặc định: 123456)
@@ -50,7 +50,8 @@ INSERT INTO users (id, username, email, password_hash, full_name, phone, role, s
 (1, 'admin', 'admin@thichgapos.com', '$2a$10$wO0/s6vE2s.jI4dEfevNdu5lE8pG5eZ.pZ3X6r7F0K1x7aU8s02e.', 'Quản trị viên Hệ Thống', '0900000001', 'SUPER_ADMIN', 'ACTIVE'),
 (2, 'manager', 'manager@thichgapos.com', '$2a$10$wO0/s6vE2s.jI4dEfevNdu5lE8pG5eZ.pZ3X6r7F0K1x7aU8s02e.', 'Nguyễn Quản Lý', '0900000002', 'STORE_MANAGER', 'ACTIVE'),
 (3, 'cashier', 'cashier@thichgapos.com', '$2a$10$wO0/s6vE2s.jI4dEfevNdu5lE8pG5eZ.pZ3X6r7F0K1x7aU8s02e.', 'Trần Thu Ngân', '0900000003', 'CASHIER', 'ACTIVE'),
-(4, 'kitchen', 'kitchen@thichgapos.com', '$2a$10$wO0/s6vE2s.jI4dEfevNdu5lE8pG5eZ.pZ3X6r7F0K1x7aU8s02e.', 'Lê Đầu Bếp', '0900000004', 'KITCHEN', 'ACTIVE')
+(4, 'kitchen', 'kitchen@thichgapos.com', '$2a$10$wO0/s6vE2s.jI4dEfevNdu5lE8pG5eZ.pZ3X6r7F0K1x7aU8s02e.', 'Lê Đầu Bếp', '0900000004', 'KITCHEN', 'ACTIVE'),
+(5, 'order', 'order@thichgapos.com', '$2a$10$wO0/s6vE2s.jI4dEfevNdu5lE8pG5eZ.pZ3X6r7F0K1x7aU8s02e.', 'Phạm Nhân Viên Order', '0900000005', 'ORDER_STAFF', 'ACTIVE')
 ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name;
 
 SELECT setval(pg_get_serial_sequence('users', 'id'), coalesce(max(id), 1)) FROM users;
@@ -62,8 +63,21 @@ INSERT INTO user_stores (user_id, store_id, is_default) VALUES
 (2, 1, TRUE),
 (2, 2, FALSE),
 (3, 1, TRUE),
-(4, 1, TRUE)
+(4, 1, TRUE),
+(5, 1, TRUE)
 ON CONFLICT (user_id, store_id) DO NOTHING;
+
+-- 6.1 ROLE FEATURES (visibility and access by user group)
+INSERT INTO role_features (role, feature_code, enabled) VALUES
+('ADMIN', 'POS', TRUE), ('ADMIN', 'TABLES', TRUE), ('ADMIN', 'KDS', TRUE), ('ADMIN', 'ORDERS', TRUE), ('ADMIN', 'ADMIN', TRUE), ('ADMIN', 'SHIFT', TRUE), ('ADMIN', 'DISCOUNT', TRUE),
+('STORE_MANAGER', 'POS', TRUE), ('STORE_MANAGER', 'TABLES', TRUE), ('STORE_MANAGER', 'KDS', TRUE), ('STORE_MANAGER', 'ORDERS', TRUE), ('STORE_MANAGER', 'ADMIN', TRUE), ('STORE_MANAGER', 'SHIFT', TRUE), ('STORE_MANAGER', 'DISCOUNT', TRUE),
+('ORDER_STAFF', 'POS', TRUE), ('ORDER_STAFF', 'TABLES', TRUE), ('ORDER_STAFF', 'KDS', FALSE), ('ORDER_STAFF', 'ORDERS', TRUE), ('ORDER_STAFF', 'PAYMENT', FALSE), ('ORDER_STAFF', 'ADMIN', FALSE), ('ORDER_STAFF', 'SHIFT', FALSE), ('ORDER_STAFF', 'DISCOUNT', FALSE),
+('ADMIN', 'PAYMENT', TRUE), ('STORE_MANAGER', 'PAYMENT', TRUE),
+('CASHIER', 'POS', TRUE), ('CASHIER', 'TABLES', TRUE), ('CASHIER', 'KDS', FALSE), ('CASHIER', 'ORDERS', TRUE), ('CASHIER', 'ADMIN', FALSE), ('CASHIER', 'SHIFT', TRUE), ('CASHIER', 'DISCOUNT', TRUE),
+('CASHIER', 'PAYMENT', TRUE),
+('KITCHEN', 'POS', FALSE), ('KITCHEN', 'TABLES', FALSE), ('KITCHEN', 'KDS', TRUE), ('KITCHEN', 'ORDERS', FALSE), ('KITCHEN', 'ADMIN', FALSE), ('KITCHEN', 'SHIFT', FALSE), ('KITCHEN', 'DISCOUNT', FALSE),
+('KITCHEN', 'PAYMENT', FALSE)
+ON CONFLICT (role, feature_code) DO UPDATE SET enabled = EXCLUDED.enabled;
 
 -- 7. CATEGORIES
 INSERT INTO categories (id, store_id, code, name, description, sort_order) VALUES

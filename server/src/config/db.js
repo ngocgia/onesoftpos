@@ -32,7 +32,8 @@ const memoryStore = {
     { id: 1, username: 'admin', email: 'admin@thichgapos.com', full_name: 'Quản trị viên Hệ Thống', role: 'SUPER_ADMIN', status: 'ACTIVE', phone: '0900000001' },
     { id: 2, username: 'manager', email: 'manager@thichgapos.com', full_name: 'Nguyễn Quản Lý', role: 'STORE_MANAGER', status: 'ACTIVE', phone: '0900000002' },
     { id: 3, username: 'cashier', email: 'cashier@thichgapos.com', full_name: 'Trần Thu Ngân', role: 'CASHIER', status: 'ACTIVE', phone: '0900000003' },
-    { id: 4, username: 'kitchen', email: 'kitchen@thichgapos.com', full_name: 'Lê Đầu Bếp', role: 'KITCHEN', status: 'ACTIVE', phone: '0900000004' }
+    { id: 4, username: 'kitchen', email: 'kitchen@thichgapos.com', full_name: 'Lê Đầu Bếp', role: 'KITCHEN', status: 'ACTIVE', phone: '0900000004' },
+    { id: 5, username: 'order', email: 'order@thichgapos.com', full_name: 'Phạm Nhân Viên Order', role: 'ORDER_STAFF', status: 'ACTIVE', phone: '0900000005' }
   ],
   store_types: [
     { id: 1, code: 'TAKEAWAY', name: 'Chỉ bán mang đi', description: 'Mô hình Kiot chuyên mang đi', is_active: true },
@@ -62,8 +63,8 @@ const memoryStore = {
     { id: 2, code: 'STORE002', name: 'Thích Gà Express - Kiot Nguyễn Huệ', display_name: 'Thích Gà Express', store_type_id: 1, phone: '0909888999', email: 'express@thichgapos.vn', address: '88 Phố Đi Bộ Nguyễn Huệ, Bến Nghé', province: 'Hồ Chí Minh', district: 'Quận 1', tax_code: '0312345678-001', logo_url: '🍗', opening_time: '09:00', closing_time: '23:00', currency: 'VND', status: 'ACTIVE' }
   ],
   store_settings: [
-    { store_id: 1, allow_negative_stock: false, allow_discount: true, allow_custom_price: false, allow_cancel_item: true, allow_cancel_order: true, allow_refund: true, payment_cash: true, payment_transfer: true, payment_qr: true, payment_card: true, receipt_header: 'HỆ THỐNG GÀ RÁN & TRÀ SỮA THÍCH GÀ', receipt_footer: 'Cảm ơn Quý khách & Hẹn gặp lại!', receipt_paper_size: '80mm', bank_name: 'MB Bank', bank_account_number: '090123456789', bank_account_holder: 'THICH GA POS CN1', kds_enabled: true },
-    { store_id: 2, allow_negative_stock: false, allow_discount: true, allow_custom_price: false, allow_cancel_item: true, allow_cancel_order: true, allow_refund: true, payment_cash: true, payment_transfer: true, payment_qr: true, payment_card: true, receipt_header: 'THÍCH GÀ EXPRESS - MANG ĐI SIÊU TỐC', receipt_footer: 'Chúc Quý khách ngon miệng!', receipt_paper_size: '58mm', bank_name: 'MB Bank', bank_account_number: '090988899999', bank_account_holder: 'THICH GA EXPRESS', kds_enabled: true }
+    { store_id: 1, allow_negative_stock: false, allow_discount: true, allow_custom_price: false, allow_cancel_item: true, allow_cancel_order: true, allow_refund: true, payment_cash: true, payment_transfer: true, payment_qr: true, payment_card: true, receipt_header: 'HỆ THỐNG GÀ RÁN & TRÀ SỮA THÍCH GÀ', receipt_footer: 'Cảm ơn Quý khách & Hẹn gặp lại!', receipt_paper_size: '80mm', bank_name: 'MB Bank', bank_account_number: '090123456789', bank_account_holder: 'THICH GA POS CN1', kds_enabled: true, workflow_definition: { name: 'Thu ngân - Bếp - Thanh toán', steps: [{ id: 'create', name: 'Thu ngân tạo đơn', type: 'CREATE', roles: ['CASHIER'] }, { id: 'kitchen', name: 'Bếp chế biến', type: 'KITCHEN', roles: ['KITCHEN'] }, { id: 'payment', name: 'Thu ngân thanh toán', type: 'PAYMENT', roles: ['CASHIER'] }] } },
+    { store_id: 2, allow_negative_stock: false, allow_discount: true, allow_custom_price: false, allow_cancel_item: true, allow_cancel_order: true, allow_refund: true, payment_cash: true, payment_transfer: true, payment_qr: true, payment_card: true, receipt_header: 'THÍCH GÀ EXPRESS - MANG ĐI SIÊU TỐC', receipt_footer: 'Chúc Quý khách ngon miệng!', receipt_paper_size: '58mm', bank_name: 'MB Bank', bank_account_number: '090988899999', bank_account_holder: 'THICH GA EXPRESS', kds_enabled: true, workflow_definition: { name: 'Thu ngân - Bếp - Thanh toán', steps: [{ id: 'create', name: 'Thu ngân tạo đơn', type: 'CREATE', roles: ['CASHIER'] }, { id: 'kitchen', name: 'Bếp chế biến', type: 'KITCHEN', roles: ['KITCHEN'] }, { id: 'payment', name: 'Thu ngân thanh toán', type: 'PAYMENT', roles: ['CASHIER'] }] } }
   ],
   user_stores: [
     { user_id: 1, store_id: 1, is_default: true },
@@ -71,7 +72,36 @@ const memoryStore = {
     { user_id: 2, store_id: 1, is_default: true },
     { user_id: 2, store_id: 2, is_default: false },
     { user_id: 3, store_id: 1, is_default: true },
-    { user_id: 4, store_id: 1, is_default: true }
+    { user_id: 4, store_id: 1, is_default: true },
+    { user_id: 5, store_id: 1, is_default: true }
+  ],
+  role_features: [
+    ...['POS', 'TABLES', 'KDS', 'ORDERS', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT'].map(feature_code => ({ role: 'ADMIN', feature_code, enabled: true })),
+    ...['POS', 'TABLES', 'KDS', 'ORDERS', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT'].map(feature_code => ({ role: 'STORE_MANAGER', feature_code, enabled: true })),
+    { role: 'ORDER_STAFF', feature_code: 'POS', enabled: true },
+    { role: 'ORDER_STAFF', feature_code: 'TABLES', enabled: true },
+    { role: 'ORDER_STAFF', feature_code: 'KDS', enabled: false },
+    { role: 'ORDER_STAFF', feature_code: 'ORDERS', enabled: true },
+    { role: 'ORDER_STAFF', feature_code: 'PAYMENT', enabled: false },
+    { role: 'ORDER_STAFF', feature_code: 'ADMIN', enabled: false },
+    { role: 'ORDER_STAFF', feature_code: 'SHIFT', enabled: false },
+    { role: 'ORDER_STAFF', feature_code: 'DISCOUNT', enabled: false },
+    { role: 'CASHIER', feature_code: 'POS', enabled: true },
+    { role: 'CASHIER', feature_code: 'TABLES', enabled: true },
+    { role: 'CASHIER', feature_code: 'KDS', enabled: false },
+    { role: 'CASHIER', feature_code: 'ORDERS', enabled: true },
+    { role: 'CASHIER', feature_code: 'PAYMENT', enabled: true },
+    { role: 'CASHIER', feature_code: 'ADMIN', enabled: false },
+    { role: 'CASHIER', feature_code: 'SHIFT', enabled: true },
+    { role: 'CASHIER', feature_code: 'DISCOUNT', enabled: true },
+    { role: 'KITCHEN', feature_code: 'POS', enabled: false },
+    { role: 'KITCHEN', feature_code: 'TABLES', enabled: false },
+    { role: 'KITCHEN', feature_code: 'KDS', enabled: true },
+    { role: 'KITCHEN', feature_code: 'ORDERS', enabled: false },
+    { role: 'KITCHEN', feature_code: 'PAYMENT', enabled: false },
+    { role: 'KITCHEN', feature_code: 'ADMIN', enabled: false },
+    { role: 'KITCHEN', feature_code: 'SHIFT', enabled: false },
+    { role: 'KITCHEN', feature_code: 'DISCOUNT', enabled: false }
   ],
   categories: [
     { id: 1, store_id: 1, code: 'GA', name: 'Gà Rán & Cơm Gà', description: 'Các món gà rán thơm giòn vàng rụm', sort_order: 1, is_active: true },
@@ -131,10 +161,34 @@ const memoryStore = {
 
 async function testConnection() {
   if (!pool) return false;
+  let client;
   try {
-    const client = await pool.connect();
+    client = await pool.connect();
     const res = await client.query('SELECT NOW() as current_time');
-    client.release();
+    await client.query(`CREATE TABLE IF NOT EXISTS role_features (
+      role VARCHAR(30) NOT NULL,
+      feature_code VARCHAR(50) NOT NULL,
+      enabled BOOLEAN DEFAULT TRUE,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (role, feature_code)
+    )`);
+    await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_by INT REFERENCES users(id)');
+    await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMP WITH TIME ZONE');
+    await client.query(`ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS workflow_definition JSONB DEFAULT '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb`);
+    await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS workflow_stage_index INT DEFAULT 0');
+    await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS workflow_snapshot JSONB');
+    const legacyWorkflow = await client.query(`SELECT 1 FROM information_schema.columns WHERE table_name='store_settings' AND column_name='order_workflow'`);
+    if (legacyWorkflow.rows.length) {
+      await client.query(`UPDATE store_settings SET workflow_definition='{"name":"Order - Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Nhân viên Order tạo đơn","type":"CREATE","roles":["ORDER_STAFF"]},{"id":"cashier_confirm","name":"Thu ngân xác nhận","type":"APPROVAL","roles":["CASHIER","STORE_MANAGER","ADMIN"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb WHERE order_workflow='ORDER_CASHIER_KITCHEN_PAYMENT'`);
+      await client.query('ALTER TABLE store_settings DROP COLUMN order_workflow');
+    }
+    await client.query(`INSERT INTO role_features (role, feature_code, enabled) VALUES
+      ('ADMIN','POS',TRUE),('ADMIN','TABLES',TRUE),('ADMIN','KDS',TRUE),('ADMIN','ORDERS',TRUE),('ADMIN','PAYMENT',TRUE),('ADMIN','ADMIN',TRUE),('ADMIN','SHIFT',TRUE),('ADMIN','DISCOUNT',TRUE),
+      ('STORE_MANAGER','POS',TRUE),('STORE_MANAGER','TABLES',TRUE),('STORE_MANAGER','KDS',TRUE),('STORE_MANAGER','ORDERS',TRUE),('STORE_MANAGER','PAYMENT',TRUE),('STORE_MANAGER','ADMIN',TRUE),('STORE_MANAGER','SHIFT',TRUE),('STORE_MANAGER','DISCOUNT',TRUE),
+      ('ORDER_STAFF','POS',TRUE),('ORDER_STAFF','TABLES',TRUE),('ORDER_STAFF','KDS',FALSE),('ORDER_STAFF','ORDERS',TRUE),('ORDER_STAFF','PAYMENT',FALSE),('ORDER_STAFF','ADMIN',FALSE),('ORDER_STAFF','SHIFT',FALSE),('ORDER_STAFF','DISCOUNT',FALSE),
+      ('CASHIER','POS',TRUE),('CASHIER','TABLES',TRUE),('CASHIER','KDS',FALSE),('CASHIER','ORDERS',TRUE),('CASHIER','PAYMENT',TRUE),('CASHIER','ADMIN',FALSE),('CASHIER','SHIFT',TRUE),('CASHIER','DISCOUNT',TRUE),
+      ('KITCHEN','POS',FALSE),('KITCHEN','TABLES',FALSE),('KITCHEN','KDS',TRUE),('KITCHEN','ORDERS',FALSE),('KITCHEN','PAYMENT',FALSE),('KITCHEN','ADMIN',FALSE),('KITCHEN','SHIFT',FALSE),('KITCHEN','DISCOUNT',FALSE)
+      ON CONFLICT (role, feature_code) DO NOTHING`);
     isConnected = true;
     console.log(`[PostgreSQL] Connected successfully at ${res.rows[0].current_time}`);
     return true;
@@ -143,6 +197,8 @@ async function testConnection() {
     console.warn(`[PostgreSQL Warning] Cannot connect to PostgreSQL: ${err.message}`);
     console.warn(`[System Note] Running with Local F&B Multi-Store Engine. Full functionality is active!`);
     return false;
+  } finally {
+    if (client) client.release();
   }
 }
 

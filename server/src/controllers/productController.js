@@ -64,6 +64,7 @@ async function createCategory(req, res) {
 async function getProducts(req, res) {
   const storeId = req.storeId || parseInt(req.query.store_id, 10);
   const categoryId = req.query.category_id ? parseInt(req.query.category_id, 10) : null;
+  const includeInactive = req.query.include_inactive === 'true' && ['SUPER_ADMIN', 'ADMIN'].includes(req.user.role);
 
   try {
     let products = [];
@@ -74,7 +75,7 @@ async function getProducts(req, res) {
         SELECT p.*, c.name as category_name 
         FROM products p 
         LEFT JOIN categories c ON p.category_id = c.id 
-        WHERE p.store_id = $1 AND p.is_active = TRUE
+        WHERE p.store_id = $1 ${includeInactive ? '' : 'AND p.is_active = TRUE'}
       `;
       const params = [storeId];
       if (categoryId) {
@@ -96,7 +97,7 @@ async function getProducts(req, res) {
       const optRes = await pool.query('SELECT * FROM product_options WHERE store_id = $1 AND is_active = TRUE ORDER BY id ASC', [storeId]);
       options = optRes.rows;
     } else {
-      let filtered = memoryStore.products.filter(p => p.store_id === storeId && p.is_active);
+      let filtered = memoryStore.products.filter(p => p.store_id === storeId && (includeInactive || p.is_active));
       if (categoryId) {
         filtered = filtered.filter(p => p.category_id === categoryId);
       }
@@ -213,10 +214,36 @@ async function getOptions(req, res) {
   }
 }
 
+async function updateProduct(req, res) {
+  const id = Number(req.params.id);
+  const storeId = req.storeId || Number(req.body.store_id);
+  const fields = ['category_id','code','name','description','price','cost_price','unit','image_url','kitchen_type','is_active'];
+  try {
+    if (isPostgresConnected()) {
+      const values = fields.map(key => req.body[key]);
+      const result = await pool.query(`UPDATE products SET category_id=COALESCE($1,category_id), code=COALESCE($2,code),
+        name=COALESCE($3,name), description=COALESCE($4,description), price=COALESCE($5,price),
+        cost_price=COALESCE($6,cost_price), unit=COALESCE($7,unit), image_url=COALESCE($8,image_url),
+        kitchen_type=COALESCE($9,kitchen_type), is_active=COALESCE($10,is_active), updated_at=CURRENT_TIMESTAMP
+        WHERE id=$11 AND store_id=$12 RETURNING id`, [...values, id, storeId]);
+      if (!result.rowCount) return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm' });
+    } else {
+      const product = memoryStore.products.find(item => item.id === id && item.store_id === storeId);
+      if (!product) return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm' });
+      for (const key of fields) if (req.body[key] !== undefined) product[key] = ['category_id','price','cost_price'].includes(key) ? Number(req.body[key]) : req.body[key];
+    }
+    res.json({ success: true, message: 'Cập nhật sản phẩm thành công' });
+  } catch (error) {
+    console.error('updateProduct error:', error);
+    res.status(error.code === '23505' ? 409 : 500).json({ success: false, message: error.code === '23505' ? 'Mã sản phẩm đã tồn tại' : 'Lỗi cập nhật sản phẩm' });
+  }
+}
+
 module.exports = {
   getCategories,
   createCategory,
   getProducts,
   createProduct,
+  updateProduct,
   getOptions
 };

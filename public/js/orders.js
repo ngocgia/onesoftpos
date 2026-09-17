@@ -70,7 +70,16 @@ window.ordersModule = {
         statusBadge = `<span class="badge-pill" style="background: var(--primary-light); color: var(--primary-hover);">Đang phục vụ</span>`;
       } else if (o.order_status === 'CANCELLED') {
         statusBadge = `<span class="badge-pill" style="background: var(--danger-light); color: #991b1b;">Đã hủy</span>`;
+      } else if (o.order_status === 'PENDING_CONFIRMATION') {
+        statusBadge = `<span class="badge-pill" style="background: #fef3c7; color: #92400e;">Chờ thu ngân xác nhận</span>`;
       }
+
+      if (o.workflow_step?.name) {
+        statusBadge = `<span class="badge-pill" style="background: var(--primary-light); color: var(--primary-hover);">${o.workflow_step.name}</span>`;
+      }
+      const canConfirm = !!o.can_advance;
+      const canPay = !isPaid && o.workflow_step?.type === 'PAYMENT' &&
+        (window.appState.user?.role === 'SUPER_ADMIN' || (o.workflow_step.roles || []).includes(window.appState.user?.role)) && window.appState.roleFeatures.PAYMENT;
 
       return `
         <tr>
@@ -90,7 +99,12 @@ window.ordersModule = {
               <button type="button" class="btn-sm btn-secondary btn-reprint" data-id="${o.id}" title="In lại bill">
                 <i class="fa-solid fa-print"></i>
               </button>
-              ${!isPaid ? `
+              ${canConfirm ? `
+                <button type="button" class="btn-sm btn-primary btn-confirm-order" data-id="${o.id}">
+                  Hoàn tất bước
+                </button>
+              ` : ''}
+              ${canPay ? `
                 <button type="button" class="btn-sm btn-primary btn-pay-now" data-id="${o.id}">
                   Thu tiền
                 </button>
@@ -118,6 +132,21 @@ window.ordersModule = {
         const order = this.orders.find(o => o.id === orderId);
         if (order && window.checkoutModule) {
           window.checkoutModule.openCheckoutModal(order);
+        }
+      });
+    });
+
+    tbody.querySelectorAll('.btn-confirm-order').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const orderId = parseInt(btn.getAttribute('data-id'), 10);
+        btn.disabled = true;
+        try {
+          const result = await window.api.post(`/orders/${orderId}/advance`, {});
+          window.api.showToast(result.message || 'Đã chuyển sang bước tiếp theo', 'success');
+          await this.loadOrders();
+        } catch (err) {
+          btn.disabled = false;
+          window.api.showToast('Không thể xác nhận đơn: ' + err.message, 'error');
         }
       });
     });

@@ -1,4 +1,5 @@
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
+const { validateWorkflow } = require('../services/workflowService');
 
 // Helper to format features as clean camelCase flags
 function formatFeatures(featureRows = []) {
@@ -271,6 +272,57 @@ async function updateStoreTypeFeature(req, res) {
   }
 }
 
+async function createStoreType(req, res) {
+  const { code, name, description = '', features = [] } = req.body;
+  if (!code || !name) return res.status(400).json({ success: false, message: 'Vui lòng nhập mã và tên loại cửa hàng' });
+  try {
+    let storeType;
+    if (isPostgresConnected()) {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const result = await client.query('INSERT INTO store_types (code,name,description,is_active) VALUES ($1,$2,$3,TRUE) RETURNING *', [code, name, description]);
+        storeType = result.rows[0];
+        for (const feature of features) await client.query(`INSERT INTO store_type_features (store_type_id,feature_code,enabled)
+          VALUES ($1,$2,$3) ON CONFLICT (store_type_id,feature_code) DO UPDATE SET enabled=$3`, [storeType.id, feature.feature_code, !!feature.enabled]);
+        await client.query('COMMIT');
+      } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
+    } else {
+      if (memoryStore.store_types.some(type => type.code === code)) return res.status(409).json({ success: false, message: 'Mã loại cửa hàng đã tồn tại' });
+      const id = memoryStore.store_types.length ? Math.max(...memoryStore.store_types.map(type => type.id)) + 1 : 1;
+      storeType = { id, code, name, description, is_active: true };
+      memoryStore.store_types.push(storeType);
+      features.forEach(feature => memoryStore.store_type_features.push({ store_type_id: id, feature_code: feature.feature_code, enabled: !!feature.enabled }));
+    }
+    res.status(201).json({ success: true, message: 'Tạo loại cửa hàng thành công', storeType });
+  } catch (error) {
+    console.error('createStoreType error:', error);
+    res.status(error.code === '23505' ? 409 : 500).json({ success: false, message: error.code === '23505' ? 'Mã loại cửa hàng đã tồn tại' : 'Lỗi tạo loại cửa hàng' });
+  }
+}
+
+async function updateStoreType(req, res) {
+  const id = Number(req.params.id);
+  const { name, description, is_active } = req.body;
+  try {
+    if (isPostgresConnected()) {
+      const result = await pool.query(`UPDATE store_types SET name=COALESCE($1,name), description=COALESCE($2,description),
+        is_active=COALESCE($3,is_active), updated_at=CURRENT_TIMESTAMP WHERE id=$4 RETURNING id`, [name, description, is_active, id]);
+      if (!result.rowCount) return res.status(404).json({ success: false, message: 'Không tìm thấy loại cửa hàng' });
+    } else {
+      const type = memoryStore.store_types.find(item => item.id === id);
+      if (!type) return res.status(404).json({ success: false, message: 'Không tìm thấy loại cửa hàng' });
+      if (name !== undefined) type.name = name;
+      if (description !== undefined) type.description = description;
+      if (is_active !== undefined) type.is_active = is_active;
+    }
+    res.json({ success: true, message: 'Cập nhật loại cửa hàng thành công' });
+  } catch (error) {
+    console.error('updateStoreType error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi cập nhật loại cửa hàng' });
+  }
+}
+
 async function updateStoreSettings(req, res) {
   const storeId = parseInt(req.params.id, 10);
   const { 
@@ -280,8 +332,19 @@ async function updateStoreSettings(req, res) {
     bank_name, 
     bank_account_number, 
     bank_account_holder, 
-    kds_enabled 
+    kds_enabled,
+    workflow_definition
   } = req.body;
+
+  let normalizedWorkflow;
+  if (workflow_definition !== undefined && req.user?.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ success: false, message: 'Chỉ Super Admin được cấu hình luồng vận hành' });
+  }
+  if (workflow_definition !== undefined) {
+    const validation = validateWorkflow(workflow_definition);
+    if (!validation.valid) return res.status(400).json({ success: false, message: validation.message });
+    normalizedWorkflow = validation.workflow;
+  }
 
   try {
     if (isPostgresConnected()) {
@@ -294,9 +357,10 @@ async function updateStoreSettings(req, res) {
              bank_account_number = COALESCE($5, bank_account_number),
              bank_account_holder = COALESCE($6, bank_account_holder),
              kds_enabled = COALESCE($7, kds_enabled),
+             workflow_definition = COALESCE($8::jsonb, workflow_definition),
              updated_at = CURRENT_TIMESTAMP
-         WHERE store_id = $8`,
-        [receipt_header, receipt_footer, receipt_paper_size, bank_name, bank_account_number, bank_account_holder, kds_enabled, storeId]
+         WHERE store_id = $9`,
+        [receipt_header, receipt_footer, receipt_paper_size, bank_name, bank_account_number, bank_account_holder, kds_enabled, normalizedWorkflow ? JSON.stringify(normalizedWorkflow) : null, storeId]
       );
     } else {
       let settings = memoryStore.store_settings.find(s => s.store_id === storeId);
@@ -311,6 +375,7 @@ async function updateStoreSettings(req, res) {
       if (bank_account_number !== undefined) settings.bank_account_number = bank_account_number;
       if (bank_account_holder !== undefined) settings.bank_account_holder = bank_account_holder;
       if (kds_enabled !== undefined) settings.kds_enabled = kds_enabled;
+      if (normalizedWorkflow !== undefined) settings.workflow_definition = normalizedWorkflow;
     }
 
     res.json({ success: true, message: 'Đã lưu cấu hình cửa hàng' });
@@ -326,6 +391,8 @@ module.exports = {
   createStore,
   updateStore,
   getStoreTypes,
+  createStoreType,
+  updateStoreType,
   updateStoreTypeFeature,
   updateStoreSettings
 };

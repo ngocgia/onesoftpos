@@ -86,7 +86,6 @@ async function closeShift(req, res) {
       const updateRes = await pool.query(
         `UPDATE shifts 
          SET closing_cash = $1, 
-             actual_cash = $1, 
              expected_cash = $2, 
              difference = $3, 
              status = 'CLOSED', 
@@ -101,7 +100,14 @@ async function closeShift(req, res) {
       if (!shift) return res.status(404).json({ success: false, message: 'Không tìm thấy ca làm việc' });
 
       const actualCash = parseFloat(closing_cash);
-      const expectedCash = parseFloat(shift.opening_cash); // In demo fallback
+      const cashTotal = memoryStore.payments
+        .filter(payment => payment.payment_method === 'CASH')
+        .filter(payment => {
+          const order = memoryStore.orders.find(o => o.id === payment.order_id);
+          return order && order.shift_id === shiftId;
+        })
+        .reduce((total, payment) => total + Number(payment.amount || 0), 0);
+      const expectedCash = parseFloat(shift.opening_cash) + cashTotal;
       shift.closing_cash = actualCash;
       shift.actual_cash = actualCash;
       shift.expected_cash = expectedCash;

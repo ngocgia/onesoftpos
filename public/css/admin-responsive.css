@@ -1,0 +1,180 @@
+/* Layout hardening shared by desktop and responsive views. */
+.toolbar {
+  flex-wrap: wrap;
+}
+
+.toolbar > div:first-child {
+  min-width: 0;
+  margin-right: auto;
+}
+
+.card-head > div {
+  min-width: 0;
+}
+
+.card-head h3,
+.card-head p {
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  white-space: nowrap;
+  line-height: 1.2;
+  min-width: max-content;
+  text-align: center;
+}
+
+th,
+td {
+  vertical-align: middle;
+}
+
+th:nth-last-child(-n + 2),
+td:nth-last-child(-n + 2) {
+  white-space: nowrap;
+}
+
+.table-wrap table {
+  min-width: 760px;
+}
+
+.modal-card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  max-height: min(90vh, 820px);
+  overflow: hidden;
+}
+
+.modal-head {
+  background: #fff;
+  position: relative;
+  z-index: 2;
+}
+
+.modal-card form {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.form-grid {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.form-grid .field,
+.form-grid input,
+.form-grid select,
+.form-grid textarea {
+  min-width: 0;
+  width: 100%;
+}
+
+.modal-actions {
+  background: #fff;
+  box-shadow: 0 -8px 20px rgb(15 23 42 / 6%);
+  position: relative;
+  z-index: 2;
+}
+
+@media (max-width: 720px) {
+  .sidebar .brand div { display: none; }
+  .sidebar button,
+  .sidebar .secondary-link { font-size: 0; }
+  .sidebar button i,
+  .sidebar .secondary-link i { font-size: 17px; }
+
+  main {
+    overflow-x: hidden;
+  }
+
+  header {
+    gap: 10px;
+  }
+
+  h1 {
+    font-size: 21px;
+    line-height: 1.2;
+  }
+
+  .eyebrow {
+    font-size: 9px;
+  }
+
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .metric {
+    padding: 16px;
+  }
+
+  .toolbar {
+    gap: 9px;
+  }
+
+  .toolbar .btn,
+  .toolbar input,
+  .toolbar select {
+    justify-content: center;
+    max-width: none;
+    width: 100%;
+  }
+
+  .cards,
+  .cards.two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .card-head {
+    align-items: flex-start;
+  }
+
+  .feature-grid,
+  .checks {
+    grid-template-columns: 1fr;
+  }
+
+  .modal {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-card {
+    border-radius: 16px 16px 0 0;
+    max-height: 94dvh;
+    width: 100%;
+  }
+
+  .modal-head,
+  .form-grid,
+  .modal-actions {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .modal-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1100px) {
+  main {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cards,
+  .cards.two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

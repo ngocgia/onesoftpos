@@ -1,0 +1,12 @@
+.workflow-title { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.workflow-title > span { font-size:12px; font-weight:700; }
+.workflow-step { display:grid; grid-template-columns:34px 1fr auto; gap:10px; align-items:start; border:1px solid var(--line); border-radius:11px; padding:11px; margin-bottom:9px; background:#fafbfc; }
+.workflow-index { width:28px; height:28px; border-radius:50%; display:grid; place-items:center; background:var(--primary); color:#fff; font-size:12px; font-weight:800; }
+.workflow-fields { display:grid; grid-template-columns:1.4fr 1fr; gap:8px; }
+.workflow-fields input, .workflow-fields select { min-width:0 !important; width:100%; }
+.workflow-roles { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:6px; }
+.workflow-roles label { display:flex; align-items:center; gap:4px; background:#fff; border:1px solid var(--line); border-radius:7px; padding:5px 7px; font-size:10px; }
+.workflow-actions { display:flex; gap:4px; }
+.workflow-actions button { width:27px; height:27px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer; }
+.workflow-actions button:last-child { color:var(--danger); }
+@media (max-width:720px) { .workflow-step { grid-template-columns:28px 1fr; } .workflow-actions { grid-column:2; } .workflow-fields { grid-template-columns:1fr; } .workflow-roles { grid-column:1; } }

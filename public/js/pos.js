@@ -482,7 +482,7 @@ window.posModule = {
       };
 
       const res = await window.api.post('/orders', payload);
-      window.api.showToast('Đã gửi món vào bếp (KDS) thành công!', 'success');
+      window.api.showToast(res.message || 'Đã tạo đơn và chuyển sang bước tiếp theo', 'success');
       window.appState.clearCart();
 
       // Refresh table view

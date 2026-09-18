@@ -5,6 +5,9 @@ window.checkoutModule = {
   selectedMethod: 'CASH',
   totalAmount: 0,
   cashReceived: 0,
+  openedFromExistingOrder: false,
+  isRepayment: false,
+  isProcessing: false,
 
   init() {
     this.bindEvents();
@@ -61,8 +64,19 @@ window.checkoutModule = {
     }
   },
 
-  async openCheckoutModal(existingOrder = null) {
+  async openCheckoutModal(existingOrder = null, options = {}) {
+    const isRepayment = !!options.repayment;
+    if (existingOrder?.payment_status === 'PAID' && !isRepayment) {
+      window.api.showToast('Đơn hàng này đã được thanh toán', 'info');
+      return;
+    }
+    if (existingOrder?.order_status === 'CANCELLED') {
+      window.api.showToast('Không thể thanh toán đơn hàng đã hủy', 'error');
+      return;
+    }
     this.currentOrder = existingOrder;
+    this.openedFromExistingOrder = !!existingOrder;
+    this.isRepayment = isRepayment;
     this.selectedMethod = 'CASH';
 
     if (existingOrder) {
@@ -77,6 +91,9 @@ window.checkoutModule = {
     const orderCodeEl = document.getElementById('checkoutOrderCode');
     const totalPayableEl = document.getElementById('checkoutTotalPayable');
     const cashInput = document.getElementById('cashReceivedInput');
+    const transactionCodeInput = document.getElementById('transactionCodeInput');
+    const modalTitle = modal?.querySelector('.modal-title-box h3');
+    const confirmButton = document.getElementById('btnConfirmCompletePayment');
 
     if (orderCodeEl) {
       orderCodeEl.textContent = existingOrder ? existingOrder.order_code : 'Đơn mới';
@@ -87,6 +104,11 @@ window.checkoutModule = {
     if (cashInput) {
       cashInput.value = this.totalAmount;
     }
+    if (transactionCodeInput) transactionCodeInput.value = '';
+    if (modalTitle) modalTitle.textContent = isRepayment ? 'Thanh toán lại' : 'Thanh toán đơn hàng';
+    if (confirmButton) confirmButton.innerHTML = isRepayment
+      ? '<i class="fa-solid fa-rotate"></i> XÁC NHẬN THANH TOÁN LẠI'
+      : '<i class="fa-solid fa-check"></i> XÁC NHẬN ĐÃ THANH TOÁN';
 
     this.calculateChange();
     this.switchPaymentPanel('CASH');
@@ -137,7 +159,8 @@ window.checkoutModule = {
           table_id: window.appState.cart.selectedTable ? window.appState.cart.selectedTable.id : null,
           note: window.appState.cart.note,
           discount_amount: window.appState.getCartDiscount(),
-          items: window.appState.cart.items
+          items: window.appState.cart.items,
+          ...(window.posModule?.getFulfillmentPayload?.() || {})
         };
         const orderRes = await window.api.post('/orders', orderPayload);
         this.currentOrder = orderRes.order;
@@ -168,6 +191,14 @@ window.checkoutModule = {
   },
 
   async executePayment() {
+    if (this.isProcessing) return;
+    const confirmButton = document.getElementById('btnConfirmCompletePayment');
+    const originalButtonHtml = confirmButton?.innerHTML;
+    this.isProcessing = true;
+    if (confirmButton) {
+      confirmButton.disabled = true;
+      confirmButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang thanh toán...';
+    }
     try {
       let order = this.currentOrder;
 
@@ -178,7 +209,8 @@ window.checkoutModule = {
           table_id: window.appState.cart.selectedTable ? window.appState.cart.selectedTable.id : null,
           note: window.appState.cart.note,
           discount_amount: window.appState.getCartDiscount(),
-          items: window.appState.cart.items
+          items: window.appState.cart.items,
+          ...(window.posModule?.getFulfillmentPayload?.() || {})
         };
         const orderRes = await window.api.post('/orders', orderPayload);
         order = orderRes.order;
@@ -192,16 +224,24 @@ window.checkoutModule = {
         payment_method: this.selectedMethod,
         amount: this.totalAmount,
         cash_received: this.cashReceived,
-        transaction_code: transactionCode
+        transaction_code: transactionCode,
+        replace_existing: this.isRepayment
       };
 
       const payRes = await window.api.post('/payments/process', payPayload);
+      order = payRes.order || { ...order, payment_status: 'PAID', order_status: 'COMPLETED' };
 
-      window.api.showToast('Thanh toán thành công!', 'success');
+      window.api.showToast(this.isRepayment ? 'Đã cập nhật giao dịch thanh toán!' : 'Thanh toán thành công, đơn hàng đã hoàn tất!', 'success');
       document.getElementById('checkoutModal').style.display = 'none';
 
-      // Clear cart
-      window.appState.clearCart();
+      // Complete only the active Takeaway draft; other customers remain open.
+      if (!this.openedFromExistingOrder && window.appState.isTakeawayOnlyStore()) {
+        window.appState.completeActiveTakeawayDraft();
+        window.posModule?.renderFulfillmentFields?.();
+        window.posModule?.setTakeawayPane?.('orders');
+      } else if (!this.openedFromExistingOrder) {
+        window.appState.clearCart();
+      }
       window.appState.setSelectedTable(null);
 
       // Open printable receipt (Rule 29)
@@ -213,8 +253,20 @@ window.checkoutModule = {
       if (window.tablesModule) {
         window.tablesModule.loadAreasAndTables();
       }
+      if (window.ordersModule) {
+        await window.ordersModule.loadOrders();
+      }
+      this.currentOrder = null;
+      this.openedFromExistingOrder = false;
+      this.isRepayment = false;
     } catch (err) {
       window.api.showToast('Lỗi thanh toán: ' + err.message, 'error');
+    } finally {
+      this.isProcessing = false;
+      if (confirmButton) {
+        confirmButton.disabled = false;
+        if (originalButtonHtml) confirmButton.innerHTML = originalButtonHtml;
+      }
     }
   }
 };

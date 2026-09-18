@@ -39,20 +39,28 @@ ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, store_type_id = EXCLUDED.st
 SELECT setval(pg_get_serial_sequence('stores', 'id'), coalesce(max(id), 1)) FROM stores;
 
 -- 4. STORE SETTINGS
-INSERT INTO store_settings (store_id, allow_negative_stock, allow_discount, allow_custom_price, allow_cancel_item, allow_cancel_order, allow_refund, payment_cash, payment_transfer, payment_qr, payment_card, receipt_header, receipt_footer, receipt_paper_size, bank_name, bank_account_number, bank_account_holder, kds_enabled, workflow_definition) VALUES
-(1, FALSE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 'HỆ THỐNG GÀ RÁN & TRÀ SỮA THÍCH GÀ', 'Cảm ơn Quý khách & Hẹn gặp lại!', '80mm', 'MB Bank', '090123456789', 'THICH GA POS CN1', TRUE, '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb),
-(2, FALSE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 'THÍCH GÀ EXPRESS - MANG ĐI SIÊU TỐC', 'Chúc Quý khách ngon miệng!', '58mm', 'MB Bank', '090988899999', 'THICH GA EXPRESS', TRUE, '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb)
+INSERT INTO store_settings (store_id, allow_negative_stock, allow_discount, allow_custom_price, allow_cancel_item, allow_cancel_order, allow_refund, payment_cash, payment_transfer, payment_qr, payment_card, receipt_header, receipt_footer, receipt_paper_size, bank_name, bank_account_number, bank_account_holder, kds_enabled, kds_completion_message, workflow_definition) VALUES
+(1, FALSE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 'HỆ THỐNG GÀ RÁN & TRÀ SỮA THÍCH GÀ', 'Cảm ơn Quý khách & Hẹn gặp lại!', '80mm', 'MB Bank', '090123456789', 'THICH GA POS CN1', TRUE, 'Món ăn {mon}, bàn {ban} đã xong', '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb),
+(2, FALSE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 'THÍCH GÀ EXPRESS - MANG ĐI SIÊU TỐC', 'Chúc Quý khách ngon miệng!', '58mm', 'MB Bank', '090988899999', 'THICH GA EXPRESS', TRUE, 'Món ăn {mon}, bàn {ban} đã xong', '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb)
 ON CONFLICT (store_id) DO NOTHING;
 
 -- 5. USERS (Mật khẩu mặc định: 123456)
--- Hash của '123456': $2a$10$6l5B4rZf2hF27nffgRj27eX7E2bX8cMvO1o1bNfTskwWwNnNrmPae
+-- Hash bcrypt hợp lệ của '123456'.
 INSERT INTO users (id, username, email, password_hash, full_name, phone, role, status) VALUES
-(1, 'admin', 'admin@thichgapos.com', '$2a$10$wO0/s6vE2s.jI4dEfevNdu5lE8pG5eZ.pZ3X6r7F0K1x7aU8s02e.', 'Quản trị viên Hệ Thống', '0900000001', 'SUPER_ADMIN', 'ACTIVE'),
-(2, 'manager', 'manager@thichgapos.com', '$2a$10$wO0/s6vE2s.jI4dEfevNdu5lE8pG5eZ.pZ3X6r7F0K1x7aU8s02e.', 'Nguyễn Quản Lý', '0900000002', 'STORE_MANAGER', 'ACTIVE'),
-(3, 'cashier', 'cashier@thichgapos.com', '$2a$10$wO0/s6vE2s.jI4dEfevNdu5lE8pG5eZ.pZ3X6r7F0K1x7aU8s02e.', 'Trần Thu Ngân', '0900000003', 'CASHIER', 'ACTIVE'),
-(4, 'kitchen', 'kitchen@thichgapos.com', '$2a$10$wO0/s6vE2s.jI4dEfevNdu5lE8pG5eZ.pZ3X6r7F0K1x7aU8s02e.', 'Lê Đầu Bếp', '0900000004', 'KITCHEN', 'ACTIVE'),
-(5, 'order', 'order@thichgapos.com', '$2a$10$wO0/s6vE2s.jI4dEfevNdu5lE8pG5eZ.pZ3X6r7F0K1x7aU8s02e.', 'Phạm Nhân Viên Order', '0900000005', 'ORDER_STAFF', 'ACTIVE')
-ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name;
+(1, 'admin', 'admin@thichgapos.com', '$2a$10$yDKokN0lYAcpyQIGv0szqeXEmrW3z2XjqjMvm6DqNnDjJiH.lcWG6', 'Quản trị viên Hệ Thống', '0900000001', 'SUPER_ADMIN', 'ACTIVE'),
+(2, 'manager', 'manager@thichgapos.com', '$2a$10$yDKokN0lYAcpyQIGv0szqeXEmrW3z2XjqjMvm6DqNnDjJiH.lcWG6', 'Nguyễn Quản Lý', '0900000002', 'STORE_MANAGER', 'ACTIVE'),
+(3, 'cashier', 'cashier@thichgapos.com', '$2a$10$yDKokN0lYAcpyQIGv0szqeXEmrW3z2XjqjMvm6DqNnDjJiH.lcWG6', 'Trần Thu Ngân', '0900000003', 'CASHIER', 'ACTIVE'),
+(4, 'kitchen', 'kitchen@thichgapos.com', '$2a$10$yDKokN0lYAcpyQIGv0szqeXEmrW3z2XjqjMvm6DqNnDjJiH.lcWG6', 'Lê Đầu Bếp', '0900000004', 'KITCHEN', 'ACTIVE'),
+(5, 'order', 'order@thichgapos.com', '$2a$10$yDKokN0lYAcpyQIGv0szqeXEmrW3z2XjqjMvm6DqNnDjJiH.lcWG6', 'Phạm Nhân Viên Order', '0900000005', 'ORDER_STAFF', 'ACTIVE')
+ON CONFLICT (id) DO UPDATE SET
+  full_name = EXCLUDED.full_name,
+  password_hash = CASE
+    WHEN users.password_hash IN (
+      '$2a$10$wO0/s6vE2s.jI4dEfevNdu5lE8pG5eZ.pZ3X6r7F0K1x7aU8s02e.',
+      '$2a$10$6l5B4rZf2hF27nffgRj27eX7E2bX8cMvO1o1bNfTskwWwNnNrmPae'
+    ) THEN EXCLUDED.password_hash
+    ELSE users.password_hash
+  END;
 
 SELECT setval(pg_get_serial_sequence('users', 'id'), coalesce(max(id), 1)) FROM users;
 
@@ -61,21 +69,34 @@ INSERT INTO user_stores (user_id, store_id, is_default) VALUES
 (1, 1, TRUE),
 (1, 2, FALSE),
 (2, 1, TRUE),
-(2, 2, FALSE),
 (3, 1, TRUE),
 (4, 1, TRUE),
 (5, 1, TRUE)
 ON CONFLICT (user_id, store_id) DO NOTHING;
 
+-- STORE_MANAGER chỉ được gán đúng một cửa hàng. Dọn dữ liệu mẫu/cũ từng gán
+-- manager vào nhiều cửa hàng, giữ lại cửa hàng mặc định (hoặc cửa hàng nhỏ nhất).
+DELETE FROM user_stores us
+USING users u
+WHERE us.user_id = u.id
+  AND u.role = 'STORE_MANAGER'
+  AND us.store_id <> (
+    SELECT us2.store_id
+    FROM user_stores us2
+    WHERE us2.user_id = us.user_id
+    ORDER BY us2.is_default DESC, us2.store_id ASC
+    LIMIT 1
+  );
+
 -- 6.1 ROLE FEATURES (visibility and access by user group)
 INSERT INTO role_features (role, feature_code, enabled) VALUES
-('ADMIN', 'POS', TRUE), ('ADMIN', 'TABLES', TRUE), ('ADMIN', 'KDS', TRUE), ('ADMIN', 'ORDERS', TRUE), ('ADMIN', 'ADMIN', TRUE), ('ADMIN', 'SHIFT', TRUE), ('ADMIN', 'DISCOUNT', TRUE),
-('STORE_MANAGER', 'POS', TRUE), ('STORE_MANAGER', 'TABLES', TRUE), ('STORE_MANAGER', 'KDS', TRUE), ('STORE_MANAGER', 'ORDERS', TRUE), ('STORE_MANAGER', 'ADMIN', TRUE), ('STORE_MANAGER', 'SHIFT', TRUE), ('STORE_MANAGER', 'DISCOUNT', TRUE),
-('ORDER_STAFF', 'POS', TRUE), ('ORDER_STAFF', 'TABLES', TRUE), ('ORDER_STAFF', 'KDS', FALSE), ('ORDER_STAFF', 'ORDERS', TRUE), ('ORDER_STAFF', 'PAYMENT', FALSE), ('ORDER_STAFF', 'ADMIN', FALSE), ('ORDER_STAFF', 'SHIFT', FALSE), ('ORDER_STAFF', 'DISCOUNT', FALSE),
+('ADMIN', 'POS', TRUE), ('ADMIN', 'TABLES', TRUE), ('ADMIN', 'KDS', TRUE), ('ADMIN', 'ORDERS', TRUE), ('ADMIN', 'HISTORY', TRUE), ('ADMIN', 'ADMIN', TRUE), ('ADMIN', 'SHIFT', TRUE), ('ADMIN', 'DISCOUNT', TRUE),
+('STORE_MANAGER', 'POS', TRUE), ('STORE_MANAGER', 'TABLES', TRUE), ('STORE_MANAGER', 'KDS', TRUE), ('STORE_MANAGER', 'ORDERS', TRUE), ('STORE_MANAGER', 'HISTORY', TRUE), ('STORE_MANAGER', 'ADMIN', TRUE), ('STORE_MANAGER', 'SHIFT', TRUE), ('STORE_MANAGER', 'DISCOUNT', TRUE),
+('ORDER_STAFF', 'POS', TRUE), ('ORDER_STAFF', 'TABLES', TRUE), ('ORDER_STAFF', 'KDS', FALSE), ('ORDER_STAFF', 'ORDERS', TRUE), ('ORDER_STAFF', 'HISTORY', TRUE), ('ORDER_STAFF', 'PAYMENT', FALSE), ('ORDER_STAFF', 'ADMIN', FALSE), ('ORDER_STAFF', 'SHIFT', FALSE), ('ORDER_STAFF', 'DISCOUNT', FALSE),
 ('ADMIN', 'PAYMENT', TRUE), ('STORE_MANAGER', 'PAYMENT', TRUE),
-('CASHIER', 'POS', TRUE), ('CASHIER', 'TABLES', TRUE), ('CASHIER', 'KDS', FALSE), ('CASHIER', 'ORDERS', TRUE), ('CASHIER', 'ADMIN', FALSE), ('CASHIER', 'SHIFT', TRUE), ('CASHIER', 'DISCOUNT', TRUE),
+('CASHIER', 'POS', TRUE), ('CASHIER', 'TABLES', TRUE), ('CASHIER', 'KDS', FALSE), ('CASHIER', 'ORDERS', TRUE), ('CASHIER', 'HISTORY', TRUE), ('CASHIER', 'ADMIN', FALSE), ('CASHIER', 'SHIFT', TRUE), ('CASHIER', 'DISCOUNT', TRUE),
 ('CASHIER', 'PAYMENT', TRUE),
-('KITCHEN', 'POS', FALSE), ('KITCHEN', 'TABLES', FALSE), ('KITCHEN', 'KDS', TRUE), ('KITCHEN', 'ORDERS', FALSE), ('KITCHEN', 'ADMIN', FALSE), ('KITCHEN', 'SHIFT', FALSE), ('KITCHEN', 'DISCOUNT', FALSE),
+('KITCHEN', 'POS', FALSE), ('KITCHEN', 'TABLES', FALSE), ('KITCHEN', 'KDS', TRUE), ('KITCHEN', 'ORDERS', FALSE), ('KITCHEN', 'HISTORY', TRUE), ('KITCHEN', 'ADMIN', FALSE), ('KITCHEN', 'SHIFT', FALSE), ('KITCHEN', 'DISCOUNT', FALSE),
 ('KITCHEN', 'PAYMENT', FALSE)
 ON CONFLICT (role, feature_code) DO UPDATE SET enabled = EXCLUDED.enabled;
 

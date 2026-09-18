@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS store_settings (
     bank_account_holder VARCHAR(100) DEFAULT 'THICHGAPOS STORE',
     kds_enabled BOOLEAN DEFAULT TRUE,
     kds_auto_print BOOLEAN DEFAULT FALSE,
+    kds_completion_message TEXT DEFAULT 'Món ăn {mon}, bàn {ban} đã xong',
     workflow_definition JSONB DEFAULT '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -93,6 +94,48 @@ CREATE TABLE IF NOT EXISTS user_stores (
     UNIQUE(user_id, store_id)
 );
 
+-- A STORE_MANAGER owns exactly one store. Deferred constraint triggers allow an
+-- assignment to be replaced inside one transaction while validating the final state.
+CREATE OR REPLACE FUNCTION enforce_store_manager_single_store()
+RETURNS TRIGGER AS $$
+DECLARE
+    target_user_id INT;
+    target_role VARCHAR(30);
+    assigned_store_count INT;
+BEGIN
+    IF TG_TABLE_NAME = 'users' THEN
+        target_user_id := CASE WHEN TG_OP = 'DELETE' THEN OLD.id ELSE NEW.id END;
+    ELSE
+        target_user_id := CASE WHEN TG_OP = 'DELETE' THEN OLD.user_id ELSE NEW.user_id END;
+    END IF;
+
+    SELECT role INTO target_role FROM users WHERE id = target_user_id;
+    IF target_role = 'STORE_MANAGER' THEN
+        SELECT COUNT(*) INTO assigned_store_count FROM user_stores WHERE user_id = target_user_id;
+        IF assigned_store_count <> 1 THEN
+            RAISE EXCEPTION 'STORE_MANAGER % must be assigned to exactly one store', target_user_id
+                USING ERRCODE = '23514';
+        END IF;
+    END IF;
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_store_manager_user_assignment ON users;
+CREATE CONSTRAINT TRIGGER trg_store_manager_user_assignment
+AFTER INSERT OR UPDATE OF role ON users
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION enforce_store_manager_single_store();
+
+DROP TRIGGER IF EXISTS trg_store_manager_store_assignment ON user_stores;
+CREATE CONSTRAINT TRIGGER trg_store_manager_store_assignment
+AFTER INSERT OR UPDATE OR DELETE ON user_stores
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION enforce_store_manager_single_store();
+
 -- Feature visibility by role. Store type features and role features are evaluated together.
 CREATE TABLE IF NOT EXISTS role_features (
     role VARCHAR(30) NOT NULL,
@@ -100,6 +143,16 @@ CREATE TABLE IF NOT EXISTS role_features (
     enabled BOOLEAN DEFAULT TRUE,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (role, feature_code)
+);
+
+-- Per-store overrides configured by that store's manager.
+CREATE TABLE IF NOT EXISTS store_role_features (
+    store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+    role VARCHAR(30) NOT NULL,
+    feature_code VARCHAR(50) NOT NULL,
+    enabled BOOLEAN DEFAULT TRUE,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (store_id, role, feature_code)
 );
 
 -- 4. CATEGORIES & PRODUCTS
@@ -196,9 +249,12 @@ CREATE TABLE IF NOT EXISTS orders (
     shift_id INT REFERENCES shifts(id) ON DELETE SET NULL,
     order_type VARCHAR(20) NOT NULL DEFAULT 'TAKEAWAY', -- DINE_IN, TAKEAWAY, DELIVERY
     order_source VARCHAR(20) DEFAULT 'POS', -- POS, QR_TABLE, WEB
+    fulfillment_type VARCHAR(30), -- SHIP_DELIVERY, CUSTOMER_PICKUP, APP_DELIVERY
     table_id INT REFERENCES tables(id) ON DELETE SET NULL,
     customer_name VARCHAR(100),
     customer_phone VARCHAR(20),
+    delivery_address TEXT,
+    scheduled_at TIMESTAMP WITH TIME ZONE,
     cashier_id INT REFERENCES users(id),
     confirmed_by INT REFERENCES users(id),
     confirmed_at TIMESTAMP WITH TIME ZONE,
@@ -218,6 +274,9 @@ CREATE TABLE IF NOT EXISTS orders (
 
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_by INT REFERENCES users(id);
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS fulfillment_type VARCHAR(30);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_address TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMP WITH TIME ZONE;
 
 CREATE TABLE IF NOT EXISTS order_items (
     id SERIAL PRIMARY KEY,
@@ -232,6 +291,8 @@ CREATE TABLE IF NOT EXISTS order_items (
     note TEXT,
     status VARCHAR(20) DEFAULT 'PENDING', -- PENDING, PREPARING, READY, SERVED, CANCELLED
     kitchen_type VARCHAR(20) DEFAULT 'KITCHEN',
+    prepared_by INT REFERENCES users(id) ON DELETE SET NULL,
+    prepared_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -279,3 +340,4 @@ CREATE INDEX IF NOT EXISTS idx_categories_store ON categories(store_id, is_activ
 CREATE INDEX IF NOT EXISTS idx_tables_store ON tables(store_id, status);
 CREATE INDEX IF NOT EXISTS idx_orders_store ON orders(store_id, order_status, created_at);
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_prepared_by ON order_items(prepared_by, prepared_at DESC);

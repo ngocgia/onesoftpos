@@ -4,7 +4,7 @@ window.appNavigation = {
   currentView: 'viewPos',
 
   switchView(viewId) {
-    const featureByView = { viewPos: 'POS', viewTables: 'TABLES', viewKds: 'KDS', viewOrders: 'ORDERS', viewAdmin: 'ADMIN' };
+    const featureByView = { viewPos: 'POS', viewTables: 'TABLES', viewKds: 'KDS', viewOrders: 'HISTORY', viewAdmin: 'ADMIN' };
     const requiredFeature = featureByView[viewId];
     if (requiredFeature && window.appState.roleFeatures[requiredFeature] === false) {
       window.api.showToast('Nhóm người dùng của bạn không được cấp chức năng này', 'error');
@@ -39,7 +39,8 @@ window.appNavigation = {
     if (!storeId) return;
 
     try {
-      const res = await window.api.get(`/stores/${storeId}`);
+      const [res, me] = await Promise.all([window.api.get(`/stores/${storeId}`), window.api.get('/auth/me')]);
+      window.appState.applyRoleFeatures(me.roleFeatures);
       window.appState.currentStore = res.store;
       window.appState.storeSettings = res.settings;
       window.appState.storeType = res.storeType;
@@ -69,7 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (window.appState.roleFeatures.POS && window.posModule) await window.posModule.init();
   if (window.appState.roleFeatures.TABLES && window.tablesModule) await window.tablesModule.init();
   if (window.appState.roleFeatures.KDS && window.kdsModule) window.kdsModule.init();
-  if (window.appState.roleFeatures.ORDERS && window.ordersModule) window.ordersModule.init();
+  if (window.appState.roleFeatures.HISTORY && window.ordersModule) window.ordersModule.init();
   if (window.appState.roleFeatures.POS && window.checkoutModule) window.checkoutModule.init();
   if (window.appState.roleFeatures.POS && window.invoiceModule) window.invoiceModule.init();
   if (window.appState.roleFeatures.SHIFT && window.shiftsModule) window.shiftsModule.init();
@@ -117,7 +118,7 @@ async function initAuth() {
     await window.appNavigation.reloadCurrentStoreFeatures();
 
     const initialView = [
-      ['POS', 'viewPos'], ['TABLES', 'viewTables'], ['KDS', 'viewKds'], ['ORDERS', 'viewOrders'], ['ADMIN', 'viewAdmin']
+      ['POS', 'viewPos'], ['TABLES', 'viewTables'], ['KDS', 'viewKds'], ['HISTORY', 'viewOrders'], ['ADMIN', 'viewAdmin']
     ].find(([feature]) => window.appState.roleFeatures[feature] !== false)?.[1];
     if (initialView && window.appNavigation.currentView !== initialView) {
       window.appNavigation.switchView(initialView);
@@ -168,7 +169,7 @@ function populateStoreSelector() {
     window.appState.currentStore = newStore;
 
     // Reset table selection and cart
-    window.appState.clearCart();
+    window.appState.resetTakeawayDrafts();
     window.appState.setSelectedTable(null);
 
     // Reload features and notify all modules
@@ -355,7 +356,7 @@ async function executeLogin(username, password) {
 
     // Open the first feature available to this role.
     const firstView = [
-      ['POS', 'viewPos'], ['TABLES', 'viewTables'], ['KDS', 'viewKds'], ['ORDERS', 'viewOrders'], ['ADMIN', 'viewAdmin']
+      ['POS', 'viewPos'], ['TABLES', 'viewTables'], ['KDS', 'viewKds'], ['HISTORY', 'viewOrders'], ['ADMIN', 'viewAdmin']
     ].find(([feature]) => window.appState.roleFeatures[feature] !== false)?.[1] || 'viewPos';
     window.appNavigation.switchView(firstView);
     if (window.posModule) window.posModule.loadCatalog();

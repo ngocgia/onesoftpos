@@ -1,224 +1,53 @@
-// ThichGaPOS v1.0 - Admin & Feature Flags Controller (Rule 7, 40, 46, 35)
-
+// Store administration for STORE_MANAGER. Every request is scoped by X-Store-Id.
 window.adminModule = {
-  storeTypes: [],
-  stores: [],
+  stores: [], products: [], categories: [], staff: [], editorSubmit: null,
+  staffRoles: ['ORDER_STAFF', 'CASHIER', 'KITCHEN'],
+  featureLabels: { POS:'Bán hàng POS',TABLES:'Phòng bàn',KDS:'Bếp KDS',ORDERS:'Đơn hàng',HISTORY:'Lịch sử',PAYMENT:'Thanh toán',ADMIN:'Màn quản trị',SHIFT:'Quản lý ca',DISCOUNT:'Giảm giá' },
+
+  esc(value='') { const node=document.createElement('div');node.textContent=String(value??'');return node.innerHTML; },
+  field(name,label,type='text',value='',options=null,required=false) {
+    if(type==='textarea')return `<div class="form-group"><label>${label}</label><textarea class="form-input" name="${name}" ${required?'required':''}>${this.esc(value)}</textarea></div>`;
+    if(type==='select')return `<div class="form-group"><label>${label}</label><select class="form-input" name="${name}" ${required?'required':''}>${options.map(option=>`<option value="${this.esc(option.value)}" ${String(option.value)===String(value)?'selected':''}>${this.esc(option.label)}</option>`).join('')}</select></div>`;
+    return `<div class="form-group"><label>${label}</label><input class="form-input" name="${name}" type="${type}" value="${this.esc(value)}" ${required?'required':''}></div>`;
+  },
+  formData(form){return Object.fromEntries(new FormData(form).entries())},
+  openEditor(title,html,onSubmit,{hideSave=false}={}){document.getElementById('adminEditorTitle').textContent=title;document.getElementById('adminEditorBody').innerHTML=html;document.querySelector('#adminEditorModal button[type="submit"]').style.display=hideSave?'none':'';this.editorSubmit=onSubmit;document.getElementById('adminEditorModal').style.display='flex'},
+  closeEditor(){document.getElementById('adminEditorModal').style.display='none';this.editorSubmit=null},
 
   init() {
     this.bindEvents();
-    this.loadReports();
-    this.loadStoreTypesConfig();
-    this.loadAdminStores();
-    this.loadAdminProducts();
-
-    window.appState.subscribe((event) => {
-      if (event === 'store_changed') {
-        this.loadReports();
-        this.loadAdminProducts();
-      }
-    });
+    const isStoreManager=window.appState.user?.role==='STORE_MANAGER';
+    const addStore=document.getElementById('btnOpenAddStoreModal');if(addStore)addStore.style.display=isStoreManager?'none':'';
+    const staffTab=document.querySelector('[data-target="adminStaff"]');if(staffTab)staffTab.style.display=isStoreManager?'':'none';
+    this.loadReports();this.loadAdminStores();this.loadAdminProducts();
+    if(window.appState.user?.role==='STORE_MANAGER'){this.loadStoreRoleFeatures();this.loadStaff()}
+    window.appState.subscribe(event=>{if(event==='store_changed'){this.loadReports();this.loadAdminStores();this.loadAdminProducts();this.loadStoreRoleFeatures();this.loadStaff()}});
   },
-
   bindEvents() {
-    // Admin Subnav tabs
-    const navTabs = document.querySelectorAll('.admin-nav-tab');
-    navTabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        navTabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-
-        const targetId = tab.getAttribute('data-target');
-        document.querySelectorAll('.admin-subview').forEach(view => {
-          view.classList.toggle('active', view.id === targetId);
-        });
-
-        if (targetId === 'adminReports') this.loadReports();
-        if (targetId === 'adminStoreTypes') this.loadStoreTypesConfig();
-        if (targetId === 'adminStores') this.loadAdminStores();
-        if (targetId === 'adminProducts') this.loadAdminProducts();
-      });
-    });
+    document.querySelectorAll('.admin-nav-tab').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.admin-nav-tab').forEach(item=>item.classList.remove('active'));tab.classList.add('active');const target=tab.dataset.target;document.querySelectorAll('.admin-subview').forEach(view=>view.classList.toggle('active',view.id===target));if(target==='adminReports')this.loadReports();if(target==='adminStores')this.loadAdminStores();if(target==='adminStoreTypes')this.loadStoreRoleFeatures();if(target==='adminProducts')this.loadAdminProducts();if(target==='adminStaff')this.loadStaff()}));
+    document.getElementById('btnOpenAddProductModal')?.addEventListener('click',()=>this.editProduct());document.getElementById('btnManageCategories')?.addEventListener('click',()=>this.manageCategories());document.getElementById('btnAddStaff')?.addEventListener('click',()=>this.editStaff());document.getElementById('btnConfigureWorkflow')?.addEventListener('click',()=>this.configureWorkflow());document.getElementById('btnCloseAdminEditor')?.addEventListener('click',()=>this.closeEditor());document.getElementById('btnCancelAdminEditor')?.addEventListener('click',()=>this.closeEditor());
+    document.getElementById('adminEditorForm')?.addEventListener('submit',async event=>{event.preventDefault();try{await this.editorSubmit?.(this.formData(event.target),event.target);this.closeEditor()}catch(error){window.api.showToast(error.message,'error')}});
   },
 
-  // 1. Reports Dashboard (Rule 35)
-  async loadReports() {
-    try {
-      const res = await window.api.get('/reports/summary?range=today');
-      
-      const revEl = document.getElementById('repRevenue');
-      const orderCountEl = document.getElementById('repOrderCount');
-      const avgOrderEl = document.getElementById('repAvgOrder');
-      const topList = document.getElementById('topProductsList');
-      const payList = document.getElementById('paymentBreakdownList');
+  async loadReports() { try { const data=await window.api.get('/reports/summary?range=today');document.getElementById('repRevenue').textContent=window.api.formatMoney(data.revenue);document.getElementById('repOrderCount').textContent=`${data.orderCount} đơn`;document.getElementById('repAvgOrder').textContent=window.api.formatMoney(data.avgOrderValue);document.getElementById('topProductsList').innerHTML=(data.topProducts||[]).map(item=>`<div class="top-prod-row"><span><strong>${this.esc(item.product_name)}</strong> (${item.total_qty} phần)</span><strong class="text-primary">${window.api.formatMoney(item.total_revenue)}</strong></div>`).join('')||'<p class="text-muted">Chưa có dữ liệu</p>';const pay=data.paymentBreakdown||{};document.getElementById('paymentBreakdownList').innerHTML=['CASH','QR','BANK_TRANSFER','CARD'].map(code=>`<div class="pay-row"><span>${code}</span><strong>${window.api.formatMoney(pay[code]||0)}</strong></div>`).join('')} catch(error){console.error('loadReports error:',error)} },
 
-      if (revEl) revEl.textContent = window.api.formatMoney(res.revenue);
-      if (orderCountEl) orderCountEl.textContent = `${res.orderCount} đơn`;
-      if (avgOrderEl) avgOrderEl.textContent = window.api.formatMoney(res.avgOrderValue);
+  async loadAdminStores(){try{const result=await window.api.get('/stores');this.stores=result.stores||[];document.getElementById('adminStoresGrid').innerHTML=this.stores.map(store=>`<div class="store-type-card"><div style="display:flex;justify-content:space-between"><div><h4>${this.esc(store.name)}</h4><p class="text-muted">${this.esc(store.address||'Chưa cập nhật địa chỉ')}</p><p class="text-muted">${this.esc(store.phone||'')}</p></div><button class="btn-secondary btn-sm" onclick="adminModule.editStore(${store.id})">Sửa thông tin</button></div></div>`).join('')}catch(error){console.error('loadAdminStores error:',error)}},
+  async editStore(id){const detail=await window.api.get(`/stores/${id}`),store=detail.store,settings=detail.settings||{};const html=this.field('name','Tên cửa hàng','text',store.name||'',null,true)+this.field('display_name','Tên hiển thị','text',store.display_name||'')+this.field('phone','Số điện thoại','text',store.phone||'')+this.field('email','Email','email',store.email||'')+this.field('address','Địa chỉ','textarea',store.address||'')+this.field('receipt_header','Tiêu đề hóa đơn','text',settings.receipt_header||'')+this.field('receipt_footer','Chân hóa đơn','textarea',settings.receipt_footer||'')+this.field('bank_name','Ngân hàng','text',settings.bank_name||'')+this.field('bank_account_number','Số tài khoản','text',settings.bank_account_number||'')+this.field('bank_account_holder','Chủ tài khoản','text',settings.bank_account_holder||'');this.openEditor('Thông tin cửa hàng',html,async data=>{await window.api.put(`/stores/${id}`,data);await window.api.put(`/stores/${id}/settings`,data);window.api.showToast('Đã cập nhật cửa hàng','success');await this.loadAdminStores()})},
 
-      if (topList) {
-        if (!res.topProducts || res.topProducts.length === 0) {
-          topList.innerHTML = '<p class="text-muted">Chưa có dữ liệu bán hàng hôm nay</p>';
-        } else {
-          topList.innerHTML = res.topProducts.map(p => `
-            <div class="top-prod-row">
-              <span><strong>${p.product_name}</strong> (${p.total_qty} phần)</span>
-              <strong class="text-primary">${window.api.formatMoney(p.total_revenue)}</strong>
-            </div>
-          `).join('');
-        }
-      }
+  async loadAdminProducts(){try{const [products,categories]=await Promise.all([window.api.get('/products?include_inactive=true'),window.api.get('/categories')]);this.products=products.products||[];this.categories=categories.categories||[];document.getElementById('adminProductsTableBody').innerHTML=this.products.map(product=>`<tr><td><strong>${this.esc(product.code)}</strong></td><td>${this.esc(product.image_url||'🍗')} ${this.esc(product.name)}</td><td>${this.esc(product.category_name||'-')}</td><td>${window.api.formatMoney(product.price)}</td><td>${product.kitchen_type==='BAR'?'Pha chế':'Bếp'}</td><td>${product.is_active?'Đang bán':'Ngừng bán'}</td><td><button class="btn-secondary btn-sm" onclick="adminModule.editProduct(${product.id})">Sửa</button> <button class="btn-secondary btn-sm" onclick="adminModule.removeProduct(${product.id})">${product.is_active?'Xóa':'Khôi phục'}</button></td></tr>`).join('')||'<tr><td colspan="7">Chưa có sản phẩm</td></tr>'}catch(error){console.error('loadAdminProducts error:',error)}},
+  editProduct(id){const product=this.products.find(item=>item.id===id)||{},categoryOptions=[{value:'',label:'Không có danh mục'},...this.categories.map(item=>({value:item.id,label:item.name}))];const html=this.field('code','Mã sản phẩm','text',product.code||'',null,true)+this.field('name','Tên sản phẩm','text',product.name||'',null,true)+this.field('category_id','Danh mục','select',product.category_id||'',categoryOptions)+this.field('price','Giá bán','number',product.price||0,null,true)+this.field('cost_price','Giá vốn','number',product.cost_price||0)+this.field('unit','Đơn vị','text',product.unit||'Phần')+this.field('image_url','Ảnh/emoji','text',product.image_url||'🍗')+this.field('kitchen_type','Nơi chế biến','select',product.kitchen_type||'KITCHEN',[{value:'KITCHEN',label:'Bếp'},{value:'BAR',label:'Pha chế'}])+this.field('description','Mô tả','textarea',product.description||'');this.openEditor(id?'Sửa sản phẩm':'Thêm sản phẩm',html,async data=>{data.category_id=data.category_id?Number(data.category_id):null;data.price=Number(data.price);data.cost_price=Number(data.cost_price||0);if(id)await window.api.put(`/products/${id}`,data);else await window.api.post('/products',data);window.api.showToast('Đã lưu sản phẩm','success');await this.loadAdminProducts()})},
+  async removeProduct(id){const product=this.products.find(item=>item.id===id);if(product?.is_active){if(!confirm('Ngừng bán sản phẩm này?'))return;await window.api.del(`/products/${id}`)}else await window.api.put(`/products/${id}`,{is_active:true});window.api.showToast('Đã cập nhật sản phẩm','success');await this.loadAdminProducts()},
+  manageCategories(){const html=`<button type="button" class="btn-primary btn-sm" onclick="adminModule.editCategory()">Thêm danh mục</button><div style="margin-top:12px">${this.categories.map(item=>`<div class="pay-row"><span><strong>${this.esc(item.name)}</strong><br><small>${this.esc(item.code||'')}</small></span><span><button type="button" class="btn-secondary btn-sm" onclick="adminModule.editCategory(${item.id})">Sửa</button> <button type="button" class="btn-secondary btn-sm" onclick="adminModule.removeCategory(${item.id})">Xóa</button></span></div>`).join('')||'Chưa có danh mục'}</div>`;this.openEditor('Danh mục sản phẩm',html,null,{hideSave:true})},
+  editCategory(id){const item=this.categories.find(category=>category.id===id)||{};const html=this.field('code','Mã danh mục','text',item.code||'')+this.field('name','Tên danh mục','text',item.name||'',null,true)+this.field('description','Mô tả','textarea',item.description||'')+this.field('sort_order','Thứ tự','number',item.sort_order||0);this.openEditor(id?'Sửa danh mục':'Thêm danh mục',html,async data=>{data.sort_order=Number(data.sort_order||0);if(id)await window.api.put(`/categories/${id}`,data);else await window.api.post('/categories',data);window.api.showToast('Đã lưu danh mục','success');await this.loadAdminProducts()})},
+  async removeCategory(id){if(!confirm('Xóa danh mục này? Sản phẩm sẽ vẫn được giữ lại.'))return;await window.api.del(`/categories/${id}`);this.closeEditor();window.api.showToast('Đã xóa danh mục','success');await this.loadAdminProducts()},
 
-      if (payList) {
-        const bd = res.paymentBreakdown || {};
-        payList.innerHTML = `
-          <div class="pay-row"><span>Tiền mặt (CASH)</span><strong>${window.api.formatMoney(bd.CASH || 0)}</strong></div>
-          <div class="pay-row"><span>VietQR (Napas 247)</span><strong>${window.api.formatMoney(bd.QR || 0)}</strong></div>
-          <div class="pay-row"><span>Chuyển khoản</span><strong>${window.api.formatMoney(bd.BANK_TRANSFER || 0)}</strong></div>
-          <div class="pay-row"><span>Thẻ ngân hàng (POS)</span><strong>${window.api.formatMoney(bd.CARD || 0)}</strong></div>
-        `;
-      }
-    } catch (err) {
-      console.error('loadReports error:', err);
-    }
-  },
+  async loadStaff(){if(window.appState.user?.role!=='STORE_MANAGER')return;try{const result=await window.api.get('/store/staff');this.staff=result.staff||[];document.getElementById('adminStaffTableBody').innerHTML=this.staff.map(user=>`<tr><td><strong>${this.esc(user.full_name)}</strong><br><small>${this.esc(user.username)} · ${this.esc(user.email)}</small></td><td>${user.role}</td><td>${user.status}</td><td><button class="btn-secondary btn-sm" onclick="adminModule.editStaff(${user.id})">Sửa</button> <button class="btn-secondary btn-sm" onclick="adminModule.resetStaffPassword(${user.id})">Đặt lại mật khẩu</button></td></tr>`).join('')||'<tr><td colspan="4">Chưa có nhân viên</td></tr>'}catch(error){console.error('loadStaff error:',error)}},
+  editStaff(id){const user=this.staff.find(item=>item.id===id)||{},roles=this.staffRoles.map(role=>({value:role,label:role}));const html=(!id?this.field('username','Tên đăng nhập','text','',null,true):'')+this.field('full_name','Họ tên','text',user.full_name||'',null,true)+this.field('email','Email','email',user.email||'',null,true)+this.field('phone','Số điện thoại','text',user.phone||'')+this.field('role','Vai trò','select',user.role||'CASHIER',roles,true)+this.field('status','Trạng thái','select',user.status||'ACTIVE',[{value:'ACTIVE',label:'Hoạt động'},{value:'INACTIVE',label:'Khóa'}])+(!id?this.field('password','Mật khẩu','password','',null,true):'');this.openEditor(id?'Sửa nhân viên':'Tạo tài khoản nhân viên',html,async data=>{if(id)await window.api.put(`/store/staff/${id}`,data);else await window.api.post('/store/staff',data);window.api.showToast('Đã lưu nhân viên','success');await this.loadStaff()})},
+  resetStaffPassword(id){this.openEditor('Đặt lại mật khẩu',this.field('password','Mật khẩu mới (ít nhất 6 ký tự)','password','',null,true),async data=>{await window.api.put(`/store/staff/${id}/reset-password`,data);window.api.showToast('Đã đặt lại mật khẩu','success')})},
 
-  // 2. Store Types & Feature Flags Manager (Rule 7, 40, 46)
-  async loadStoreTypesConfig() {
-    const container = document.getElementById('storeTypesConfigContainer');
-    if (!container) return;
+  async loadStoreRoleFeatures(){if(window.appState.user?.role!=='STORE_MANAGER')return;try{const result=await window.api.get('/store/role-features');document.getElementById('storeTypesConfigContainer').innerHTML=(result.roles||[]).map(group=>`<div class="store-type-card"><h4>${group.role}</h4><div class="features-toggle-grid">${group.features.map(feature=>`<div class="feature-toggle-item"><span>${this.featureLabels[feature.feature_code]||feature.feature_code}</span><label class="switch-input"><input type="checkbox" ${feature.enabled?'checked':''} onchange="adminModule.setStoreRoleFeature('${group.role}','${feature.feature_code}',this.checked,this)"><span class="slider"></span></label></div>`).join('')}</div></div>`).join('')}catch(error){console.error('loadStoreRoleFeatures error:',error)}},
+  async setStoreRoleFeature(role,feature,enabled,input){try{await window.api.put(`/store/role-features/${role}`,{feature_code:feature,enabled});window.api.showToast('Đã cập nhật phân quyền','success')}catch(error){input.checked=!enabled;window.api.showToast(error.message,'error')}},
 
-    try {
-      const res = await window.api.get('/store-types');
-      this.storeTypes = res.storeTypes || [];
-
-      const featureLabels = {
-        'SALE': 'Bán hàng (POS)',
-        'TAKEAWAY': 'Bán mang đi',
-        'DINE_IN': 'Bán tại chỗ',
-        'TABLE': 'Quản lý bàn & phòng',
-        'KDS': 'Màn hình bếp (KDS)',
-        'INVOICE': 'In hóa đơn nhiệt',
-        'QR_PAYMENT': 'Thanh toán VietQR',
-        'INVENTORY': 'Quản lý kho'
-      };
-
-      container.innerHTML = this.storeTypes.map(st => `
-        <div class="store-type-card" data-type-id="${st.id}">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <h4 style="font-size: 15px; font-weight: 800;">[${st.code}] ${st.name}</h4>
-              <p class="text-muted" style="font-size: 12px;">${st.description || ''}</p>
-            </div>
-            <span class="badge-pill" style="background: var(--primary-light); color: var(--primary-hover);">
-              Rule 40 & 46
-            </span>
-          </div>
-
-          <div class="features-toggle-grid">
-            ${(st.features || []).map(f => `
-              <div class="feature-toggle-item">
-                <span>${featureLabels[f.feature_code] || f.feature_code}</span>
-                <label class="switch-input">
-                  <input type="checkbox" class="feature-switch" 
-                    data-type-id="${st.id}" 
-                    data-feature="${f.feature_code}" 
-                    ${f.enabled ? 'checked' : ''}>
-                  <span class="slider"></span>
-                </label>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `).join('');
-
-      // Attach switch event listener
-      container.querySelectorAll('.feature-switch').forEach(switchInput => {
-        switchInput.addEventListener('change', async (e) => {
-          const typeId = switchInput.getAttribute('data-type-id');
-          const featureCode = switchInput.getAttribute('data-feature');
-          const enabled = e.target.checked;
-
-          try {
-            await window.api.put(`/store-types/${typeId}/features`, {
-              feature_code: featureCode,
-              enabled
-            });
-
-            window.api.showToast(`Đã ${enabled ? 'bật' : 'tắt'} tính năng [${featureCode}]`, 'success');
-
-            // Refresh current store features to update UI immediately
-            if (window.appState.currentStore && window.appState.currentStore.store_type_id === parseInt(typeId, 10)) {
-              await window.appNavigation.reloadCurrentStoreFeatures();
-            }
-          } catch (err) {
-            e.target.checked = !enabled; // revert
-            window.api.showToast('Lỗi cập nhật tính năng: ' + err.message, 'error');
-          }
-        });
-      });
-    } catch (err) {
-      console.error('loadStoreTypesConfig error:', err);
-    }
-  },
-
-  // 3. Stores List (Rule 5)
-  async loadAdminStores() {
-    const grid = document.getElementById('adminStoresGrid');
-    if (!grid) return;
-
-    try {
-      const res = await window.api.get('/stores');
-      this.stores = res.stores || [];
-
-      grid.innerHTML = this.stores.map(s => `
-        <div class="store-type-card" style="margin-bottom: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
-              <h4 style="font-size: 15px; font-weight: 800;">${s.name}</h4>
-              <p class="text-muted" style="font-size: 12px;"><i class="fa-solid fa-location-dot"></i> ${s.address || 'Chưa cập nhật địa chỉ'}</p>
-              <p class="text-muted" style="font-size: 11px;"><i class="fa-solid fa-phone"></i> ${s.phone || 'N/A'}</p>
-            </div>
-            <span class="badge-pill" style="background: var(--success-light); color: #065f46;">
-              ${s.store_type_name || 'Cửa hàng'}
-            </span>
-          </div>
-        </div>
-      `).join('');
-    } catch (err) {
-      console.error('loadAdminStores error:', err);
-    }
-  },
-
-  // 4. Products List
-  async loadAdminProducts() {
-    const tbody = document.getElementById('adminProductsTableBody');
-    if (!tbody) return;
-
-    try {
-      const res = await window.api.get('/products');
-      const products = res.products || [];
-
-      tbody.innerHTML = products.map(p => `
-        <tr>
-          <td><strong>${p.code}</strong></td>
-          <td>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span>${p.image_url || '🍗'}</span>
-              <span>${p.name}</span>
-            </div>
-          </td>
-          <td>${p.category_name || '-'}</td>
-          <td><strong class="text-primary">${window.api.formatMoney(p.price)}</strong></td>
-          <td>${p.kitchen_type === 'BAR' ? 'Quầy Pha Chế' : 'Bếp Đồ Ăn'}</td>
-          <td>
-            <span class="badge-pill" style="background: var(--success-light); color: #065f46;">
-              Đang bán
-            </span>
-          </td>
-        </tr>
-      `).join('');
-    } catch (err) {
-      console.error('loadAdminProducts error:', err);
-    }
-  }
+  async configureWorkflow(){const storeId=window.appState.currentStore?.id;if(!storeId)return;const detail=await window.api.get(`/stores/${storeId}`),workflow=detail.settings?.workflow_definition||{name:'Luồng vận hành',steps:[]};const html=this.field('workflow_name','Tên luồng','text',workflow.name||'',null,true)+`<div class="form-group"><label>Các bước xử lý</label><div id="managerWorkflowSteps">${(workflow.steps||[]).map(step=>this.workflowRow(step)).join('')}</div><button type="button" class="btn-secondary btn-sm" id="btnAddManagerWorkflow">Thêm bước</button></div>`;this.openEditor('Cấu hình luồng cửa hàng',html,async(data,form)=>{const steps=[...form.querySelectorAll('.manager-workflow-row')].map((row,index)=>({id:row.dataset.id||`step_${index+1}`,name:row.querySelector('[name="step_name"]').value,type:row.querySelector('[name="step_type"]').value,roles:row.querySelector('[name="step_roles"]').value.split(',').map(value=>value.trim().toUpperCase()).filter(Boolean)}));await window.api.put(`/stores/${storeId}/settings`,{workflow_definition:{name:data.workflow_name,steps}});window.api.showToast('Đã cập nhật luồng vận hành','success')});document.getElementById('btnAddManagerWorkflow').onclick=()=>document.getElementById('managerWorkflowSteps').insertAdjacentHTML('beforeend',this.workflowRow({id:`step_${Date.now()}`,name:'Bước mới',type:'APPROVAL',roles:['STORE_MANAGER']}))},
+  workflowRow(step){return `<div class="manager-workflow-row store-type-card" data-id="${this.esc(step.id||'')}">${this.field('step_name','Tên bước','text',step.name||'',null,true)}${this.field('step_type','Loại','select',step.type||'APPROVAL',[{value:'CREATE',label:'Tạo đơn'},{value:'APPROVAL',label:'Phê duyệt'},{value:'KITCHEN',label:'Bếp'},{value:'PAYMENT',label:'Thanh toán'}])}${this.field('step_roles','Vai trò (phân cách bằng dấu phẩy)','text',(step.roles||[]).join(', '),null,true)}<button type="button" class="btn-secondary btn-sm" onclick="this.closest('.manager-workflow-row').remove()">Xóa bước</button></div>`}
 };

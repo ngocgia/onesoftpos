@@ -72,7 +72,7 @@ async function closeShift(req, res) {
         `SELECT COALESCE(SUM(p.amount), 0) as cash_total
          FROM payments p
          JOIN orders o ON p.order_id = o.id
-         WHERE o.shift_id = $1 AND p.payment_method = 'CASH'`,
+         WHERE o.shift_id = $1 AND p.payment_method = 'CASH' AND p.status = 'SUCCESS'`,
         [shiftId]
       );
       const cashTotal = parseFloat(cashRes.rows[0].cash_total);
@@ -101,7 +101,7 @@ async function closeShift(req, res) {
 
       const actualCash = parseFloat(closing_cash);
       const cashTotal = memoryStore.payments
-        .filter(payment => payment.payment_method === 'CASH')
+        .filter(payment => payment.payment_method === 'CASH' && payment.status === 'SUCCESS')
         .filter(payment => {
           const order = memoryStore.orders.find(o => o.id === payment.order_id);
           return order && order.shift_id === shiftId;

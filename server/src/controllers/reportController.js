@@ -53,7 +53,7 @@ async function getSummary(req, res) {
       revenue = paidOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
       orderCount = paidOrders.length;
 
-      const storePayments = memoryStore.payments.filter(p => p.store_id === storeId);
+      const storePayments = memoryStore.payments.filter(p => p.store_id === storeId && p.status === 'SUCCESS');
       storePayments.forEach(p => {
         paymentBreakdown[p.payment_method] = (paymentBreakdown[p.payment_method] || 0) + (p.amount || 0);
       });

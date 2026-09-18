@@ -3,18 +3,26 @@ const bcrypt = require('bcryptjs');
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
 const { JWT_SECRET } = require('../middleware/authMiddleware');
 
-const DEFAULT_ROLE_FEATURES = ['POS', 'TABLES', 'KDS', 'ORDERS', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT'];
+const DEFAULT_ROLE_FEATURES = ['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT'];
 
-async function getRoleFeatures(role) {
+async function getRoleFeatures(role, storeId = null) {
   if (role === 'SUPER_ADMIN') {
     return Object.fromEntries(DEFAULT_ROLE_FEATURES.map(code => [code, true]));
   }
   let rows;
   if (isPostgresConnected()) {
-    const result = await pool.query('SELECT feature_code, enabled FROM role_features WHERE role = $1', [role]);
+    const result = storeId
+      ? await pool.query(`SELECT base.feature_code, COALESCE(local.enabled, base.enabled) AS enabled
+          FROM role_features base LEFT JOIN store_role_features local
+          ON local.store_id=$2 AND local.role=base.role AND local.feature_code=base.feature_code
+          WHERE base.role=$1`, [role, storeId])
+      : await pool.query('SELECT feature_code, enabled FROM role_features WHERE role = $1', [role]);
     rows = result.rows;
   } else {
-    rows = memoryStore.role_features.filter(item => item.role === role);
+    rows = memoryStore.role_features.filter(item => item.role === role).map(item => {
+      const local = storeId && memoryStore.store_role_features.find(override => override.store_id === storeId && override.role === role && override.feature_code === item.feature_code);
+      return local || item;
+    });
   }
   return Object.fromEntries(DEFAULT_ROLE_FEATURES.map(code => {
     const found = rows.find(item => item.feature_code === code);
@@ -96,7 +104,7 @@ async function login(req, res) {
     }
 
     const defaultStore = stores.find(s => s.is_default) || stores[0] || null;
-    const roleFeatures = await getRoleFeatures(user.role);
+    const roleFeatures = await getRoleFeatures(user.role, defaultStore?.id);
 
     // Generate JWT
     const token = jwt.sign(
@@ -171,7 +179,7 @@ async function getMe(req, res) {
       success: true,
       user,
       stores,
-      roleFeatures: await getRoleFeatures(user.role)
+      roleFeatures: await getRoleFeatures(user.role, req.storeId || stores.find(store => store.is_default)?.id || stores[0]?.id)
     });
   } catch (error) {
     console.error('getMe error:', error);

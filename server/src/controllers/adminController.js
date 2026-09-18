@@ -2,11 +2,30 @@ const bcrypt = require('bcryptjs');
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
 
 const ROLES = ['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER', 'ORDER_STAFF', 'CASHIER', 'KITCHEN'];
-const ROLE_FEATURES = ['POS', 'TABLES', 'KDS', 'ORDERS', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT'];
+const ROLE_FEATURES = ['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT'];
 
 function publicUser(user) {
   const { password_hash, ...safe } = user;
   return safe;
+}
+
+function normalizeStoreIds(storeIds) {
+  if (!Array.isArray(storeIds)) return [];
+  const normalized = storeIds.map(Number);
+  if (normalized.some(id => !Number.isInteger(id) || id <= 0)) {
+    const error = new Error('Danh sách cửa hàng không hợp lệ');
+    error.statusCode = 400;
+    throw error;
+  }
+  return [...new Set(normalized)];
+}
+
+function assertStoreManagerAssignment(role, storeIds) {
+  if (role === 'STORE_MANAGER' && storeIds.length !== 1) {
+    const error = new Error('STORE_MANAGER phải được phân công đúng một cửa hàng');
+    error.statusCode = 400;
+    throw error;
+  }
 }
 
 async function dashboard(req, res) {
@@ -79,6 +98,8 @@ async function createUser(req, res) {
     return res.status(400).json({ success: false, message: 'Thiếu thông tin bắt buộc hoặc vai trò không hợp lệ' });
   }
   try {
+    const normalizedStoreIds = normalizeStoreIds(store_ids);
+    assertStoreManagerAssignment(role, normalizedStoreIds);
     const passwordHash = await bcrypt.hash(password, 10);
     let user;
     if (isPostgresConnected()) {
@@ -89,7 +110,12 @@ async function createUser(req, res) {
           VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id, username, email, full_name, phone, role, status, created_at`,
           [username, passwordHash, email, full_name, phone, role, status]);
         user = result.rows[0];
-        for (const storeId of store_ids) await client.query('INSERT INTO user_stores (user_id, store_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [user.id, storeId]);
+        for (let i = 0; i < normalizedStoreIds.length; i++) {
+          await client.query(
+            'INSERT INTO user_stores (user_id, store_id, is_default) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',
+            [user.id, normalizedStoreIds[i], i === 0]
+          );
+        }
         await client.query('COMMIT');
       } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
     } else {
@@ -97,12 +123,12 @@ async function createUser(req, res) {
       const id = memoryStore.users.length ? Math.max(...memoryStore.users.map(u => u.id)) + 1 : 1;
       user = { id, username, password_hash: passwordHash, email, full_name, phone, role, status };
       memoryStore.users.push(user);
-      store_ids.forEach((storeId, index) => memoryStore.user_stores.push({ user_id: id, store_id: Number(storeId), is_default: index === 0 }));
+      normalizedStoreIds.forEach((storeId, index) => memoryStore.user_stores.push({ user_id: id, store_id: storeId, is_default: index === 0 }));
     }
     res.status(201).json({ success: true, message: 'Tạo người dùng thành công', user: publicUser(user) });
   } catch (error) {
-    console.error('createUser error:', error);
-    res.status(error.code === '23505' ? 409 : 500).json({ success: false, message: error.code === '23505' ? 'Tên đăng nhập hoặc email đã tồn tại' : 'Lỗi tạo người dùng' });
+    if (!error.statusCode) console.error('createUser error:', error);
+    res.status(error.statusCode || (error.code === '23505' ? 409 : 500)).json({ success: false, message: error.statusCode ? error.message : (error.code === '23505' ? 'Tên đăng nhập hoặc email đã tồn tại' : 'Lỗi tạo người dùng') });
   }
 }
 
@@ -112,35 +138,48 @@ async function updateUser(req, res) {
   if (role && !ROLES.includes(role)) return res.status(400).json({ success: false, message: 'Vai trò không hợp lệ' });
   if (id === req.user.id && status === 'INACTIVE') return res.status(400).json({ success: false, message: 'Không thể tự khóa tài khoản đang đăng nhập' });
   try {
+    const normalizedStoreIds = Array.isArray(store_ids) ? normalizeStoreIds(store_ids) : null;
     const passwordHash = password ? await bcrypt.hash(password, 10) : null;
     if (isPostgresConnected()) {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        const current = await client.query(
+          `SELECT u.role, COALESCE(array_agg(us.store_id) FILTER (WHERE us.store_id IS NOT NULL), '{}') AS store_ids
+           FROM users u LEFT JOIN user_stores us ON us.user_id = u.id
+           WHERE u.id = $1 GROUP BY u.id`,
+          [id]
+        );
+        if (!current.rowCount) { const error = new Error('Không tìm thấy người dùng'); error.statusCode = 404; throw error; }
+        const effectiveRole = role || current.rows[0].role;
+        const effectiveStoreIds = normalizedStoreIds || current.rows[0].store_ids.map(Number);
+        assertStoreManagerAssignment(effectiveRole, effectiveStoreIds);
         const result = await client.query(`UPDATE users SET full_name=COALESCE($1,full_name), email=COALESCE($2,email),
           phone=COALESCE($3,phone), role=COALESCE($4,role), status=COALESCE($5,status),
           password_hash=COALESCE($6,password_hash), updated_at=CURRENT_TIMESTAMP WHERE id=$7 RETURNING id`,
           [full_name, email, phone, role, status, passwordHash, id]);
         if (!result.rowCount) { const error = new Error('Không tìm thấy người dùng'); error.statusCode = 404; throw error; }
-        if (Array.isArray(store_ids)) {
+        if (normalizedStoreIds) {
           await client.query('DELETE FROM user_stores WHERE user_id=$1', [id]);
-          for (let i = 0; i < store_ids.length; i++) await client.query('INSERT INTO user_stores (user_id,store_id,is_default) VALUES ($1,$2,$3)', [id, store_ids[i], i === 0]);
+          for (let i = 0; i < normalizedStoreIds.length; i++) await client.query('INSERT INTO user_stores (user_id,store_id,is_default) VALUES ($1,$2,$3)', [id, normalizedStoreIds[i], i === 0]);
         }
         await client.query('COMMIT');
       } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
     } else {
       const user = memoryStore.users.find(u => u.id === id);
       if (!user) return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+      const currentStoreIds = memoryStore.user_stores.filter(us => us.user_id === id).map(us => us.store_id);
+      assertStoreManagerAssignment(role || user.role, normalizedStoreIds || currentStoreIds);
       for (const key of ['full_name', 'email', 'phone', 'role', 'status']) if (req.body[key] !== undefined) user[key] = req.body[key];
       if (passwordHash) user.password_hash = passwordHash;
-      if (Array.isArray(store_ids)) {
+      if (normalizedStoreIds) {
         memoryStore.user_stores = memoryStore.user_stores.filter(us => us.user_id !== id);
-        store_ids.forEach((storeId, index) => memoryStore.user_stores.push({ user_id: id, store_id: Number(storeId), is_default: index === 0 }));
+        normalizedStoreIds.forEach((storeId, index) => memoryStore.user_stores.push({ user_id: id, store_id: storeId, is_default: index === 0 }));
       }
     }
     res.json({ success: true, message: 'Cập nhật người dùng thành công' });
   } catch (error) {
-    console.error('updateUser error:', error);
+    if (!error.statusCode) console.error('updateUser error:', error);
     res.status(error.statusCode || (error.code === '23505' ? 409 : 500)).json({ success: false, message: error.message || 'Lỗi cập nhật người dùng' });
   }
 }

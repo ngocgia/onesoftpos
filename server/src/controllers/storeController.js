@@ -32,15 +32,29 @@ async function getStores(req, res) {
   try {
     let stores = [];
     if (isPostgresConnected()) {
-      const result = await pool.query(
-        `SELECT s.*, st.code as store_type_code, st.name as store_type_name 
-         FROM stores s 
-         LEFT JOIN store_types st ON s.store_type_id = st.id 
-         ORDER BY s.id ASC`
-      );
+      const hasGlobalAccess = ['SUPER_ADMIN', 'ADMIN'].includes(req.user.role);
+      const result = hasGlobalAccess
+        ? await pool.query(
+          `SELECT s.*, st.code as store_type_code, st.name as store_type_name
+           FROM stores s
+           LEFT JOIN store_types st ON s.store_type_id = st.id
+           ORDER BY s.id ASC`
+        )
+        : await pool.query(
+          `SELECT s.*, st.code as store_type_code, st.name as store_type_name, us.is_default
+           FROM stores s
+           JOIN user_stores us ON us.store_id = s.id
+           LEFT JOIN store_types st ON s.store_type_id = st.id
+           WHERE us.user_id = $1
+           ORDER BY us.is_default DESC, s.id ASC`,
+          [req.user.id]
+        );
       stores = result.rows;
     } else {
-      stores = memoryStore.stores.map(s => {
+      const allowedStoreIds = ['SUPER_ADMIN', 'ADMIN'].includes(req.user.role)
+        ? null
+        : new Set(memoryStore.user_stores.filter(us => us.user_id === req.user.id).map(us => us.store_id));
+      stores = memoryStore.stores.filter(s => !allowedStoreIds || allowedStoreIds.has(s.id)).map(s => {
         const st = memoryStore.store_types.find(t => t.id === s.store_type_id);
         return {
           ...s,
@@ -162,7 +176,8 @@ async function createStore(req, res) {
         bank_name: 'MB Bank',
         bank_account_number: '090123456789',
         bank_account_holder: name.toUpperCase(),
-        kds_enabled: true
+        kds_enabled: true,
+        kds_completion_message: 'Món ăn {mon}, bàn {ban} đã xong'
       });
     }
 
@@ -333,13 +348,21 @@ async function updateStoreSettings(req, res) {
     bank_account_number, 
     bank_account_holder, 
     kds_enabled,
+    kds_completion_message,
     workflow_definition
   } = req.body;
 
-  let normalizedWorkflow;
-  if (workflow_definition !== undefined && req.user?.role !== 'SUPER_ADMIN') {
-    return res.status(403).json({ success: false, message: 'Chỉ Super Admin được cấu hình luồng vận hành' });
+  if (kds_completion_message !== undefined && req.user?.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ success: false, message: 'Chỉ SUPER_ADMIN được cấu hình câu thông báo KDS' });
   }
+  const normalizedKdsMessage = kds_completion_message === undefined
+    ? undefined
+    : String(kds_completion_message).trim() || 'Món ăn {mon}, bàn {ban} đã xong';
+  if (normalizedKdsMessage && normalizedKdsMessage.length > 300) {
+    return res.status(400).json({ success: false, message: 'Câu thông báo KDS không được vượt quá 300 ký tự' });
+  }
+
+  let normalizedWorkflow;
   if (workflow_definition !== undefined) {
     const validation = validateWorkflow(workflow_definition);
     if (!validation.valid) return res.status(400).json({ success: false, message: validation.message });
@@ -357,10 +380,11 @@ async function updateStoreSettings(req, res) {
              bank_account_number = COALESCE($5, bank_account_number),
              bank_account_holder = COALESCE($6, bank_account_holder),
              kds_enabled = COALESCE($7, kds_enabled),
-             workflow_definition = COALESCE($8::jsonb, workflow_definition),
+             kds_completion_message = COALESCE($8, kds_completion_message),
+             workflow_definition = COALESCE($9::jsonb, workflow_definition),
              updated_at = CURRENT_TIMESTAMP
-         WHERE store_id = $9`,
-        [receipt_header, receipt_footer, receipt_paper_size, bank_name, bank_account_number, bank_account_holder, kds_enabled, normalizedWorkflow ? JSON.stringify(normalizedWorkflow) : null, storeId]
+         WHERE store_id = $10`,
+        [receipt_header, receipt_footer, receipt_paper_size, bank_name, bank_account_number, bank_account_holder, kds_enabled, normalizedKdsMessage, normalizedWorkflow ? JSON.stringify(normalizedWorkflow) : null, storeId]
       );
     } else {
       let settings = memoryStore.store_settings.find(s => s.store_id === storeId);
@@ -375,6 +399,7 @@ async function updateStoreSettings(req, res) {
       if (bank_account_number !== undefined) settings.bank_account_number = bank_account_number;
       if (bank_account_holder !== undefined) settings.bank_account_holder = bank_account_holder;
       if (kds_enabled !== undefined) settings.kds_enabled = kds_enabled;
+      if (normalizedKdsMessage !== undefined) settings.kds_completion_message = normalizedKdsMessage;
       if (normalizedWorkflow !== undefined) settings.workflow_definition = normalizedWorkflow;
     }
 

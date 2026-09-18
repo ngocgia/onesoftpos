@@ -1,7 +1,7 @@
 const adminApp = {
   me: null, stores: [], storeTypes: [], users: [], products: [], categories: [], roles: [], modalSubmit: null,
   featureLabels: { SALE:'Bán hàng',TAKEAWAY:'Mang đi',DINE_IN:'Tại chỗ',TABLE:'Phòng bàn',KDS:'Bếp KDS',INVOICE:'Hóa đơn',QR_PAYMENT:'VietQR',INVENTORY:'Kho' },
-  roleFeatureLabels: { POS:'Bán hàng POS',TABLES:'Phòng bàn',KDS:'Bếp KDS',ORDERS:'Đơn hàng',PAYMENT:'Thu tiền & thanh toán',ADMIN:'Quản trị cửa hàng',SHIFT:'Quản lý ca',DISCOUNT:'Áp dụng giảm giá' },
+  roleFeatureLabels: { POS:'Bán hàng POS',TABLES:'Phòng bàn',KDS:'Bếp KDS',ORDERS:'Đơn hàng',HISTORY:'Lịch sử',PAYMENT:'Thu tiền & thanh toán',ADMIN:'Quản trị cửa hàng',SHIFT:'Quản lý ca',DISCOUNT:'Áp dụng giảm giá' },
   esc(value='') { const div=document.createElement('div'); div.textContent=String(value??''); return div.innerHTML; },
   money(value) { return window.api.formatMoney(Number(value)||0); },
   toast(message,error=false){const el=document.getElementById('toast');el.textContent=message;el.className=error?'show error':'show';setTimeout(()=>el.className='',2600)},
@@ -31,8 +31,42 @@ const adminApp = {
   async loadDashboard(){const d=await window.api.get('/admin/dashboard');document.getElementById('metrics').innerHTML=[['fa-store','Cửa hàng hoạt động',d.activeStores],['fa-users','Người dùng hoạt động',d.activeUsers],['fa-receipt','Đơn hôm nay',d.todayOrders],['fa-sack-dollar','Doanh thu hôm nay',this.money(d.todayRevenue)],['fa-calendar','Doanh thu tháng',this.money(d.monthRevenue)]].map(x=>`<div class="metric"><i class="fa-solid ${x[0]}"></i><strong>${this.esc(x[2])}</strong><span>${x[1]}</span></div>`).join('');document.getElementById('dashboardStores').innerHTML=(d.stores||[]).map(s=>`<tr><td><strong>${this.esc(s.name)}</strong></td><td>${s.order_count}</td><td><strong>${this.money(s.revenue)}</strong></td></tr>`).join('')||'<tr><td class="empty" colspan="3">Chưa có dữ liệu</td></tr>'},
   async loadStores(){const r=await window.api.get('/stores');this.stores=r.stores||[];this.fillStoreControls();this.renderStores()},
   fillStoreControls(){const typeFilter=document.getElementById('storeTypeFilter');typeFilter.innerHTML='<option value="">Tất cả loại cửa hàng</option>'+this.storeTypes.map(t=>`<option value="${t.id}">${this.esc(t.name)}</option>`).join('');const productStore=document.getElementById('productStore');const current=productStore.value||window.api.getCurrentStoreId()||this.stores[0]?.id;productStore.innerHTML=this.stores.map(s=>`<option value="${s.id}" ${String(s.id)===String(current)?'selected':''}>${this.esc(s.name)}</option>`).join('')},
-  renderStores(){const q=document.getElementById('storeSearch').value.toLowerCase(),type=document.getElementById('storeTypeFilter').value;const rows=this.stores.filter(s=>(!type||String(s.store_type_id)===type)&&`${s.code} ${s.name} ${s.address}`.toLowerCase().includes(q));document.getElementById('storesList').innerHTML=rows.map(s=>`<article class="card"><div class="card-head"><div><h3>${this.esc(s.name)}</h3><p>${this.esc(s.code)} · ${this.esc(s.store_type_name||'Chưa phân loại')}</p></div><span class="badge ${s.status==='ACTIVE'?'active':'inactive'}">${s.status==='ACTIVE'?'HOẠT ĐỘNG':'TẠM KHÓA'}</span></div><p style="margin-top:12px"><i class="fa-solid fa-location-dot"></i> ${this.esc(s.address||'Chưa cập nhật')}<br><i class="fa-solid fa-phone"></i> ${this.esc(s.phone||'Chưa cập nhật')}</p><div class="card-actions"><button class="btn ghost small" onclick="adminApp.editStore(${s.id})">Sửa & cấu hình</button><button class="btn ${s.status==='ACTIVE'?'danger':'ghost'} small" onclick="adminApp.toggleStore(${s.id})">${s.status==='ACTIVE'?'Tạm khóa':'Kích hoạt'}</button></div></article>`).join('')||'<div class="panel empty">Không tìm thấy cửa hàng</div>'},
-  async editStore(id){let detail=null,s=this.stores.find(x=>x.id===id)||{};if(id)detail=await window.api.get(`/stores/${id}`);const settings=detail?.settings||{};const typeOptions=this.storeTypes.map(t=>({value:t.id,label:`${t.code} - ${t.name}`}));const html=this.field('code','Mã cửa hàng','text',s.code||'',null,false,!id)+this.field('name','Tên cửa hàng','text',s.name||'',null,false,true)+this.field('display_name','Tên hiển thị','text',s.display_name||'')+this.field('store_type_id','Loại cửa hàng','select',s.store_type_id||'',typeOptions,false,true)+this.field('phone','Số điện thoại','text',s.phone||'')+this.field('email','Email','email',s.email||'')+this.field('address','Địa chỉ','textarea',s.address||'',null,true)+this.field('province','Tỉnh thành','text',s.province||'')+this.field('district','Quận huyện','text',s.district||'')+(id?this.field('receipt_header','Tên trên hóa đơn','text',settings.receipt_header||'',null,true)+this.field('receipt_footer','Chân hóa đơn','textarea',settings.receipt_footer||'',null,true)+this.field('bank_name','Ngân hàng','text',settings.bank_name||'')+this.field('bank_account_number','Số tài khoản','text',settings.bank_account_number||'')+this.field('bank_account_holder','Chủ tài khoản','text',settings.bank_account_holder||''): '');this.openModal(id?'Sửa và cấu hình cửa hàng':'Thêm cửa hàng',html,async data=>{if(id){await window.api.put(`/stores/${id}`,data);await window.api.put(`/stores/${id}/settings`,data)}else await window.api.post('/stores',data);this.toast('Đã lưu cửa hàng');await this.loadStores()})},
+  renderStores(){const q=document.getElementById('storeSearch').value.toLowerCase(),type=document.getElementById('storeTypeFilter').value;const rows=this.stores.filter(s=>(!type||String(s.store_type_id)===type)&&`${s.code} ${s.name} ${s.address}`.toLowerCase().includes(q));document.getElementById('storesList').innerHTML=rows.map(s=>`<article class="card"><div class="card-head"><div><h3>${this.esc(s.name)}</h3><p>${this.esc(s.code)} · ${this.esc(s.store_type_name||'Chưa phân loại')}</p></div><span class="badge ${s.status==='ACTIVE'?'active':'inactive'}">${s.status==='ACTIVE'?'HOẠT ĐỘNG':'TẠM KHÓA'}</span></div><p style="margin-top:12px"><i class="fa-solid fa-location-dot"></i> ${this.esc(s.address||'Chưa cập nhật')}<br><i class="fa-solid fa-phone"></i> ${this.esc(s.phone||'Chưa cập nhật')}</p><div class="card-actions"><button class="btn ghost small" onclick="adminApp.configureKdsAnnouncement(${s.id})"><i class="fa-solid fa-volume-high"></i> Loa KDS</button><button class="btn ghost small" onclick="adminApp.editStore(${s.id})">Sửa & cấu hình</button><button class="btn ${s.status==='ACTIVE'?'danger':'ghost'} small" onclick="adminApp.toggleStore(${s.id})">${s.status==='ACTIVE'?'Tạm khóa':'Kích hoạt'}</button></div></article>`).join('')||'<div class="panel empty">Không tìm thấy cửa hàng</div>'},
+  async editStore(id){let detail=null,s=this.stores.find(x=>x.id===id)||{};if(id)detail=await window.api.get(`/stores/${id}`);const settings=detail?.settings||{};const typeOptions=this.storeTypes.map(t=>({value:t.id,label:`${t.code} - ${t.name}`}));const html=this.field('code','Mã cửa hàng','text',s.code||'',null,false,!id)+this.field('name','Tên cửa hàng','text',s.name||'',null,false,true)+this.field('display_name','Tên hiển thị','text',s.display_name||'')+this.field('store_type_id','Loại cửa hàng','select',s.store_type_id||'',typeOptions,false,true)+this.field('phone','Số điện thoại','text',s.phone||'')+this.field('email','Email','email',s.email||'')+this.field('address','Địa chỉ','textarea',s.address||'',null,true)+this.field('province','Tỉnh thành','text',s.province||'')+this.field('district','Quận huyện','text',s.district||'')+(id?this.field('receipt_header','Tên trên hóa đơn','text',settings.receipt_header||'',null,true)+this.field('receipt_footer','Chân hóa đơn','textarea',settings.receipt_footer||'',null,true)+this.field('bank_name','Ngân hàng','text',settings.bank_name||'')+this.field('bank_account_number','Số tài khoản','text',settings.bank_account_number||'')+this.field('bank_account_holder','Chủ tài khoản','text',settings.bank_account_holder||'')+this.field('kds_completion_message','Câu loa khi món hoàn thành','textarea',settings.kds_completion_message||'Món ăn {mon}, bàn {ban} đã xong',null,true)+`<p class="field full muted">Biến: <strong>{mon}</strong>, <strong>{ban}</strong>, <strong>{ma_don}</strong>, <strong>{ten_khach_hang}</strong>. Với Takeaway, bàn tự được thay bằng tên khách.</p>`: '');this.openModal(id?'Sửa và cấu hình cửa hàng':'Thêm cửa hàng',html,async data=>{if(id){await window.api.put(`/stores/${id}`,data);await window.api.put(`/stores/${id}/settings`,data)}else await window.api.post('/stores',data);this.toast('Đã lưu cửa hàng');await this.loadStores()})},
+  async configureKdsAnnouncement(storeId=null){
+    if(!this.stores.length)await this.loadStores();
+    const selectedId=Number(storeId||this.stores[0]?.id);
+    if(!selectedId){this.toast('Chưa có cửa hàng để cấu hình',true);return}
+    const detail=await window.api.get(`/stores/${selectedId}`);
+    const options=this.stores.map(store=>({value:store.id,label:`${store.code} - ${store.name}`}));
+    const defaultMessage='Món ăn {mon}, bàn {ban} đã xong';
+    const html=this.field('store_id','Cửa hàng','select',selectedId,options,false,true)
+      +this.field('kds_completion_message','Câu loa khi món hoàn thành','textarea',detail.settings?.kds_completion_message||defaultMessage,null,true,true)
+      +`<div class="field full"><p class="muted">Biến hỗ trợ: <strong>{mon}</strong> tên món, <strong>{ban}</strong> bàn, <strong>{ma_don}</strong> mã đơn, <strong>{ten_khach_hang}</strong> tên khách. Với Takeaway, biến bàn tự dùng tên khách.</p><button type="button" class="btn ghost" id="previewKdsAnnouncement"><i class="fa-solid fa-volume-high"></i> Nghe thử</button></div>`;
+    this.openModal('Cấu hình loa thông báo KDS',html,async data=>{
+      await window.api.put(`/stores/${data.store_id}/settings`,{kds_completion_message:data.kds_completion_message});
+      this.toast('Đã lưu cấu hình loa KDS');
+    });
+    const form=document.getElementById('modalForm');
+    const messageInput=form.querySelector('[name="kds_completion_message"]');
+    messageInput.maxLength=300;
+    form.querySelector('[name="store_id"]').addEventListener('change',async event=>{
+      try{
+        const storeDetail=await window.api.get(`/stores/${event.target.value}`);
+        messageInput.value=storeDetail.settings?.kds_completion_message||defaultMessage;
+      }catch(error){this.toast(error.message,true)}
+    });
+    document.getElementById('previewKdsAnnouncement').onclick=()=>{
+      const sample=messageInput.value.trim().replaceAll('{mon}','Gà rán giòn cay').replaceAll('{ban}','05').replaceAll('{ma_don}','TG-001').replaceAll('{ten_khach_hang}','Nguyễn Văn An');
+      if(!('speechSynthesis' in window)){this.toast('Thiết bị không hỗ trợ đọc bằng loa',true);return}
+      window.speechSynthesis.cancel();
+      const utterance=new SpeechSynthesisUtterance(sample||defaultMessage);
+      utterance.lang='vi-VN';utterance.rate=.95;utterance.volume=1;
+      const voice=window.speechSynthesis.getVoices().find(item=>String(item.lang||'').toLowerCase().startsWith('vi'));
+      if(voice)utterance.voice=voice;
+      window.speechSynthesis.speak(utterance);
+    };
+  },
   async toggleStore(id){const s=this.stores.find(x=>x.id===id);await window.api.put(`/stores/${id}`,{status:s.status==='ACTIVE'?'INACTIVE':'ACTIVE'});this.toast('Đã cập nhật trạng thái');await this.loadStores()},
   async loadStoreTypes(){const r=await window.api.get('/store-types');this.storeTypes=r.storeTypes||[];this.renderStoreTypes();this.fillStoreControls()},
   renderStoreTypes(){const el=document.getElementById('storeTypesList');if(!el)return;el.innerHTML=this.storeTypes.map(t=>`<article class="card"><div class="card-head"><div><h3>${this.esc(t.name)}</h3><p>${this.esc(t.code)} · ${this.esc(t.description||'')}</p></div><button class="btn ghost small" onclick="adminApp.editStoreType(${t.id})">Sửa</button></div><div class="feature-grid">${Object.entries(this.featureLabels).map(([code,label])=>{const f=(t.features||[]).find(x=>x.feature_code===code);return `<label class="feature"><span>${label}</span><input type="checkbox" ${f?.enabled?'checked':''} onchange="adminApp.toggleFeature(${t.id},'${code}',this.checked)"></label>`}).join('')}</div></article>`).join('')},
@@ -40,7 +74,43 @@ const adminApp = {
   async toggleFeature(id,code,enabled){try{await window.api.put(`/store-types/${id}/features`,{feature_code:code,enabled});this.toast(`Đã ${enabled?'bật':'tắt'} ${this.featureLabels[code]}`)}catch(e){this.toast(e.message,true);await this.loadStoreTypes()}},
   async loadUsers(){const r=await window.api.get('/admin/users');this.users=r.users||[];this.roles=r.roles||[];document.getElementById('roleFilter').innerHTML='<option value="">Tất cả vai trò</option>'+this.roles.map(role=>`<option>${role}</option>`).join('');this.renderUsers()},
   renderUsers(){const q=document.getElementById('userSearch').value.toLowerCase(),role=document.getElementById('roleFilter').value;const rows=this.users.filter(u=>(!role||u.role===role)&&`${u.full_name} ${u.username} ${u.email}`.toLowerCase().includes(q));document.getElementById('usersList').innerHTML=rows.map(u=>`<tr><td><strong>${this.esc(u.full_name)}</strong><br><span class="muted">${this.esc(u.username)} · ${this.esc(u.email)}</span></td><td><span class="badge active">${u.role}</span></td><td>${(u.stores||[]).map(s=>this.esc(s.name)).join(', ')||'<span class="muted">Toàn hệ thống</span>'}</td><td><span class="badge ${u.status==='ACTIVE'?'active':'inactive'}">${u.status}</span></td><td><button class="btn ghost small" onclick="adminApp.editUser(${u.id})">Chỉnh sửa</button></td></tr>`).join('')||'<tr><td class="empty" colspan="5">Không tìm thấy người dùng</td></tr>'},
-  editUser(id){const u=this.users.find(x=>x.id===id)||{};const roleOpts=(this.roles.length?this.roles:['SUPER_ADMIN','ADMIN','STORE_MANAGER','CASHIER','KITCHEN']).map(x=>({value:x,label:x}));const statusOpts=[{value:'ACTIVE',label:'Hoạt động'},{value:'INACTIVE',label:'Đã khóa'}];const assigned=new Set((u.stores||[]).map(s=>s.id));const html=(!id?this.field('username','Tên đăng nhập','text','',null,false,true):'')+this.field('full_name','Họ tên','text',u.full_name||'',null,false,true)+this.field('email','Email','email',u.email||'',null,false,true)+this.field('phone','Số điện thoại','text',u.phone||'')+this.field('role','Vai trò','select',u.role||'CASHIER',roleOpts)+this.field('status','Trạng thái','select',u.status||'ACTIVE',statusOpts)+this.field('password',id?'Mật khẩu mới (để trống nếu giữ nguyên)':'Mật khẩu','password','',null,true,!id)+`<div class="field full"><label>Cửa hàng được truy cập</label><div class="checks">${this.stores.map(s=>`<label class="check"><input type="checkbox" name="store_${s.id}" ${assigned.has(s.id)?'checked':''}>${this.esc(s.name)}</label>`).join('')}</div></div>`;this.openModal(id?'Chỉnh sửa người dùng':'Tạo người dùng',html,async data=>{data.store_ids=this.stores.filter(s=>data[`store_${s.id}`]).map(s=>s.id);if(!data.password)delete data.password;if(id)await window.api.put(`/admin/users/${id}`,data);else await window.api.post('/admin/users',data);this.toast('Đã lưu người dùng');await this.loadUsers()})},
+  editUser(id){
+    const u=this.users.find(x=>x.id===id)||{};
+    const roleOpts=(this.roles.length?this.roles:['SUPER_ADMIN','ADMIN','STORE_MANAGER','CASHIER','KITCHEN']).map(x=>({value:x,label:x}));
+    const statusOpts=[{value:'ACTIVE',label:'Hoạt động'},{value:'INACTIVE',label:'Đã khóa'}];
+    const assigned=new Set((u.stores||[]).map(s=>s.id));
+    const html=(!id?this.field('username','Tên đăng nhập','text','',null,false,true):'')
+      +this.field('full_name','Họ tên','text',u.full_name||'',null,false,true)
+      +this.field('email','Email','email',u.email||'',null,false,true)
+      +this.field('phone','Số điện thoại','text',u.phone||'')
+      +this.field('role','Vai trò','select',u.role||'CASHIER',roleOpts)
+      +this.field('status','Trạng thái','select',u.status||'ACTIVE',statusOpts)
+      +this.field('password',id?'Mật khẩu mới (để trống nếu giữ nguyên)':'Mật khẩu','password','',null,true,!id)
+      +`<div class="field full"><label id="storeAssignmentLabel">Cửa hàng được truy cập</label><div class="checks">${this.stores.map(s=>`<label class="check"><input type="checkbox" name="store_${s.id}" ${assigned.has(s.id)?'checked':''}>${this.esc(s.name)}</label>`).join('')}</div></div>`;
+    this.openModal(id?'Chỉnh sửa người dùng':'Tạo người dùng',html,async data=>{
+      data.store_ids=this.stores.filter(s=>data[`store_${s.id}`]).map(s=>s.id);
+      if(data.role==='STORE_MANAGER'&&data.store_ids.length!==1)throw new Error('STORE_MANAGER phải được phân công đúng một cửa hàng');
+      if(!data.password)delete data.password;
+      if(id)await window.api.put(`/admin/users/${id}`,data);else await window.api.post('/admin/users',data);
+      this.toast('Đã lưu người dùng');
+      await this.loadUsers();
+    });
+    const roleSelect=document.querySelector('#formModal [name="role"]');
+    const storeInputs=[...document.querySelectorAll('#formModal input[name^="store_"]')];
+    const syncManagerAssignment=()=>{
+      const manager=roleSelect.value==='STORE_MANAGER';
+      document.getElementById('storeAssignmentLabel').textContent=manager?'Cửa hàng quản lý (chọn đúng 1)':'Cửa hàng được truy cập';
+      if(manager){
+        const checked=storeInputs.filter(input=>input.checked);
+        checked.slice(1).forEach(input=>{input.checked=false});
+      }
+    };
+    storeInputs.forEach(input=>input.addEventListener('change',()=>{
+      if(roleSelect.value==='STORE_MANAGER'&&input.checked)storeInputs.filter(other=>other!==input).forEach(other=>{other.checked=false});
+    }));
+    roleSelect.addEventListener('change',syncManagerAssignment);
+    syncManagerAssignment();
+  },
   async loadRoleFeatures(){const r=await window.api.get('/admin/role-features');this.roleFeatureRoles=r.roles||[];document.getElementById('roleFeaturesList').innerHTML=this.roleFeatureRoles.map(group=>`<article class="card"><div class="card-head"><div><h3>${group.role}</h3><p>Cấu hình các chức năng được hiển thị cho nhóm này</p></div><span class="badge active">NHÓM QUYỀN</span></div><div class="feature-grid">${group.features.map(feature=>`<label class="feature"><span>${this.roleFeatureLabels[feature.feature_code]||feature.feature_code}</span><input type="checkbox" ${feature.enabled?'checked':''} onchange="adminApp.toggleRoleFeature('${group.role}','${feature.feature_code}',this.checked,this)"></label>`).join('')}</div></article>`).join('')},
   async configureOrderWorkflow(){
     if(!this.stores.length)await this.loadStores();

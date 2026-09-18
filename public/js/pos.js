@@ -14,6 +14,8 @@ window.posModule = {
   async init() {
     this.bindEvents();
     await this.loadCatalog();
+    this.configureTakeawayWorkspace();
+    this.updateFulfillmentVisibility();
     this.renderCart();
 
     // Subscribe to state updates
@@ -22,6 +24,10 @@ window.posModule = {
         this.renderCart();
       } else if (event === 'store_changed') {
         this.loadCatalog();
+        this.configureTakeawayWorkspace();
+        this.updateFulfillmentVisibility();
+      } else if (event === 'takeaway_drafts_updated') {
+        this.renderTakeawayDrafts();
       }
     });
   },
@@ -56,6 +62,48 @@ window.posModule = {
         window.appState.setOrderType(type);
       });
     });
+
+    const fulfillmentType = document.getElementById('takeawayFulfillmentType');
+    fulfillmentType?.addEventListener('change', event => {
+      window.appState.cart.fulfillmentType = event.target.value;
+      this.renderFulfillmentFields();
+      window.appState.notify('takeaway_drafts_updated', window.appState.takeawayDrafts);
+      if (event.target.value && window.matchMedia('(max-width: 520px)').matches) {
+        requestAnimationFrame(() => {
+          document.getElementById('takeawayFulfillmentPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
+    });
+    document.getElementById('takeawayFulfillmentPanel')?.addEventListener('focusin', event => {
+      if (!event.target.matches('input, select') || !window.matchMedia('(max-width: 520px)').matches) return;
+      setTimeout(() => event.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 250);
+    });
+    [
+      ['takeawayCustomerName', 'customerName'],
+      ['takeawayCustomerPhone', 'customerPhone'],
+      ['takeawayDeliveryAddress', 'deliveryAddress'],
+      ['takeawayScheduledAt', 'scheduledAt']
+    ].forEach(([id, key]) => document.getElementById(id)?.addEventListener('input', event => {
+      window.appState.cart[key] = event.target.value;
+      this.renderTakeawayDrafts();
+    }));
+
+    document.querySelectorAll('.takeaway-workspace-tab').forEach(button => {
+      button.addEventListener('click', () => this.setTakeawayPane(button.dataset.pane));
+    });
+    document.getElementById('btnOpenTakeawayOrders')?.addEventListener('click', () => this.setTakeawayPane('orders'));
+    ['btnNewTakeawayDraft', 'btnNewTakeawayDraftInOrders'].forEach(id => {
+      document.getElementById(id)?.addEventListener('click', () => this.startNewTakeawayDraft());
+    });
+    document.getElementById('takeawayDraftList')?.addEventListener('wheel', event => {
+      const list = event.currentTarget;
+      if (list.scrollWidth <= list.clientWidth || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
+      const nextLeft = list.scrollLeft + event.deltaY;
+      const canScroll = event.deltaY < 0 ? list.scrollLeft > 0 : list.scrollLeft + list.clientWidth < list.scrollWidth - 1;
+      if (!canScroll) return;
+      event.preventDefault();
+      list.scrollLeft = nextLeft;
+    }, { passive: false });
 
     // Mobile cart bottom sheet handle
     const cartHandle = document.getElementById('cartSheetHandle');
@@ -127,9 +175,10 @@ window.posModule = {
     const btnCheckout = document.getElementById('btnProceedCheckout');
     if (btnCheckout) {
       btnCheckout.addEventListener('click', () => {
-        if (window.checkoutModule) {
-          window.checkoutModule.openCheckoutModal();
-        }
+        try {
+          this.getFulfillmentPayload();
+          if (window.checkoutModule) window.checkoutModule.openCheckoutModal();
+        } catch (error) { window.api.showToast(error.message, 'error'); }
       });
     }
 
@@ -138,6 +187,176 @@ window.posModule = {
     if (btnSendKitchen) {
       btnSendKitchen.addEventListener('click', () => this.sendOrderToKitchen());
     }
+    document.getElementById('btnPrintDraftReceipt')?.addEventListener('click', () => {
+      if (!window.appState.cart.items.length) {
+        window.api.showToast('Vui lòng chọn ít nhất một món để in biên lai', 'error');
+        return;
+      }
+      window.invoiceModule?.showDraftReceipt();
+    });
+  },
+
+  isTakeawayOnlyOrder() {
+    return window.appState.storeType?.code === 'TAKEAWAY' && window.appState.cart.orderType === 'TAKEAWAY';
+  },
+
+  configureTakeawayWorkspace() {
+    const enabled = window.appState.storeType?.code === 'TAKEAWAY';
+    document.body.classList.toggle('takeaway-only-store', enabled);
+    const tabs = document.getElementById('takeawayWorkspaceTabs');
+    const draftsPanel = document.getElementById('takeawayDraftsPanel');
+    const hint = document.getElementById('takeawayActiveOrderHint');
+    const historyLabel = document.querySelector('#navItemOrders span');
+    if (tabs) tabs.style.display = enabled ? 'flex' : 'none';
+    if (draftsPanel) draftsPanel.style.display = enabled ? 'block' : 'none';
+    if (hint) hint.style.display = enabled ? 'flex' : 'none';
+    if (historyLabel) historyLabel.textContent = enabled ? 'Lịch sử' : 'Đơn hàng';
+
+    if (enabled) {
+      window.appState.ensureTakeawayDraft();
+      const workspace = document.getElementById('posWorkspace');
+      if (workspace && !['menu', 'orders'].includes(workspace.dataset.takeawayPane)) {
+        workspace.dataset.takeawayPane = 'menu';
+      }
+      this.renderTakeawayDrafts();
+    }
+  },
+
+  setTakeawayPane(pane) {
+    if (window.appState.storeType?.code !== 'TAKEAWAY') return;
+    const nextPane = pane === 'orders' ? 'orders' : 'menu';
+    const workspace = document.getElementById('posWorkspace');
+    if (workspace) workspace.dataset.takeawayPane = nextPane;
+    document.querySelectorAll('.takeaway-workspace-tab').forEach(button => {
+      button.classList.toggle('active', button.dataset.pane === nextPane);
+    });
+    if (nextPane === 'orders') {
+      this.renderCart();
+      this.renderFulfillmentFields();
+    }
+  },
+
+  startNewTakeawayDraft() {
+    const draft = window.appState.createTakeawayDraft();
+    this.setTakeawayPane('menu');
+    window.api.showToast(`Đã mở đơn mới cho Khách ${draft.number}`, 'success');
+  },
+
+  getTakeawayDraftName(draft) {
+    return draft?.cart?.customerName?.trim() || `Khách ${draft?.number || 1}`;
+  },
+
+  renderTakeawayDrafts() {
+    if (window.appState.storeType?.code !== 'TAKEAWAY') return;
+    const drafts = window.appState.takeawayDrafts;
+    const active = window.appState.getActiveTakeawayDraft();
+    const list = document.getElementById('takeawayDraftList');
+    const count = document.getElementById('takeawayDraftCount');
+    const activeName = document.getElementById('takeawayActiveOrderName');
+    if (count) count.textContent = drafts.length;
+    if (activeName) activeName.textContent = this.getTakeawayDraftName(active);
+    if (!list) return;
+
+    list.innerHTML = drafts.map(draft => {
+      const itemCount = draft.cart.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+      const total = draft.cart.items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+      const isActive = draft.id === window.appState.activeTakeawayDraftId;
+      return `<div class="takeaway-draft-chip ${isActive ? 'active' : ''}">
+        <button type="button" class="takeaway-draft-select" data-draft-id="${draft.id}">
+          <strong>${this.escapeHtml(this.getTakeawayDraftName(draft))}</strong>
+          <small>${itemCount} món · ${window.api.formatMoney(total)}</small>
+        </button>
+        <button type="button" class="takeaway-draft-remove" data-remove-draft-id="${draft.id}" title="Xóa đơn nháp"><i class="fa-solid fa-xmark"></i></button>
+      </div>`;
+    }).join('');
+
+    const activeChip = list.querySelector('.takeaway-draft-chip.active');
+    if (activeChip) {
+      requestAnimationFrame(() => {
+        const listRect = list.getBoundingClientRect();
+        const chipRect = activeChip.getBoundingClientRect();
+        if (chipRect.left < listRect.left) {
+          list.scrollTo({ left: Math.max(0, list.scrollLeft + chipRect.left - listRect.left - 8), behavior: 'smooth' });
+        } else if (chipRect.right > listRect.right) {
+          list.scrollTo({ left: list.scrollLeft + chipRect.right - listRect.right + 8, behavior: 'smooth' });
+        }
+      });
+    }
+
+    list.querySelectorAll('[data-draft-id]').forEach(button => {
+      button.addEventListener('click', () => {
+        window.appState.activateTakeawayDraft(button.dataset.draftId);
+        this.renderFulfillmentFields();
+        this.setTakeawayPane('orders');
+      });
+    });
+    list.querySelectorAll('[data-remove-draft-id]').forEach(button => {
+      button.addEventListener('click', event => {
+        event.stopPropagation();
+        const draft = drafts.find(item => item.id === button.dataset.removeDraftId);
+        if (draft && confirm(`Xóa đơn nháp của ${this.getTakeawayDraftName(draft)}?`)) {
+          window.appState.removeTakeawayDraft(draft.id);
+          this.renderFulfillmentFields();
+        }
+      });
+    });
+  },
+
+  escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+  },
+
+  updateFulfillmentVisibility() {
+    const panel = document.getElementById('takeawayFulfillmentPanel');
+    if (!panel) return;
+    panel.style.display = this.isTakeawayOnlyOrder() ? 'block' : 'none';
+    this.renderFulfillmentFields();
+  },
+
+  renderFulfillmentFields() {
+    const type = window.appState.cart.fulfillmentType;
+    const details = document.getElementById('takeawayFulfillmentDetails');
+    const select = document.getElementById('takeawayFulfillmentType');
+    if (select) select.value = type;
+    const values = {
+      takeawayCustomerName: window.appState.cart.customerName,
+      takeawayCustomerPhone: window.appState.cart.customerPhone,
+      takeawayDeliveryAddress: window.appState.cart.deliveryAddress,
+      takeawayScheduledAt: window.appState.cart.scheduledAt
+    };
+    Object.entries(values).forEach(([id, value]) => {
+      const input = document.getElementById(id);
+      if (input && document.activeElement !== input) input.value = value || '';
+    });
+    if (!details) return;
+    details.style.display = this.isTakeawayOnlyOrder() && type ? 'grid' : 'none';
+    document.querySelector('.fulfillment-customer-field').style.display = ['SHIP_DELIVERY','CUSTOMER_PICKUP'].includes(type) ? 'block' : 'none';
+    document.querySelector('.fulfillment-phone-field').style.display = ['SHIP_DELIVERY','CUSTOMER_PICKUP'].includes(type) ? 'block' : 'none';
+    document.querySelector('.fulfillment-address-field').style.display = type === 'SHIP_DELIVERY' ? 'block' : 'none';
+    const label = document.getElementById('takeawayScheduledLabel');
+    if (label) label.textContent = type === 'SHIP_DELIVERY' ? 'Giờ hẹn' : 'Giờ đến lấy';
+  },
+
+  resetFulfillmentForm() {
+    ['takeawayFulfillmentType','takeawayCustomerName','takeawayCustomerPhone','takeawayDeliveryAddress','takeawayScheduledAt'].forEach(id=>{const input=document.getElementById(id);if(input)input.value=''});
+    this.renderFulfillmentFields();
+  },
+
+  getFulfillmentPayload() {
+    if (!this.isTakeawayOnlyOrder()) return {};
+    const cart = window.appState.cart;
+    const type = cart.fulfillmentType;
+    if (!type) throw new Error('Vui lòng chọn loại đơn mang đi');
+    if (!cart.scheduledAt) throw new Error(type === 'SHIP_DELIVERY' ? 'Vui lòng nhập giờ hẹn' : 'Vui lòng nhập giờ đến lấy');
+    if (type === 'SHIP_DELIVERY' && (!cart.customerName.trim() || !cart.customerPhone.trim() || !cart.deliveryAddress.trim())) throw new Error('Vui lòng nhập tên khách, số điện thoại và địa chỉ giao hàng');
+    if (type === 'CUSTOMER_PICKUP' && (!cart.customerName.trim() || !cart.customerPhone.trim())) throw new Error('Vui lòng nhập tên khách và số điện thoại');
+    return {
+      fulfillment_type: type,
+      customer_name: ['SHIP_DELIVERY','CUSTOMER_PICKUP'].includes(type) ? cart.customerName.trim() : null,
+      customer_phone: ['SHIP_DELIVERY','CUSTOMER_PICKUP'].includes(type) ? cart.customerPhone.trim() : null,
+      delivery_address: type === 'SHIP_DELIVERY' ? cart.deliveryAddress.trim() : null,
+      scheduled_at: new Date(cart.scheduledAt).toISOString()
+    };
   },
 
   async loadCatalog() {
@@ -365,7 +584,9 @@ window.posModule = {
       options: [...this.selectedOptions]
     });
 
-    window.api.showToast(`Đã thêm ${this.modalQty}x ${this.activeModalProduct.name}`, 'success');
+    const draft = window.appState.getActiveTakeawayDraft();
+    const suffix = this.isTakeawayOnlyOrder() && draft ? ` vào đơn ${this.getTakeawayDraftName(draft)}` : '';
+    window.api.showToast(`Đã thêm ${this.modalQty}x ${this.activeModalProduct.name}${suffix}`, 'success');
     this.closeModifierModal();
   },
 
@@ -387,6 +608,7 @@ window.posModule = {
     const mobileCount = document.getElementById('mobileCartCount');
     const mobileTotal = document.getElementById('mobileCartTotal');
     const totalCountEl = document.getElementById('cartTotalItemsCount');
+    const btnPrintDraft = document.getElementById('btnPrintDraftReceipt');
 
     const items = window.appState.cart.items;
     const subtotal = window.appState.getCartSubtotal();
@@ -452,11 +674,35 @@ window.posModule = {
     if (discountRow) discountRow.style.display = discount > 0 ? 'flex' : 'none';
     if (grandTotalEl) grandTotalEl.textContent = window.api.formatMoney(grandTotal);
     if (btnCheckoutAmount) btnCheckoutAmount.textContent = window.api.formatMoney(grandTotal);
+    if (btnPrintDraft) btnPrintDraft.disabled = items.length === 0;
+    this.syncOrderActionButtons(items.length);
 
     // Mobile sheet updates
     if (mobileCount) mobileCount.textContent = itemCount;
     if (mobileTotal) mobileTotal.textContent = window.api.formatMoney(grandTotal);
     if (totalCountEl) totalCountEl.textContent = itemCount;
+  },
+
+  syncOrderActionButtons(itemCount = window.appState.cart.items.length) {
+    const btnSendKitchen = document.getElementById('btnSendKitchen');
+    const btnPrintDraft = document.getElementById('btnPrintDraftReceipt');
+    const workflow = window.appState.storeSettings?.workflow_definition || { steps: [] };
+    const createStep = workflow.steps?.[0];
+    const nextStep = workflow.steps?.[1];
+    const role = window.appState.user?.role;
+    const canCreate = role === 'SUPER_ADMIN' || (createStep
+      ? createStep.roles?.includes(role)
+      : window.appState.roleFeatures.POS !== false);
+
+    if (btnSendKitchen) {
+      btnSendKitchen.style.display = canCreate ? 'inline-flex' : 'none';
+      btnSendKitchen.disabled = !itemCount;
+      btnSendKitchen.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ${nextStep ? `Chuyển: ${nextStep.name}` : 'Chuyển món cho bếp'}`;
+    }
+    if (btnPrintDraft) {
+      btnPrintDraft.style.display = this.isTakeawayOnlyOrder() ? 'inline-flex' : 'none';
+      btnPrintDraft.disabled = !itemCount;
+    }
   },
 
   // Send dine-in order to kitchen (KDS)
@@ -478,12 +724,19 @@ window.posModule = {
         table_id: window.appState.cart.selectedTable ? window.appState.cart.selectedTable.id : null,
         note: window.appState.cart.note,
         discount_amount: window.appState.getCartDiscount(),
-        items: window.appState.cart.items
+        items: window.appState.cart.items,
+        ...this.getFulfillmentPayload()
       };
 
       const res = await window.api.post('/orders', payload);
       window.api.showToast(res.message || 'Đã tạo đơn và chuyển sang bước tiếp theo', 'success');
-      window.appState.clearCart();
+      if (this.isTakeawayOnlyOrder()) {
+        window.appState.completeActiveTakeawayDraft();
+        this.renderFulfillmentFields();
+        this.setTakeawayPane('orders');
+      } else {
+        window.appState.clearCart();
+      }
 
       // Refresh table view
       if (window.tablesModule) window.tablesModule.loadTables();

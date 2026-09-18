@@ -1,6 +1,21 @@
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
 const { normalizeWorkflow, currentStep, resolveStageIndex, roleCanHandle, legacyStatusForStep } = require('../services/workflowService');
 
+const TAKEAWAY_FULFILLMENT_TYPES = ['SHIP_DELIVERY', 'CUSTOMER_PICKUP', 'APP_DELIVERY'];
+
+function validateTakeawayDetails(storeTypeCode, orderType, details) {
+  if (storeTypeCode !== 'TAKEAWAY' || orderType !== 'TAKEAWAY') return null;
+  if (!TAKEAWAY_FULFILLMENT_TYPES.includes(details.fulfillment_type)) return 'Vui lòng chọn loại đơn mang đi';
+  if (!details.scheduled_at || Number.isNaN(new Date(details.scheduled_at).getTime())) return 'Vui lòng nhập giờ hẹn/giờ đến lấy hợp lệ';
+  if (details.fulfillment_type === 'SHIP_DELIVERY' && (!details.customer_name || !details.customer_phone || !details.delivery_address)) {
+    return 'Đơn Ship mang về cần tên khách, số điện thoại và địa chỉ';
+  }
+  if (details.fulfillment_type === 'CUSTOMER_PICKUP' && (!details.customer_name || !details.customer_phone)) {
+    return 'Đơn Khách tới lấy cần tên khách và số điện thoại';
+  }
+  return null;
+}
+
 function generateOrderCode() {
   const d = new Date();
   const dateStr = d.toISOString().slice(2, 10).replace(/-/g, '');
@@ -14,8 +29,11 @@ async function createOrder(req, res) {
   const {
     order_type = 'TAKEAWAY',
     table_id,
+    fulfillment_type,
     customer_name,
     customer_phone,
+    delivery_address,
+    scheduled_at,
     note,
     items = [],
     discount_amount = 0,
@@ -47,11 +65,38 @@ async function createOrder(req, res) {
   try {
     let createdOrder = null;
     let workflowDefinition;
+    let storeTypeCode;
     if (isPostgresConnected()) {
-      const workflowResult = await pool.query('SELECT workflow_definition FROM store_settings WHERE store_id = $1', [storeId]);
+      const workflowResult = await pool.query(`SELECT ss.workflow_definition, st.code AS store_type_code
+        FROM stores s LEFT JOIN store_settings ss ON ss.store_id=s.id
+        LEFT JOIN store_types st ON st.id=s.store_type_id WHERE s.id=$1`, [storeId]);
       workflowDefinition = workflowResult.rows[0]?.workflow_definition;
+      storeTypeCode = workflowResult.rows[0]?.store_type_code;
     } else {
       workflowDefinition = memoryStore.store_settings.find(settings => settings.store_id === storeId)?.workflow_definition;
+      const store = memoryStore.stores.find(item => item.id === storeId);
+      storeTypeCode = memoryStore.store_types.find(item => item.id === store?.store_type_id)?.code;
+    }
+    const parsedSchedule = scheduled_at ? new Date(scheduled_at) : null;
+    const takeawayDetails = {
+      fulfillment_type: String(fulfillment_type || '').trim().toUpperCase(),
+      customer_name: String(customer_name || '').trim() || null,
+      customer_phone: String(customer_phone || '').trim() || null,
+      delivery_address: String(delivery_address || '').trim() || null,
+      scheduled_at: parsedSchedule && !Number.isNaN(parsedSchedule.getTime()) ? parsedSchedule.toISOString() : scheduled_at
+    };
+    const fulfillmentError = validateTakeawayDetails(storeTypeCode, order_type, takeawayDetails);
+    if (fulfillmentError) return res.status(400).json({ success: false, message: fulfillmentError });
+    if (takeawayDetails.fulfillment_type === 'CUSTOMER_PICKUP') takeawayDetails.delivery_address = null;
+    if (takeawayDetails.fulfillment_type === 'APP_DELIVERY') {
+      takeawayDetails.customer_name = null;
+      takeawayDetails.customer_phone = null;
+      takeawayDetails.delivery_address = null;
+    }
+    if (storeTypeCode !== 'TAKEAWAY' || order_type !== 'TAKEAWAY') {
+      takeawayDetails.fulfillment_type = null;
+      takeawayDetails.delivery_address = null;
+      takeawayDetails.scheduled_at = null;
     }
     const workflow = normalizeWorkflow(workflowDefinition);
     const createStep = workflow.steps[0];
@@ -77,12 +122,16 @@ async function createOrder(req, res) {
 
         const orderRes = await client.query(
           `INSERT INTO orders (
-            order_code, store_id, shift_id, order_type, table_id, customer_name, customer_phone,
+            order_code, store_id, shift_id, order_type, fulfillment_type, table_id, customer_name, customer_phone,
+            delivery_address, scheduled_at,
             cashier_id, subtotal, discount_amount, tax_amount, total_amount,
             payment_status, order_status, workflow_stage_index, workflow_snapshot, note
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'UNPAID', $13, $14, $15::jsonb, $16)
+          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'UNPAID',$16,$17,$18::jsonb,$19)
           RETURNING *`,
-          [orderCode, storeId, shiftId, order_type, table_id || null, customer_name, customer_phone, cashierId, subtotal, discount_amount, tax_amount, totalAmount, initialStatus, initialStageIndex, JSON.stringify(workflow), note]
+          [orderCode, storeId, shiftId, order_type, takeawayDetails.fulfillment_type, table_id || null,
+            takeawayDetails.customer_name, takeawayDetails.customer_phone, takeawayDetails.delivery_address,
+            takeawayDetails.scheduled_at, cashierId, subtotal, discount_amount, tax_amount, totalAmount,
+            initialStatus, initialStageIndex, JSON.stringify(workflow), note]
         );
         createdOrder = orderRes.rows[0];
 
@@ -147,9 +196,12 @@ async function createOrder(req, res) {
         store_id: storeId,
         shift_id: currentShift ? currentShift.id : null,
         order_type,
+        fulfillment_type: takeawayDetails.fulfillment_type,
         table_id: table_id ? parseInt(table_id, 10) : null,
-        customer_name,
-        customer_phone,
+        customer_name: takeawayDetails.customer_name,
+        customer_phone: takeawayDetails.customer_phone,
+        delivery_address: takeawayDetails.delivery_address,
+        scheduled_at: takeawayDetails.scheduled_at,
         cashier_id: cashierId,
         subtotal,
         discount_amount: parseFloat(discount_amount || 0),
@@ -326,6 +378,7 @@ async function advanceOrderWorkflow(req, res) {
 
 async function getOrderById(req, res) {
   const orderId = parseInt(req.params.id, 10);
+  const storeId = req.storeId || parseInt(req.query.store_id, 10);
 
   try {
     let order = null;
@@ -338,8 +391,8 @@ async function getOrderById(req, res) {
          FROM orders o
          LEFT JOIN tables t ON o.table_id = t.id
          LEFT JOIN users u ON o.cashier_id = u.id
-         WHERE o.id = $1`,
-        [orderId]
+         WHERE o.id = $1 AND o.store_id = $2`,
+        [orderId, storeId]
       );
       if (orderRes.rows.length === 0) {
         return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
@@ -357,7 +410,7 @@ async function getOrderById(req, res) {
       const payRes = await pool.query('SELECT * FROM payments WHERE order_id = $1', [orderId]);
       payments = payRes.rows;
     } else {
-      order = memoryStore.orders.find(o => o.id === orderId);
+      order = memoryStore.orders.find(o => o.id === orderId && o.store_id === storeId);
       if (!order) return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
 
       const table = memoryStore.tables.find(t => t.id === order.table_id);
@@ -450,12 +503,16 @@ async function splitOrder(req, res) {
         // Create new order
         const newOrderRes = await client.query(
           `INSERT INTO orders (
-            order_code, store_id, order_type, table_id, customer_name, customer_phone,
+            order_code, store_id, order_type, fulfillment_type, table_id, customer_name, customer_phone,
+            delivery_address, scheduled_at,
             cashier_id, subtotal, total_amount, payment_status, order_status,
             workflow_stage_index, workflow_snapshot, note
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0, 'UNPAID', $8, $9, $10, $11)
+          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,0,0,'UNPAID',$11,$12,$13,$14)
           RETURNING *`,
-          [newOrderCode, original.store_id, original.order_type, original.table_id, original.customer_name, original.customer_phone, original.cashier_id, original.order_status, original.workflow_stage_index, original.workflow_snapshot, 'Tách từ đơn ' + original.order_code]
+          [newOrderCode, original.store_id, original.order_type, original.fulfillment_type, original.table_id,
+            original.customer_name, original.customer_phone, original.delivery_address, original.scheduled_at,
+            original.cashier_id, original.order_status, original.workflow_stage_index, original.workflow_snapshot,
+            'Tách từ đơn ' + original.order_code]
         );
         newOrder = newOrderRes.rows[0];
 

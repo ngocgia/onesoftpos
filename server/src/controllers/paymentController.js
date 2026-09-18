@@ -1,5 +1,5 @@
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
-const { normalizeWorkflow, currentStep, resolveStageIndex, roleCanHandle, legacyStatusForStep } = require('../services/workflowService');
+const { normalizeWorkflow, currentStep, resolveStageIndex, roleCanHandle } = require('../services/workflowService');
 
 // VietQR Bank BIN Map
 const BANK_BIN_MAP = {
@@ -21,7 +21,8 @@ async function processPayment(req, res) {
     payment_method = 'CASH', // CASH, BANK_TRANSFER, QR, CARD
     amount,
     cash_received = 0,
-    transaction_code
+    transaction_code,
+    replace_existing = false
   } = req.body;
 
   if (!order_id || amount === undefined) {
@@ -41,6 +42,7 @@ async function processPayment(req, res) {
 
   try {
     let payment = null;
+    let updatedOrder = null;
 
     if (isPostgresConnected()) {
       const client = await pool.connect();
@@ -57,14 +59,22 @@ async function processPayment(req, res) {
           throw error;
         }
         const currentOrder = orderCheck.rows[0];
-        if (currentOrder.payment_status === 'PAID') {
+        const isRepayment = currentOrder.payment_status === 'PAID' && replace_existing === true;
+        if (currentOrder.payment_status === 'PAID' && !isRepayment) {
           const error = new Error('Đơn hàng đã được thanh toán');
+          error.statusCode = 409;
+          throw error;
+        }
+        if (currentOrder.order_status === 'CANCELLED') {
+          const error = new Error('Không thể thanh toán đơn hàng đã hủy');
           error.statusCode = 409;
           throw error;
         }
         const workflow = normalizeWorkflow(currentOrder.workflow_snapshot);
         const stageIndex = resolveStageIndex(workflow, currentOrder.workflow_stage_index, currentOrder.order_status, !!currentOrder.workflow_snapshot);
-        const paymentStep = currentStep(workflow, stageIndex);
+        const paymentStep = isRepayment
+          ? [...workflow.steps].reverse().find(step => step.type === 'PAYMENT')
+          : currentStep(workflow, stageIndex);
         if (!paymentStep || paymentStep.type !== 'PAYMENT') {
           const error = new Error('Đơn hàng chưa đến bước thanh toán trong quy trình');
           error.statusCode = 409;
@@ -81,6 +91,15 @@ async function processPayment(req, res) {
           throw error;
         }
 
+        // Keep the previous transaction for audit, but exclude it from revenue and shift totals.
+        if (isRepayment) {
+          await client.query(
+            `UPDATE payments SET status = 'REPLACED'
+             WHERE order_id = $1 AND store_id = $2 AND status = 'SUCCESS'`,
+            [order_id, storeId]
+          );
+        }
+
         // Insert payment record
         const payRes = await client.query(
           `INSERT INTO payments (
@@ -92,17 +111,24 @@ async function processPayment(req, res) {
         payment = payRes.rows[0];
 
         // Update order status
-        const nextStageIndex = stageIndex + 1;
-        const nextStatus = legacyStatusForStep(currentStep(workflow, nextStageIndex), 'PAID');
+        const nextStageIndex = workflow.steps.length;
         const orderRes = await client.query(
           `UPDATE orders 
-           SET payment_status = 'PAID', workflow_stage_index=$2, order_status=$3,
-               completed_at=CASE WHEN $3='COMPLETED' THEN CURRENT_TIMESTAMP ELSE completed_at END,
+           SET payment_status = 'PAID', workflow_stage_index=$2, order_status='COMPLETED',
+               completed_at=CURRENT_TIMESTAMP,
                updated_at = CURRENT_TIMESTAMP
            WHERE id = $1 RETURNING *`,
-          [order_id, nextStageIndex, nextStatus]
+          [order_id, nextStageIndex]
         );
-        const order = orderRes.rows[0];
+        updatedOrder = orderRes.rows[0];
+
+        if (currentOrder.table_id) {
+          await client.query(
+            `UPDATE tables SET status='EMPTY', current_order_id=NULL
+             WHERE id=$1 AND current_order_id=$2`,
+            [currentOrder.table_id, currentOrder.id]
+          );
+        }
 
         await client.query('COMMIT');
       } catch (err) {
@@ -116,16 +142,28 @@ async function processPayment(req, res) {
       if (!order || order.store_id !== storeId) {
         return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng trong cửa hàng hiện tại' });
       }
-      if (order.payment_status === 'PAID') {
+      const isRepayment = order.payment_status === 'PAID' && replace_existing === true;
+      if (order.payment_status === 'PAID' && !isRepayment) {
         return res.status(409).json({ success: false, message: 'Đơn hàng đã được thanh toán' });
+      }
+      if (order.order_status === 'CANCELLED') {
+        return res.status(409).json({ success: false, message: 'Không thể thanh toán đơn hàng đã hủy' });
       }
       const workflow = normalizeWorkflow(order.workflow_snapshot);
       const stageIndex = resolveStageIndex(workflow, order.workflow_stage_index, order.order_status, !!order.workflow_snapshot);
-      const paymentStep = currentStep(workflow, stageIndex);
+      const paymentStep = isRepayment
+        ? [...workflow.steps].reverse().find(step => step.type === 'PAYMENT')
+        : currentStep(workflow, stageIndex);
       if (!paymentStep || paymentStep.type !== 'PAYMENT') return res.status(409).json({ success: false, message: 'Đơn hàng chưa đến bước thanh toán trong quy trình' });
       if (!roleCanHandle(paymentStep, req.user?.role)) return res.status(403).json({ success: false, message: `Bước thanh toán chỉ dành cho nhóm ${paymentStep.roles.join(', ')}` });
       if (Math.abs(Number(order.total_amount) - payAmount) > 0.001) {
         return res.status(400).json({ success: false, message: 'Số tiền thanh toán không khớp tổng tiền đơn hàng' });
+      }
+
+      if (isRepayment) {
+        memoryStore.payments
+          .filter(item => item.order_id === parseInt(order_id, 10) && item.store_id === storeId && item.status === 'SUCCESS')
+          .forEach(item => { item.status = 'REPLACED'; });
       }
 
       payment = {
@@ -143,15 +181,26 @@ async function processPayment(req, res) {
       memoryStore.payments.push(payment);
 
       order.payment_status = 'PAID';
-      order.workflow_stage_index = stageIndex + 1;
-      order.order_status = legacyStatusForStep(currentStep(workflow, order.workflow_stage_index), 'PAID');
-      if (order.order_status === 'COMPLETED') order.completed_at = new Date().toISOString();
+      order.workflow_stage_index = workflow.steps.length;
+      order.order_status = 'COMPLETED';
+      order.completed_at = new Date().toISOString();
+      order.updated_at = order.completed_at;
+      updatedOrder = order;
+
+      if (order.table_id) {
+        const table = memoryStore.tables.find(item => item.id === order.table_id && item.current_order_id === order.id);
+        if (table) {
+          table.status = 'EMPTY';
+          table.current_order_id = null;
+        }
+      }
     }
 
     res.json({
       success: true,
-      message: 'Thanh toán thành công',
+      message: replace_existing === true ? 'Thanh toán lại thành công' : 'Thanh toán thành công',
       payment,
+      order: updatedOrder,
       change
     });
   } catch (error) {

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { authenticateToken, requireRole, requireFeature } = require('../middleware/authMiddleware');
+const { authenticateToken, requireRole, requireFeature, requireStoreAccess, requireStoreContext } = require('../middleware/authMiddleware');
 const { audit } = require('../middleware/auditMiddleware');
 const authController = require('../controllers/authController');
 const storeController = require('../controllers/storeController');
@@ -13,6 +13,7 @@ const kdsController = require('../controllers/kdsController');
 const shiftController = require('../controllers/shiftController');
 const reportController = require('../controllers/reportController');
 const adminController = require('../controllers/adminController');
+const storeStaffController = require('../controllers/storeStaffController');
 
 // 1. Auth routes
 router.post('/auth/login', authController.login);
@@ -20,10 +21,10 @@ router.get('/auth/me', authenticateToken, authController.getMe);
 
 // 2. Store & Store Types routes
 router.get('/stores', authenticateToken, storeController.getStores);
-router.get('/stores/:id', authenticateToken, storeController.getStoreDetails);
+router.get('/stores/:id', authenticateToken, requireStoreAccess(), storeController.getStoreDetails);
 router.post('/stores', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), audit('CREATE', 'STORE'), storeController.createStore);
-router.put('/stores/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), audit('UPDATE', 'STORE'), storeController.updateStore);
-router.put('/stores/:id/settings', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), audit('UPDATE_SETTINGS', 'STORE'), storeController.updateStoreSettings);
+router.put('/stores/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreAccess(), audit('UPDATE', 'STORE'), storeController.updateStore);
+router.put('/stores/:id/settings', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreAccess(), audit('UPDATE_SETTINGS', 'STORE'), storeController.updateStoreSettings);
 
 router.get('/store-types', authenticateToken, storeController.getStoreTypes);
 router.post('/store-types', authenticateToken, requireRole(['SUPER_ADMIN']), audit('CREATE', 'STORE_TYPE'), storeController.createStoreType);
@@ -32,12 +33,23 @@ router.put('/store-types/:id/features', authenticateToken, requireRole(['SUPER_A
 
 // 3. Category & Product routes
 router.get('/categories', authenticateToken, productController.getCategories);
-router.post('/categories', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), audit('CREATE', 'CATEGORY'), productController.createCategory);
+router.post('/categories', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('CREATE', 'CATEGORY'), productController.createCategory);
+router.put('/categories/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('UPDATE', 'CATEGORY'), productController.updateCategory);
+router.delete('/categories/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('DELETE', 'CATEGORY'), productController.deleteCategory);
 
 router.get('/products', authenticateToken, productController.getProducts);
-router.post('/products', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), audit('CREATE', 'PRODUCT'), productController.createProduct);
-router.put('/products/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), audit('UPDATE', 'PRODUCT'), productController.updateProduct);
+router.post('/products', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('CREATE', 'PRODUCT'), productController.createProduct);
+router.put('/products/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('UPDATE', 'PRODUCT'), productController.updateProduct);
+router.delete('/products/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('DELETE', 'PRODUCT'), productController.deleteProduct);
 router.get('/products/options', authenticateToken, productController.getOptions);
+
+// 3.1 Store manager: staff accounts and per-store permissions
+router.get('/store/staff', authenticateToken, requireRole(['STORE_MANAGER']), requireStoreContext(), storeStaffController.getStaff);
+router.post('/store/staff', authenticateToken, requireRole(['STORE_MANAGER']), requireStoreContext(), audit('CREATE', 'STORE_STAFF'), storeStaffController.createStaff);
+router.put('/store/staff/:id', authenticateToken, requireRole(['STORE_MANAGER']), requireStoreContext(), audit('UPDATE', 'STORE_STAFF'), storeStaffController.updateStaff);
+router.put('/store/staff/:id/reset-password', authenticateToken, requireRole(['STORE_MANAGER']), requireStoreContext(), audit('RESET_PASSWORD', 'STORE_STAFF'), storeStaffController.resetPassword);
+router.get('/store/role-features', authenticateToken, requireRole(['STORE_MANAGER']), requireStoreContext(), storeStaffController.getStoreRoleFeatures);
+router.put('/store/role-features/:role', authenticateToken, requireRole(['STORE_MANAGER']), requireStoreContext(), audit('UPDATE_FEATURE', 'STORE_ROLE'), storeStaffController.updateStoreRoleFeature);
 
 // 4. Area & Table routes (Dine-in)
 router.get('/areas', authenticateToken, requireFeature('TABLES'), tableController.getAreas);
@@ -60,6 +72,7 @@ router.get('/payments/vietqr/:orderId', authenticateToken, requireFeature('PAYME
 
 // 7. KDS routes
 router.get('/kds/orders', authenticateToken, requireFeature('KDS'), kdsController.getKdsOrders);
+router.get('/kds/history', authenticateToken, requireFeature('HISTORY'), kdsController.getKdsHistory);
 router.put('/kds/items/:itemId/status', authenticateToken, requireFeature('KDS'), kdsController.updateKdsItemStatus);
 
 // 8. Shift routes

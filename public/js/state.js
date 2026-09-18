@@ -1,5 +1,19 @@
 // ThichGaPOS v1.0 - Global State Management (Rule 46: Dynamic UI by Store Type Features)
 
+const createEmptyPosCart = () => ({
+  orderType: 'TAKEAWAY',
+  selectedTable: null,
+  fulfillmentType: '',
+  customerName: '',
+  customerPhone: '',
+  deliveryAddress: '',
+  scheduledAt: '',
+  items: [],
+  discountCash: 0,
+  discountPercent: 0,
+  note: ''
+});
+
 window.appState = {
   user: null,
   stores: [],
@@ -22,6 +36,7 @@ window.appState = {
     TABLES: true,
     KDS: true,
     ORDERS: true,
+    HISTORY: true,
     PAYMENT: true,
     ADMIN: true,
     SHIFT: true,
@@ -29,14 +44,10 @@ window.appState = {
   },
 
   // Active Cart state
-  cart: {
-    orderType: 'TAKEAWAY', // 'TAKEAWAY' or 'DINE_IN'
-    selectedTable: null,   // { id, code, name }
-    items: [],             // [{ product_id, product_name, variant_id, variant_name, unit_price, quantity, subtotal, note, kitchen_type, options: [] }]
-    discountCash: 0,
-    discountPercent: 0,
-    note: ''
-  },
+  cart: createEmptyPosCart(),
+  takeawayDrafts: [],
+  activeTakeawayDraftId: null,
+  takeawayDraftSequence: 0,
 
   // State listeners
   listeners: [],
@@ -49,6 +60,78 @@ window.appState = {
     this.listeners.forEach(fn => fn(event, data));
   },
 
+  isTakeawayOnlyStore() {
+    return this.storeType?.code === 'TAKEAWAY';
+  },
+
+  getActiveTakeawayDraft() {
+    return this.takeawayDrafts.find(draft => draft.id === this.activeTakeawayDraftId) || null;
+  },
+
+  ensureTakeawayDraft() {
+    if (!this.isTakeawayOnlyStore()) return null;
+    let draft = this.getActiveTakeawayDraft();
+    if (!draft) {
+      draft = this.createTakeawayDraft({ activate: false });
+      this.activateTakeawayDraft(draft.id);
+    }
+    return draft;
+  },
+
+  createTakeawayDraft({ activate = true } = {}) {
+    this.takeawayDraftSequence += 1;
+    const draft = {
+      id: `takeaway_${Date.now()}_${this.takeawayDraftSequence}`,
+      number: this.takeawayDraftSequence,
+      createdAt: new Date().toISOString(),
+      cart: createEmptyPosCart()
+    };
+    this.takeawayDrafts.push(draft);
+    if (activate) this.activateTakeawayDraft(draft.id);
+    this.notify('takeaway_drafts_updated', this.takeawayDrafts);
+    return draft;
+  },
+
+  activateTakeawayDraft(id) {
+    const draft = this.takeawayDrafts.find(item => item.id === id);
+    if (!draft) return false;
+    this.activeTakeawayDraftId = draft.id;
+    this.cart = draft.cart;
+    this.notify('cart_updated', this.cart);
+    this.notify('takeaway_drafts_updated', this.takeawayDrafts);
+    return true;
+  },
+
+  removeTakeawayDraft(id) {
+    const index = this.takeawayDrafts.findIndex(draft => draft.id === id);
+    if (index < 0) return;
+    const wasActive = this.activeTakeawayDraftId === id;
+    this.takeawayDrafts.splice(index, 1);
+    if (this.takeawayDrafts.length === 0) {
+      this.createTakeawayDraft();
+      return;
+    }
+    if (wasActive) {
+      const next = this.takeawayDrafts[Math.min(index, this.takeawayDrafts.length - 1)];
+      this.activateTakeawayDraft(next.id);
+    }
+    this.notify('takeaway_drafts_updated', this.takeawayDrafts);
+  },
+
+  completeActiveTakeawayDraft() {
+    const completedId = this.activeTakeawayDraftId;
+    if (completedId) this.removeTakeawayDraft(completedId);
+  },
+
+  resetTakeawayDrafts() {
+    this.takeawayDrafts = [];
+    this.activeTakeawayDraftId = null;
+    this.takeawayDraftSequence = 0;
+    this.cart = createEmptyPosCart();
+    this.notify('cart_updated', this.cart);
+    this.notify('takeaway_drafts_updated', this.takeawayDrafts);
+  },
+
   applyRoleFeatures(features) {
     if (!features) return;
     this.roleFeatures = { ...this.roleFeatures, ...features };
@@ -56,7 +139,7 @@ window.appState = {
       navItemPos: 'POS',
       navItemTables: 'TABLES',
       navItemKds: 'KDS',
-      navItemOrders: 'ORDERS',
+      navItemOrders: 'HISTORY',
       navItemAdmin: 'ADMIN',
       btnShiftStatus: 'SHIFT',
       btnOpenDiscountModal: 'DISCOUNT'
@@ -102,20 +185,20 @@ window.appState = {
     // 3. Render feature chips lên banner
     if (featurePillsContainer) {
       featurePillsContainer.innerHTML = `
-        <span class="feature-chip ${this.features.enableTakeaway ? 'active' : ''}">
-          <i class="fa-solid fa-bag-shopping"></i> Mang đi
+        <span class="feature-chip ${this.features.enableTakeaway ? 'active' : ''}" title="Mang đi" aria-label="Mang đi">
+          <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i><span class="feature-chip-label">Mang đi</span>
         </span>
-        <span class="feature-chip ${this.features.enableDineIn ? 'active' : ''}">
-          <i class="fa-solid fa-utensils"></i> Tại chỗ
+        <span class="feature-chip ${this.features.enableDineIn ? 'active' : ''}" title="Tại chỗ" aria-label="Tại chỗ">
+          <i class="fa-solid fa-utensils" aria-hidden="true"></i><span class="feature-chip-label">Tại chỗ</span>
         </span>
-        <span class="feature-chip ${this.features.enableTable ? 'active' : ''}">
-          <i class="fa-solid fa-chair"></i> Bàn
+        <span class="feature-chip ${this.features.enableTable ? 'active' : ''}" title="Bàn" aria-label="Bàn">
+          <i class="fa-solid fa-chair" aria-hidden="true"></i><span class="feature-chip-label">Bàn</span>
         </span>
-        <span class="feature-chip ${this.features.enableKds ? 'active' : ''}">
-          <i class="fa-solid fa-kitchen-set"></i> KDS
+        <span class="feature-chip ${this.features.enableKds ? 'active' : ''}" title="KDS" aria-label="KDS">
+          <i class="fa-solid fa-kitchen-set" aria-hidden="true"></i><span class="feature-chip-label">KDS</span>
         </span>
-        <span class="feature-chip ${this.features.enableQrPayment ? 'active' : ''}">
-          <i class="fa-solid fa-qrcode"></i> VietQR
+        <span class="feature-chip ${this.features.enableQrPayment ? 'active' : ''}" title="VietQR" aria-label="VietQR">
+          <i class="fa-solid fa-qrcode" aria-hidden="true"></i><span class="feature-chip-label">VietQR</span>
         </span>
       `;
     }
@@ -158,12 +241,15 @@ window.appState = {
       const role = this.user?.role;
       const createStep = workflow.steps?.[0];
       const nextStep = workflow.steps?.[1];
-      const canCreate = role === 'SUPER_ADMIN' || createStep?.roles?.includes(role);
+      const canCreate = role === 'SUPER_ADMIN' || (createStep
+        ? createStep.roles?.includes(role)
+        : this.roleFeatures.POS !== false);
       btnSendKitchen.style.display = canCreate ? 'inline-flex' : 'none';
       btnSendKitchen.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ${nextStep ? `Chuyển: ${nextStep.name}` : 'Tạo đơn'}`;
     }
 
     this.notify('order_type_changed', type);
+    window.posModule?.updateFulfillmentVisibility?.();
   },
 
   setSelectedTable(table) {
@@ -184,6 +270,7 @@ window.appState = {
 
   // Cart operations
   addToCart(item) {
+    if (this.isTakeawayOnlyStore()) this.ensureTakeawayDraft();
     // Check if identical item (same product_id, variant_id, options, note) exists
     const optionsKey = (item.options || []).map(o => o.option_id || o.name).sort().join('_');
     const existingIndex = this.cart.items.findIndex(i => 
@@ -206,6 +293,7 @@ window.appState = {
     }
 
     this.notify('cart_updated', this.cart);
+    if (this.isTakeawayOnlyStore()) this.notify('takeaway_drafts_updated', this.takeawayDrafts);
   },
 
   updateCartItemQty(index, delta) {
@@ -217,6 +305,7 @@ window.appState = {
       this.cart.items[index].subtotal = this.cart.items[index].unit_price_with_options * this.cart.items[index].quantity;
     }
     this.notify('cart_updated', this.cart);
+    if (this.isTakeawayOnlyStore()) this.notify('takeaway_drafts_updated', this.takeawayDrafts);
   },
 
   clearCart() {
@@ -224,7 +313,14 @@ window.appState = {
     this.cart.discountCash = 0;
     this.cart.discountPercent = 0;
     this.cart.note = '';
+    this.cart.fulfillmentType = '';
+    this.cart.customerName = '';
+    this.cart.customerPhone = '';
+    this.cart.deliveryAddress = '';
+    this.cart.scheduledAt = '';
+    window.posModule?.resetFulfillmentForm?.();
     this.notify('cart_updated', this.cart);
+    if (this.isTakeawayOnlyStore()) this.notify('takeaway_drafts_updated', this.takeawayDrafts);
   },
 
   getCartSubtotal() {

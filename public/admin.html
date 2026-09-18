@@ -2,7 +2,9 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>Quản trị hệ thống - Thích Gà POS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +41,7 @@
     </section>
 
     <section class="page" id="page-stores">
-      <div class="toolbar"><input id="storeSearch" placeholder="Tìm mã, tên, địa chỉ..."><select id="storeTypeFilter"><option value="">Tất cả loại cửa hàng</option></select><button class="btn ghost" onclick="adminApp.configureOrderWorkflow()"><i class="fa-solid fa-route"></i>Cấu hình luồng</button><button class="btn primary" id="addStoreBtn"><i class="fa-solid fa-plus"></i>Thêm cửa hàng</button></div>
+      <div class="toolbar"><input id="storeSearch" placeholder="Tìm mã, tên, địa chỉ..."><select id="storeTypeFilter"><option value="">Tất cả loại cửa hàng</option></select><button class="btn ghost" onclick="adminApp.configureOrderWorkflow()"><i class="fa-solid fa-route"></i>Cấu hình luồng</button><button class="btn ghost" onclick="adminApp.configureKdsAnnouncement()"><i class="fa-solid fa-volume-high"></i>Cấu hình loa KDS</button><button class="btn primary" id="addStoreBtn"><i class="fa-solid fa-plus"></i>Thêm cửa hàng</button></div>
       <div class="cards" id="storesList"></div>
     </section>
 
@@ -72,6 +74,6 @@
   <div class="modal" id="formModal"><div class="modal-card"><div class="modal-head"><h2 id="modalTitle"></h2><button id="modalClose">×</button></div><form id="modalForm"><div id="modalFields" class="form-grid"></div><div class="modal-actions"><button type="button" class="btn ghost" id="modalCancel">Hủy</button><button type="submit" class="btn primary">Lưu thay đổi</button></div></form></div></div>
   <div id="toast"></div>
   <script src="js/api.js"></script>
-  <script src="js/admin-page.js"></script>
+  <script src="js/admin-page.js?v=20260918-kitchen-history"></script>
 </body>
 </html>

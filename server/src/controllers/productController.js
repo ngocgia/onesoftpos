@@ -61,10 +61,37 @@ async function createCategory(req, res) {
   }
 }
 
+async function updateCategory(req, res) {
+  const id = Number(req.params.id);
+  const storeId = req.storeId || Number(req.body.store_id);
+  const { code, name, description, sort_order, is_active } = req.body;
+  try {
+    if (isPostgresConnected()) {
+      const result = await pool.query(`UPDATE categories SET code=COALESCE($1,code),name=COALESCE($2,name),
+        description=COALESCE($3,description),sort_order=COALESCE($4,sort_order),is_active=COALESCE($5,is_active)
+        WHERE id=$6 AND store_id=$7 RETURNING id`, [code, name, description, sort_order, is_active, id, storeId]);
+      if (!result.rowCount) return res.status(404).json({ success: false, message: 'Không tìm thấy danh mục' });
+    } else {
+      const category = memoryStore.categories.find(item => item.id === id && item.store_id === storeId);
+      if (!category) return res.status(404).json({ success: false, message: 'Không tìm thấy danh mục' });
+      for (const field of ['code', 'name', 'description', 'sort_order', 'is_active']) if (req.body[field] !== undefined) category[field] = req.body[field];
+    }
+    res.json({ success: true, message: 'Cập nhật danh mục thành công' });
+  } catch (error) {
+    console.error('updateCategory error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi cập nhật danh mục' });
+  }
+}
+
+async function deleteCategory(req, res) {
+  req.body = { ...(req.body || {}), is_active: false };
+  return updateCategory(req, res);
+}
+
 async function getProducts(req, res) {
   const storeId = req.storeId || parseInt(req.query.store_id, 10);
   const categoryId = req.query.category_id ? parseInt(req.query.category_id, 10) : null;
-  const includeInactive = req.query.include_inactive === 'true' && ['SUPER_ADMIN', 'ADMIN'].includes(req.user.role);
+  const includeInactive = req.query.include_inactive === 'true' && ['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER'].includes(req.user.role);
 
   try {
     let products = [];
@@ -221,16 +248,18 @@ async function updateProduct(req, res) {
   try {
     if (isPostgresConnected()) {
       const values = fields.map(key => req.body[key]);
-      const result = await pool.query(`UPDATE products SET category_id=COALESCE($1,category_id), code=COALESCE($2,code),
+      const result = await pool.query(`UPDATE products SET category_id=CASE WHEN $13 THEN $1 ELSE category_id END, code=COALESCE($2,code),
         name=COALESCE($3,name), description=COALESCE($4,description), price=COALESCE($5,price),
         cost_price=COALESCE($6,cost_price), unit=COALESCE($7,unit), image_url=COALESCE($8,image_url),
         kitchen_type=COALESCE($9,kitchen_type), is_active=COALESCE($10,is_active), updated_at=CURRENT_TIMESTAMP
-        WHERE id=$11 AND store_id=$12 RETURNING id`, [...values, id, storeId]);
+        WHERE id=$11 AND store_id=$12 RETURNING id`, [...values, id, storeId, Object.prototype.hasOwnProperty.call(req.body, 'category_id')]);
       if (!result.rowCount) return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm' });
     } else {
       const product = memoryStore.products.find(item => item.id === id && item.store_id === storeId);
       if (!product) return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm' });
-      for (const key of fields) if (req.body[key] !== undefined) product[key] = ['category_id','price','cost_price'].includes(key) ? Number(req.body[key]) : req.body[key];
+      for (const key of fields) if (req.body[key] !== undefined) product[key] = key === 'category_id' && req.body[key] === null
+        ? null
+        : (['category_id','price','cost_price'].includes(key) ? Number(req.body[key]) : req.body[key]);
     }
     res.json({ success: true, message: 'Cập nhật sản phẩm thành công' });
   } catch (error) {
@@ -239,11 +268,19 @@ async function updateProduct(req, res) {
   }
 }
 
+async function deleteProduct(req, res) {
+  req.body = { ...(req.body || {}), is_active: false };
+  return updateProduct(req, res);
+}
+
 module.exports = {
   getCategories,
   createCategory,
+  updateCategory,
+  deleteCategory,
   getProducts,
   createProduct,
   updateProduct,
+  deleteProduct,
   getOptions
 };

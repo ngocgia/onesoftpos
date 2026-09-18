@@ -4,6 +4,8 @@ window.kdsModule = {
   orders: [],
   currentFilter: 'ALL',
   pollInterval: null,
+  isLoading: false,
+  updatingItems: new Set(),
 
   init() {
     this.bindEvents();
@@ -41,7 +43,25 @@ window.kdsModule = {
     }, 8000);
   },
 
+  speakAnnouncement(message) {
+    if (!message || !('speechSynthesis' in window)) {
+      if (message) window.api.showToast('Thiết bị không hỗ trợ đọc thông báo bằng loa', 'error');
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(message);
+    utterance.lang = 'vi-VN';
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    const vietnameseVoice = window.speechSynthesis.getVoices()
+      .find(voice => String(voice.lang || '').toLowerCase().startsWith('vi'));
+    if (vietnameseVoice) utterance.voice = vietnameseVoice;
+    window.speechSynthesis.speak(utterance);
+  },
+
   async loadKdsOrders(silent = false) {
+    if (this.isLoading || this.updatingItems.size > 0) return;
+    this.isLoading = true;
     try {
       let url = '/kds/orders';
       if (this.currentFilter !== 'ALL') {
@@ -53,6 +73,8 @@ window.kdsModule = {
       this.renderOrders();
     } catch (err) {
       if (!silent) console.error('loadKdsOrders error:', err);
+    } finally {
+      this.isLoading = false;
     }
   },
 
@@ -80,7 +102,7 @@ window.kdsModule = {
             <div>
               <span class="kds-order-title">${ord.order_code}</span>
               <span style="font-size: 11px; margin-left: 6px; color: var(--text-muted);">
-                (${ord.order_type === 'DINE_IN' ? (ord.table_code || 'Bàn') : 'Mang đi'})
+                (${ord.order_type === 'DINE_IN' ? (ord.table_code || 'Bàn') : ({SHIP_DELIVERY:'Ship mang về',CUSTOMER_PICKUP:'Khách tới lấy',APP_DELIVERY:'Ship qua app'}[ord.fulfillment_type] || 'Mang đi')})
               </span>
             </div>
             <span class="kds-timer" style="${isUrgent ? 'color: var(--danger); font-weight: 800;' : ''}">
@@ -127,12 +149,28 @@ window.kdsModule = {
       btn.addEventListener('click', async () => {
         const itemId = btn.getAttribute('data-item-id');
         const nextStatus = btn.getAttribute('data-next');
+        if (this.updatingItems.has(itemId)) return;
+        this.updatingItems.add(itemId);
+        const oldText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Đang cập nhật...';
         try {
-          await window.api.put(`/kds/items/${itemId}/status`, { status: nextStatus });
+          const result = await window.api.put(`/kds/items/${itemId}/status`, { status: nextStatus });
+          const order = this.orders.find(current => (current.items || []).some(item => String(item.id) === String(itemId)));
+          const target = order?.items?.find(item => String(item.id) === String(itemId));
+          if (target) target.status = result.item?.status || nextStatus;
+          if (order && result.order?.order_status) order.order_status = result.order.order_status;
+          this.renderOrders();
+          this.updatingItems.delete(itemId);
           await this.loadKdsOrders(true);
+          if (result.announcement) this.speakAnnouncement(result.announcement);
           window.api.showToast('Đã cập nhật trạng thái món', 'success');
         } catch (err) {
           window.api.showToast('Lỗi cập nhật: ' + err.message, 'error');
+          btn.disabled = false;
+          btn.textContent = oldText;
+        } finally {
+          this.updatingItems.delete(itemId);
         }
       });
     });

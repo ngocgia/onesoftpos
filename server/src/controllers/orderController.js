@@ -46,22 +46,6 @@ async function createOrder(req, res) {
 
   const orderCode = generateOrderCode();
 
-  // Calculate totals
-  let subtotal = 0;
-  items.forEach(item => {
-    let itemPrice = parseFloat(item.unit_price) || 0;
-    if (item.options && Array.isArray(item.options)) {
-      item.options.forEach(opt => {
-        itemPrice += parseFloat(opt.price) || 0;
-      });
-    }
-    const itemSubtotal = itemPrice * (item.quantity || 1);
-    item.calculatedSubtotal = itemSubtotal;
-    subtotal += itemSubtotal;
-  });
-
-  const totalAmount = Math.max(0, subtotal - parseFloat(discount_amount || 0) + parseFloat(tax_amount || 0));
-
   try {
     let createdOrder = null;
     let workflowDefinition;
@@ -77,6 +61,42 @@ async function createOrder(req, res) {
       const store = memoryStore.stores.find(item => item.id === storeId);
       storeTypeCode = memoryStore.store_types.find(item => item.id === store?.store_type_id)?.code;
     }
+
+    // Only accept toppings that are active and configured for the selected product.
+    const requestedOptionIds = [...new Set(items.flatMap(item => Array.isArray(item.options)
+      ? item.options.map(option => Number(option.option_id)).filter(Number.isInteger)
+      : []))];
+    let allowedOptions = [];
+    if (requestedOptionIds.length && isPostgresConnected()) {
+      const result = await pool.query(`SELECT pop.product_id, po.id, po.name, po.price
+        FROM product_option_products pop
+        JOIN product_options po ON po.id=pop.option_id AND po.is_active=TRUE
+        JOIN products p ON p.id=pop.product_id
+        WHERE po.store_id=$1 AND p.store_id=$1 AND po.id=ANY($2::int[])`, [storeId, requestedOptionIds]);
+      allowedOptions = result.rows;
+    } else if (requestedOptionIds.length) {
+      allowedOptions = memoryStore.product_option_products.flatMap(link => {
+        const option = memoryStore.product_options.find(item => item.id === link.option_id && item.store_id === storeId && item.is_active);
+        const product = memoryStore.products.find(item => item.id === link.product_id && item.store_id === storeId);
+        return option && product ? [{ product_id: product.id, id: option.id, name: option.name, price: option.price }] : [];
+      });
+    }
+    for (const item of items) {
+      if (!Array.isArray(item.options)) continue;
+      item.options = item.options.map(option => {
+        const allowed = allowedOptions.find(candidate => candidate.product_id === Number(item.product_id) && candidate.id === Number(option.option_id));
+        if (!allowed) { const error = new Error(`Topping không được áp dụng cho món ${item.product_name || ''}`.trim()); error.statusCode = 400; throw error; }
+        return { option_id: allowed.id, option_name: allowed.name, price: Number(allowed.price) };
+      });
+    }
+
+    let subtotal = 0;
+    items.forEach(item => {
+      const optionTotal = (item.options || []).reduce((sum, option) => sum + Number(option.price || 0), 0);
+      item.calculatedSubtotal = ((parseFloat(item.unit_price) || 0) + optionTotal) * (item.quantity || 1);
+      subtotal += item.calculatedSubtotal;
+    });
+    const totalAmount = Math.max(0, subtotal - parseFloat(discount_amount || 0) + parseFloat(tax_amount || 0));
     const parsedSchedule = scheduled_at ? new Date(scheduled_at) : null;
     const takeawayDetails = {
       fulfillment_type: String(fulfillment_type || '').trim().toUpperCase(),
@@ -270,7 +290,7 @@ async function createOrder(req, res) {
     });
   } catch (error) {
     console.error('createOrder error:', error);
-    res.status(500).json({ success: false, message: 'Lỗi tạo đơn hàng: ' + error.message });
+    res.status(error.statusCode || 500).json({ success: false, message: error.statusCode ? error.message : 'Lỗi tạo đơn hàng: ' + error.message });
   }
 }
 

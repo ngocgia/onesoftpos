@@ -326,6 +326,23 @@
         </div>
       </section>
 
+      <!-- COMPLETED KITCHEN ITEMS: visible to managers, order staff and cashiers -->
+      <section id="viewCompletedItems" class="app-view">
+        <div class="completed-items-view-container">
+          <div class="view-header completed-items-header">
+            <div class="header-info">
+              <h2>Món bếp đã làm xong</h2>
+              <p class="text-muted">Các món sẵn sàng phục vụ thuộc đơn chưa thanh toán</p>
+            </div>
+            <button type="button" class="btn-secondary btn-sm" id="btnRefreshCompletedItems">
+              <i class="fa-solid fa-rotate"></i> Làm mới
+            </button>
+          </div>
+          <div class="completed-items-summary" id="completedItemsSummary"></div>
+          <div class="completed-items-grid" id="completedItemsGrid"></div>
+        </div>
+      </section>
+
       <!-- VIEW 4: ORDERS HISTORY (Rule 25) -->
       <section id="viewOrders" class="app-view">
         <div class="orders-view-container">
@@ -464,7 +481,7 @@
           <div id="adminProducts" class="admin-subview">
             <div class="subview-header">
               <h3>Quản lý Thực Đơn Món Ăn</h3>
-              <div style="display:flex;gap:8px"><button class="btn-secondary btn-sm" id="btnManageCategories"><i class="fa-solid fa-tags"></i> Danh mục</button><button class="btn-primary btn-sm" id="btnOpenAddProductModal"><i class="fa-solid fa-plus"></i> Thêm món mới</button></div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-secondary btn-sm" id="btnManageCategories"><i class="fa-solid fa-tags"></i> Danh mục</button><button class="btn-secondary btn-sm" id="btnManageToppings"><i class="fa-solid fa-layer-group"></i> Topping</button><button class="btn-primary btn-sm" id="btnOpenAddProductModal"><i class="fa-solid fa-plus"></i> Thêm món mới</button></div>
             </div>
             <div class="admin-products-table-wrapper">
               <table class="orders-table">
@@ -509,6 +526,10 @@
       <button class="nav-item" data-view="viewKds" id="navItemKds">
         <i class="fa-solid fa-kitchen-set"></i>
         <span>Bếp KDS</span>
+      </button>
+      <button class="nav-item" data-view="viewCompletedItems" id="navItemCompletedItems" style="display:none">
+        <i class="fa-solid fa-bell-concierge"></i>
+        <span>Món đã xong</span>
       </button>
       <button class="nav-item" data-view="viewOrders" id="navItemOrders">
         <i class="fa-solid fa-clock-rotate-left"></i>
@@ -903,14 +924,15 @@
   <!-- SCRIPTS (Vanilla ES6 Modules) -->
   <script src="js/api.js"></script>
   <script src="js/state.js?v=20260918-mobile-status-icons"></script>
-  <script src="js/pos.js?v=20260918-takeaway-actions"></script>
+  <script src="js/pos.js?v=20260918-toppings"></script>
   <script src="js/tables.js"></script>
   <script src="js/kds.js?v=20260918-kds-audio-2"></script>
+  <script src="js/completed-items.js?v=20260918-completed-items"></script>
   <script src="js/orders.js?v=20260918-takeaway-history"></script>
   <script src="js/checkout.js?v=20260918-takeaway-history"></script>
   <script src="js/invoice.js?v=20260918-takeaway-actions"></script>
   <script src="js/shifts.js"></script>
-  <script src="js/admin.js?v=20260918-kitchen-history"></script>
-  <script src="js/app.js?v=20260918-kitchen-history"></script>
+  <script src="js/admin.js?v=20260918-topping-group-select"></script>
+  <script src="js/app.js?v=20260918-completed-items"></script>
 </body>
 </html>

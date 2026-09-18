@@ -256,6 +256,9 @@ window.checkoutModule = {
       if (window.ordersModule) {
         await window.ordersModule.loadOrders();
       }
+      if (window.completedItemsModule) {
+        await window.completedItemsModule.loadCompletedItems(true);
+      }
       this.currentOrder = null;
       this.openedFromExistingOrder = false;
       this.isRepayment = false;

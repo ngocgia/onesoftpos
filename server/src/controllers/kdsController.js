@@ -163,6 +163,107 @@ async function getKdsHistory(req, res) {
   }
 }
 
+async function getCompletedItems(req, res) {
+  const storeId = req.storeId || parseInt(req.query.store_id, 10);
+
+  try {
+    let items = [];
+    if (isPostgresConnected()) {
+      const result = await pool.query(`
+        SELECT oi.id, oi.product_name, oi.variant_name, oi.quantity, oi.note,
+               oi.kitchen_type, oi.status, oi.prepared_at,
+               o.id AS order_id, o.order_code, o.order_type, o.fulfillment_type,
+               o.customer_name, o.payment_status, o.created_at AS order_created_at,
+               t.code AS table_code, t.name AS table_name
+        FROM order_items oi
+        JOIN orders o ON o.id = oi.order_id
+        LEFT JOIN tables t ON t.id = o.table_id
+        WHERE o.store_id = $1
+          AND oi.status IN ('READY', 'SERVED')
+          AND o.payment_status IS DISTINCT FROM 'PAID'
+          AND o.order_status <> 'CANCELLED'
+        ORDER BY oi.prepared_at DESC NULLS LAST, oi.id DESC
+      `, [storeId]);
+      items = result.rows;
+
+      if (items.length) {
+        const optionResult = await pool.query(`
+          SELECT order_item_id, option_name, price
+          FROM order_item_options
+          WHERE order_item_id = ANY($1::int[])
+          ORDER BY id ASC
+        `, [items.map(item => item.id)]);
+        const optionsByItem = optionResult.rows.reduce((groups, option) => {
+          if (!groups[option.order_item_id]) groups[option.order_item_id] = [];
+          groups[option.order_item_id].push(option);
+          return groups;
+        }, {});
+        items.forEach(item => { item.options = optionsByItem[item.id] || []; });
+      }
+    } else {
+      items = memoryStore.order_items
+        .filter(item => ['READY', 'SERVED'].includes(item.status))
+        .map(item => {
+          const order = memoryStore.orders.find(current => current.id === item.order_id);
+          if (!order || order.store_id !== storeId || order.payment_status === 'PAID' || order.order_status === 'CANCELLED') {
+            return null;
+          }
+          const table = memoryStore.tables.find(current => current.id === order.table_id);
+          return {
+            ...item,
+            order_id: order.id,
+            order_code: order.order_code,
+            order_type: order.order_type,
+            fulfillment_type: order.fulfillment_type,
+            customer_name: order.customer_name,
+            payment_status: order.payment_status,
+            order_created_at: order.created_at,
+            table_code: table?.code || null,
+            table_name: table?.name || null,
+            options: memoryStore.order_item_options.filter(option => option.order_item_id === item.id)
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => new Date(b.prepared_at) - new Date(a.prepared_at));
+    }
+
+    const ordersById = new Map();
+    items.forEach(item => {
+      if (!ordersById.has(item.order_id)) {
+        ordersById.set(item.order_id, {
+          id: item.order_id,
+          order_code: item.order_code,
+          order_type: item.order_type,
+          fulfillment_type: item.fulfillment_type,
+          customer_name: item.customer_name,
+          payment_status: item.payment_status,
+          created_at: item.order_created_at,
+          table_code: item.table_code,
+          table_name: item.table_name,
+          latest_prepared_at: item.prepared_at,
+          items: []
+        });
+      }
+      ordersById.get(item.order_id).items.push({
+        id: item.id,
+        product_name: item.product_name,
+        variant_name: item.variant_name,
+        quantity: item.quantity,
+        note: item.note,
+        kitchen_type: item.kitchen_type,
+        status: item.status,
+        prepared_at: item.prepared_at,
+        options: item.options || []
+      });
+    });
+
+    return res.json({ success: true, orders: Array.from(ordersById.values()) });
+  } catch (error) {
+    console.error('getCompletedItems error:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi lấy danh sách món đã hoàn thành' });
+  }
+}
+
 async function updateKdsItemStatus(req, res) {
   const itemId = parseInt(req.params.itemId, 10);
   const { status } = req.body; // PENDING, PREPARING, READY, SERVED
@@ -359,5 +460,6 @@ async function updateKdsItemStatus(req, res) {
 module.exports = {
   getKdsOrders,
   getKdsHistory,
+  getCompletedItems,
   updateKdsItemStatus
 };

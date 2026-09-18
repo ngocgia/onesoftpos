@@ -193,13 +193,37 @@ CREATE TABLE IF NOT EXISTS product_variants (
     is_default BOOLEAN DEFAULT FALSE
 );
 
+CREATE TABLE IF NOT EXISTS topping_groups (
+    id SERIAL PRIMARY KEY,
+    store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    sort_order INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    UNIQUE(store_id, name)
+);
+
 CREATE TABLE IF NOT EXISTS product_options (
     id SERIAL PRIMARY KEY,
     store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+    group_id INT REFERENCES topping_groups(id) ON DELETE SET NULL,
     name VARCHAR(100) NOT NULL, -- Trân châu, Phô mai, Trứng ốp la
     price NUMERIC(15, 2) NOT NULL DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE
 );
+
+ALTER TABLE product_options
+    ADD COLUMN IF NOT EXISTS group_id INT REFERENCES topping_groups(id) ON DELETE SET NULL;
+
+-- A topping is only offered for products explicitly linked here.
+CREATE TABLE IF NOT EXISTS product_option_products (
+    option_id INT REFERENCES product_options(id) ON DELETE CASCADE,
+    product_id INT REFERENCES products(id) ON DELETE CASCADE,
+    PRIMARY KEY (option_id, product_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_product_option_products_product
+    ON product_option_products(product_id);
 
 -- 5. AREAS & TABLES (FOR DINE-IN STORES)
 CREATE TABLE IF NOT EXISTS areas (

@@ -509,8 +509,9 @@ window.posModule = {
     }
 
     // Render toppings / options
-    if (this.options && this.options.length > 0) {
-      toppingsList.innerHTML = this.options.map(opt => `
+    const productOptions = product.options || [];
+    if (productOptions.length > 0) {
+      toppingsList.innerHTML = productOptions.map(opt => `
         <label class="topping-checkbox-item">
           <div>
             <input type="checkbox" class="opt-check" data-id="${opt.id}" data-name="${opt.name}" data-price="${opt.price}">

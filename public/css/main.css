@@ -1020,7 +1020,8 @@ button:active {
   color: var(--text-muted);
   font-size: 10px;
   font-weight: 600;
-  width: 20%;
+  flex: 1 1 0;
+  min-width: 0;
   padding: 6px 0;
   position: relative;
 }
@@ -1287,6 +1288,116 @@ button:active {
 .btn-kds-action.status-PREPARING {
   background: var(--success);
   color: #fff;
+}
+
+/* Completed dishes waiting for payment */
+.completed-items-view-container {
+  padding: 16px;
+}
+
+.completed-items-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.completed-items-summary {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 14px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.completed-summary-chip {
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+}
+
+.completed-items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.completed-order-card {
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--success);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.completed-order-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--success-light) 55%, var(--bg-surface));
+}
+
+.completed-order-place {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.completed-order-time {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.completed-order-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 4px 14px;
+}
+
+.completed-item-row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 0;
+  border-bottom: 1px dashed var(--border-color);
+}
+
+.completed-item-row:last-child {
+  border-bottom: 0;
+}
+
+.completed-item-details {
+  min-width: 0;
+}
+
+.completed-item-details strong {
+  display: block;
+  font-size: 13px;
+}
+
+.completed-item-details small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-muted);
+}
+
+.completed-status-badge {
+  padding: 4px 7px;
+  border-radius: var(--radius-full);
+  background: var(--success-light);
+  color: var(--success);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 /* ==========================================================================

@@ -16,7 +16,7 @@
 </head>
 <body>
   <aside class="sidebar">
-    <a class="brand" href="admin.html"><span>🍗</span><div><strong>THÍCH GÀ</strong><small>SUPER ADMIN</small></div></a>
+    <a class="brand" href="admin.html"><span>🍗</span><div><strong>THÍCH GÀ</strong><small id="adminRoleLabel">ADMIN</small></div></a>
     <nav id="adminNav">
       <button class="active" data-page="dashboard"><i class="fa-solid fa-chart-pie"></i>Tổng quan</button>
       <button data-page="stores"><i class="fa-solid fa-store"></i>Cửa hàng</button>
@@ -33,7 +33,7 @@
   </aside>
 
   <main>
-    <header><div><p class="eyebrow">QUẢN TRỊ TOÀN HỆ THỐNG</p><h1 id="pageTitle">Tổng quan</h1></div><div class="profile"><div class="avatar" id="avatar">SA</div><div><strong id="adminName">Super Admin</strong><small>Toàn quyền hệ thống</small></div></div></header>
+    <header><div><p class="eyebrow">QUẢN TRỊ TOÀN HỆ THỐNG</p><h1 id="pageTitle">Tổng quan</h1></div><div class="profile"><div class="avatar" id="avatar">AD</div><div><strong id="adminName">Admin</strong><small id="adminAccessLabel">Toàn quyền quản trị</small></div></div></header>
 
     <section class="page active" id="page-dashboard">
       <div class="metrics" id="metrics"></div>
@@ -56,7 +56,7 @@
     </section>
 
     <section class="page" id="page-products">
-      <div class="toolbar"><select id="productStore"></select><input id="productSearch" placeholder="Tìm mã hoặc tên sản phẩm..."><button class="btn ghost" id="addCategoryBtn"><i class="fa-solid fa-folder-plus"></i>Thêm danh mục</button><button class="btn primary" id="addProductBtn"><i class="fa-solid fa-plus"></i>Thêm sản phẩm</button></div>
+      <div class="toolbar"><select id="productStore"></select><input id="productSearch" placeholder="Tìm mã hoặc tên sản phẩm..."><button class="btn ghost" id="addCategoryBtn"><i class="fa-solid fa-folder-plus"></i>Quản lý danh mục</button><button class="btn ghost" id="manageToppingsBtn"><i class="fa-solid fa-layer-group"></i>Quản lý topping</button><button class="btn primary" id="addProductBtn"><i class="fa-solid fa-plus"></i>Thêm sản phẩm</button></div>
       <div class="panel table-wrap"><table><thead><tr><th>Sản phẩm</th><th>Danh mục</th><th>Giá bán</th><th>Bếp</th><th>Trạng thái</th><th></th></tr></thead><tbody id="productsList"></tbody></table></div>
     </section>
 
@@ -66,7 +66,7 @@
     </section>
 
     <section class="page" id="page-audit">
-      <div class="toolbar"><div><strong>Lịch sử thay đổi quan trọng</strong><p>Theo dõi người thực hiện, đối tượng và thời điểm.</p></div><button class="btn ghost" data-refresh="audit"><i class="fa-solid fa-rotate"></i>Làm mới</button></div>
+      <div class="toolbar"><div><strong>Lịch sử thay đổi quan trọng</strong><p>Theo dõi người thực hiện, đối tượng và thời điểm.</p></div><button class="btn danger" id="clearAuditBtn"><i class="fa-solid fa-trash"></i>Xóa nhật ký</button><button class="btn ghost" data-refresh="audit"><i class="fa-solid fa-rotate"></i>Làm mới</button></div>
       <div class="panel table-wrap"><table><thead><tr><th>Thời gian</th><th>Người thực hiện</th><th>Hành động</th><th>Đối tượng</th><th>Cửa hàng</th><th>Chi tiết</th></tr></thead><tbody id="auditList"></tbody></table></div>
     </section>
   </main>
@@ -74,6 +74,6 @@
   <div class="modal" id="formModal"><div class="modal-card"><div class="modal-head"><h2 id="modalTitle"></h2><button id="modalClose">×</button></div><form id="modalForm"><div id="modalFields" class="form-grid"></div><div class="modal-actions"><button type="button" class="btn ghost" id="modalCancel">Hủy</button><button type="submit" class="btn primary">Lưu thay đổi</button></div></form></div></div>
   <div id="toast"></div>
   <script src="js/api.js"></script>
-  <script src="js/admin-page.js?v=20260918-kitchen-history"></script>
+  <script src="js/admin-page.js?v=20260918-admin-delete"></script>
 </body>
 </html>

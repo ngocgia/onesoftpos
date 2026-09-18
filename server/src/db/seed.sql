@@ -136,13 +136,29 @@ INSERT INTO product_variants (product_id, size_name, price_adjustment, is_defaul
 ON CONFLICT DO NOTHING;
 
 -- 10. PRODUCT OPTIONS (Toppings)
-INSERT INTO product_options (store_id, name, price, is_active) VALUES
-(1, 'Trân châu đen', 5000, TRUE),
-(1, 'Kem Cheese Macchiato', 10000, TRUE),
-(1, 'Thạch dừa non', 5000, TRUE),
-(1, 'Thêm 1 Trứng ốp la', 7000, TRUE),
-(1, 'Thêm Cơm trắng xối mỡ', 5000, TRUE),
-(2, 'Thêm Trân châu', 5000, TRUE)
+INSERT INTO topping_groups (store_id, name, description, sort_order, is_active) VALUES
+(1, 'Topping đồ uống', 'Topping dùng cho trà sữa và đồ uống', 1, TRUE),
+(1, 'Món thêm', 'Món ăn thêm cho cơm và đồ ăn', 2, TRUE),
+(2, 'Topping đồ uống', 'Topping cho đồ uống mang đi', 1, TRUE)
+ON CONFLICT (store_id, name) DO UPDATE SET description=EXCLUDED.description;
+
+INSERT INTO product_options (store_id, group_id, name, price, is_active) VALUES
+(1, (SELECT id FROM topping_groups WHERE store_id=1 AND name='Topping đồ uống'), 'Trân châu đen', 5000, TRUE),
+(1, (SELECT id FROM topping_groups WHERE store_id=1 AND name='Topping đồ uống'), 'Kem Cheese Macchiato', 10000, TRUE),
+(1, (SELECT id FROM topping_groups WHERE store_id=1 AND name='Topping đồ uống'), 'Thạch dừa non', 5000, TRUE),
+(1, (SELECT id FROM topping_groups WHERE store_id=1 AND name='Món thêm'), 'Thêm 1 Trứng ốp la', 7000, TRUE),
+(1, (SELECT id FROM topping_groups WHERE store_id=1 AND name='Món thêm'), 'Thêm Cơm trắng xối mỡ', 5000, TRUE),
+(2, (SELECT id FROM topping_groups WHERE store_id=2 AND name='Topping đồ uống'), 'Thêm Trân châu', 5000, TRUE)
+ON CONFLICT DO NOTHING;
+
+-- Configure which menu items may use each topping.
+INSERT INTO product_option_products (option_id, product_id)
+SELECT po.id, p.id
+FROM product_options po
+JOIN products p ON p.store_id = po.store_id
+WHERE (po.store_id = 1 AND po.name IN ('Trân châu đen', 'Kem Cheese Macchiato', 'Thạch dừa non') AND p.id IN (4, 5, 6))
+   OR (po.store_id = 1 AND po.name IN ('Thêm 1 Trứng ốp la', 'Thêm Cơm trắng xối mỡ') AND p.id = 2)
+   OR (po.store_id = 2 AND po.name = 'Thêm Trân châu' AND p.id = 9)
 ON CONFLICT DO NOTHING;
 
 -- 11. AREAS & TABLES (FOR STORE001 DINE-IN)

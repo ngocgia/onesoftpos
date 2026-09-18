@@ -4,7 +4,9 @@ function audit(action, entityType) {
   return (req, res, next) => {
     res.on('finish', async () => {
       if (res.statusCode >= 400 || !req.user) return;
-      const storeId = Number(req.storeId || req.body?.store_id) || null;
+      const storeId = action === 'DELETE' && entityType === 'STORE'
+        ? null
+        : Number(req.storeId || req.body?.store_id) || null;
       const entityId = req.params.id || req.params.itemId || req.params.role || req.body?.code || req.body?.username || null;
       const details = `${req.method} ${req.originalUrl}`;
       const newValue = { ...(req.body || {}) };

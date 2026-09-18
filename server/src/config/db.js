@@ -139,13 +139,24 @@ const memoryStore = {
     { id: 4, product_id: 5, size_name: 'Size L (+5k)', price_adjustment: 5000, is_default: false },
     { id: 5, product_id: 6, size_name: 'Ly Tiêu Chuẩn', price_adjustment: 0, is_default: true }
   ],
+  topping_groups: [
+    { id: 1, store_id: 1, name: 'Topping đồ uống', description: 'Topping dùng cho trà sữa và đồ uống', sort_order: 1, is_active: true },
+    { id: 2, store_id: 1, name: 'Món thêm', description: 'Món ăn thêm cho cơm và đồ ăn', sort_order: 2, is_active: true },
+    { id: 3, store_id: 2, name: 'Topping đồ uống', description: 'Topping cho đồ uống mang đi', sort_order: 1, is_active: true }
+  ],
   product_options: [
-    { id: 1, store_id: 1, name: 'Trân châu đen', price: 5000, is_active: true },
-    { id: 2, store_id: 1, name: 'Kem Cheese Macchiato', price: 10000, is_active: true },
-    { id: 3, store_id: 1, name: 'Thạch dừa non', price: 5000, is_active: true },
-    { id: 4, store_id: 1, name: 'Thêm 1 Trứng ốp la', price: 7000, is_active: true },
-    { id: 5, store_id: 1, name: 'Thêm Cơm trắng xối mỡ', price: 5000, is_active: true },
-    { id: 6, store_id: 2, name: 'Thêm Trân châu', price: 5000, is_active: true }
+    { id: 1, store_id: 1, group_id: 1, name: 'Trân châu đen', price: 5000, is_active: true },
+    { id: 2, store_id: 1, group_id: 1, name: 'Kem Cheese Macchiato', price: 10000, is_active: true },
+    { id: 3, store_id: 1, group_id: 1, name: 'Thạch dừa non', price: 5000, is_active: true },
+    { id: 4, store_id: 1, group_id: 2, name: 'Thêm 1 Trứng ốp la', price: 7000, is_active: true },
+    { id: 5, store_id: 1, group_id: 2, name: 'Thêm Cơm trắng xối mỡ', price: 5000, is_active: true },
+    { id: 6, store_id: 2, group_id: 3, name: 'Thêm Trân châu', price: 5000, is_active: true }
+  ],
+  product_option_products: [
+    ...[4, 5, 6].flatMap(product_id => [1, 2, 3].map(option_id => ({ option_id, product_id }))),
+    { option_id: 4, product_id: 2 },
+    { option_id: 5, product_id: 2 },
+    { option_id: 6, product_id: 9 }
   ],
   areas: [
     { id: 1, store_id: 1, name: 'Tầng 1 - Phòng Máy Lạnh', sort_order: 1, is_active: true },
@@ -199,6 +210,40 @@ async function testConnection() {
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (store_id, role, feature_code)
     )`);
+    const optionGroupColumn = await client.query(`SELECT 1 FROM information_schema.columns
+      WHERE table_name='product_options' AND column_name='group_id'`);
+    await client.query(`CREATE TABLE IF NOT EXISTS topping_groups (
+      id SERIAL PRIMARY KEY,
+      store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+      name VARCHAR(100) NOT NULL,
+      description TEXT,
+      sort_order INT DEFAULT 0,
+      is_active BOOLEAN DEFAULT TRUE,
+      UNIQUE(store_id,name)
+    )`);
+    await client.query('ALTER TABLE product_options ADD COLUMN IF NOT EXISTS group_id INT REFERENCES topping_groups(id) ON DELETE SET NULL');
+    if (!optionGroupColumn.rowCount) {
+      await client.query(`INSERT INTO topping_groups (store_id,name,description,sort_order,is_active)
+        SELECT DISTINCT po.store_id,'Chưa phân nhóm','Nhóm tự động cho topping hiện có',999,TRUE
+        FROM product_options po WHERE po.group_id IS NULL
+        ON CONFLICT (store_id,name) DO NOTHING`);
+      await client.query(`UPDATE product_options po SET group_id=tg.id
+        FROM topping_groups tg
+        WHERE po.group_id IS NULL AND tg.store_id=po.store_id AND tg.name='Chưa phân nhóm'`);
+    }
+    const optionProductTable = await client.query("SELECT to_regclass('public.product_option_products') AS table_name");
+    await client.query(`CREATE TABLE IF NOT EXISTS product_option_products (
+      option_id INT REFERENCES product_options(id) ON DELETE CASCADE,
+      product_id INT REFERENCES products(id) ON DELETE CASCADE,
+      PRIMARY KEY (option_id, product_id)
+    )`);
+    await client.query('CREATE INDEX IF NOT EXISTS idx_product_option_products_product ON product_option_products(product_id)');
+    if (!optionProductTable.rows[0]?.table_name) {
+      await client.query(`INSERT INTO product_option_products (option_id, product_id)
+        SELECT option.id, product.id FROM product_options option
+        JOIN products product ON product.store_id=option.store_id
+        ON CONFLICT DO NOTHING`);
+    }
     await client.query(`WITH ranked_assignments AS (
       SELECT us.id, ROW_NUMBER() OVER (
         PARTITION BY us.user_id ORDER BY us.is_default DESC, us.store_id ASC

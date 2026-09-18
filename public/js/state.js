@@ -150,6 +150,7 @@ window.appState = {
     });
     const checkoutButton = document.getElementById('btnProceedCheckout');
     if (checkoutButton) checkoutButton.style.display = this.roleFeatures.PAYMENT ? '' : 'none';
+    window.completedItemsModule?.configureAccess();
     this.setOrderType(this.cart.orderType);
     this.notify('role_features_updated', this.roleFeatures);
   },

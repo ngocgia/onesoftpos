@@ -4,6 +4,10 @@ window.appNavigation = {
   currentView: 'viewPos',
 
   switchView(viewId) {
+    if (viewId === 'viewCompletedItems' && !window.completedItemsModule?.canView()) {
+      window.api.showToast('Chức năng này chỉ dành cho quản lý, nhân viên order và thu ngân', 'error');
+      return;
+    }
     const featureByView = { viewPos: 'POS', viewTables: 'TABLES', viewKds: 'KDS', viewOrders: 'HISTORY', viewAdmin: 'ADMIN' };
     const requiredFeature = featureByView[viewId];
     if (requiredFeature && window.appState.roleFeatures[requiredFeature] === false) {
@@ -27,6 +31,8 @@ window.appNavigation = {
       window.tablesModule.loadAreasAndTables();
     } else if (viewId === 'viewKds' && window.kdsModule) {
       window.kdsModule.loadKdsOrders();
+    } else if (viewId === 'viewCompletedItems' && window.completedItemsModule) {
+      window.completedItemsModule.loadCompletedItems();
     } else if (viewId === 'viewOrders' && window.ordersModule) {
       window.ordersModule.loadOrders();
     } else if (viewId === 'viewAdmin' && window.adminModule) {
@@ -70,6 +76,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (window.appState.roleFeatures.POS && window.posModule) await window.posModule.init();
   if (window.appState.roleFeatures.TABLES && window.tablesModule) await window.tablesModule.init();
   if (window.appState.roleFeatures.KDS && window.kdsModule) window.kdsModule.init();
+  if (window.completedItemsModule) window.completedItemsModule.init();
   if (window.appState.roleFeatures.HISTORY && window.ordersModule) window.ordersModule.init();
   if (window.appState.roleFeatures.POS && window.checkoutModule) window.checkoutModule.init();
   if (window.appState.roleFeatures.POS && window.invoiceModule) window.invoiceModule.init();
@@ -106,7 +113,7 @@ async function initAuth() {
     window.appState.stores = meRes.stores || [];
     window.appState.applyRoleFeatures(meRes.roleFeatures);
 
-    if (meRes.user.role === 'SUPER_ADMIN' && new URLSearchParams(window.location.search).get('mode') !== 'pos') {
+    if (['SUPER_ADMIN', 'ADMIN'].includes(meRes.user.role) && new URLSearchParams(window.location.search).get('mode') !== 'pos') {
       window.location.replace('/admin.html');
       return;
     }
@@ -339,7 +346,7 @@ async function executeLogin(username, password) {
     window.appState.stores = res.stores || [];
     window.appState.applyRoleFeatures(res.roleFeatures);
 
-    if (res.user.role === 'SUPER_ADMIN') {
+    if (['SUPER_ADMIN', 'ADMIN'].includes(res.user.role)) {
       window.location.replace('/admin.html');
       return;
     }
@@ -350,6 +357,7 @@ async function executeLogin(username, password) {
     updateUserProfileUI();
     populateStoreSelector();
     await window.appNavigation.reloadCurrentStoreFeatures();
+    window.completedItemsModule?.init();
 
     document.getElementById('loginModal').style.display = 'none';
     window.api.showToast(`Chào mừng ${res.user.full_name} (${res.user.role})!`, 'success');

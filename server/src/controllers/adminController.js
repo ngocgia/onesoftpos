@@ -184,6 +184,38 @@ async function updateUser(req, res) {
   }
 }
 
+async function deleteUser(req, res) {
+  const id = Number(req.params.id);
+  if (id === req.user.id) return res.status(400).json({ success: false, message: 'Không thể tự xóa tài khoản đang đăng nhập' });
+  try {
+    if (isPostgresConnected()) {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query('UPDATE shifts SET user_id=NULL WHERE user_id=$1', [id]);
+        await client.query('UPDATE orders SET cashier_id=NULL WHERE cashier_id=$1', [id]);
+        await client.query('UPDATE orders SET confirmed_by=NULL WHERE confirmed_by=$1', [id]);
+        await client.query('UPDATE order_items SET prepared_by=NULL WHERE prepared_by=$1', [id]);
+        const result = await client.query('DELETE FROM users WHERE id=$1 RETURNING id', [id]);
+        if (!result.rowCount) { const error = new Error('Không tìm thấy người dùng'); error.statusCode = 404; throw error; }
+        await client.query('COMMIT');
+      } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
+    } else {
+      if (!memoryStore.users.some(user => user.id === id)) return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+      memoryStore.users = memoryStore.users.filter(user => user.id !== id);
+      memoryStore.user_stores = memoryStore.user_stores.filter(link => link.user_id !== id);
+      memoryStore.shifts.forEach(item => { if (item.user_id === id) item.user_id = null; });
+      memoryStore.orders.forEach(item => { if (item.cashier_id === id) item.cashier_id = null; if (item.confirmed_by === id) item.confirmed_by = null; });
+      memoryStore.order_items.forEach(item => { if (item.prepared_by === id) item.prepared_by = null; });
+      memoryStore.audit_logs.forEach(log => { if (log.user_id === id) log.user_id = null; });
+    }
+    res.json({ success: true, message: 'Đã xóa người dùng' });
+  } catch (error) {
+    console.error('deleteUser error:', error);
+    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Lỗi xóa người dùng' });
+  }
+}
+
 async function getAuditLogs(req, res) {
   const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 500);
   try {
@@ -201,6 +233,17 @@ async function getAuditLogs(req, res) {
   } catch (error) {
     console.error('getAuditLogs error:', error);
     res.status(500).json({ success: false, message: 'Lỗi lấy nhật ký hệ thống' });
+  }
+}
+
+async function clearAuditLogs(req, res) {
+  try {
+    if (isPostgresConnected()) await pool.query('DELETE FROM audit_logs');
+    else memoryStore.audit_logs = [];
+    res.json({ success: true, message: 'Đã xóa toàn bộ nhật ký hệ thống' });
+  } catch (error) {
+    console.error('clearAuditLogs error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi xóa nhật ký hệ thống' });
   }
 }
 
@@ -251,4 +294,4 @@ async function updateRoleFeature(req, res) {
   }
 }
 
-module.exports = { dashboard, getUsers, createUser, updateUser, getAuditLogs, getRoleFeatures, updateRoleFeature };
+module.exports = { dashboard, getUsers, createUser, updateUser, deleteUser, getAuditLogs, clearAuditLogs, getRoleFeatures, updateRoleFeature };

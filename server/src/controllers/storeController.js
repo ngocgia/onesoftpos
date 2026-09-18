@@ -226,6 +226,57 @@ async function updateStore(req, res) {
   }
 }
 
+async function deleteStore(req, res) {
+  const storeId = Number(req.params.id);
+  try {
+    if (isPostgresConnected()) {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const managers = await client.query(`SELECT u.id FROM users u JOIN user_stores us ON us.user_id=u.id
+          WHERE us.store_id=$1 AND u.role='STORE_MANAGER'`, [storeId]);
+        const result = await client.query('DELETE FROM stores WHERE id=$1 RETURNING id', [storeId]);
+        if (!result.rowCount) { const error = new Error('Không tìm thấy cửa hàng'); error.statusCode = 404; throw error; }
+        if (managers.rowCount) await client.query('DELETE FROM users WHERE id=ANY($1::int[])', [managers.rows.map(item => item.id)]);
+        await client.query('COMMIT');
+      } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
+    } else {
+      if (!memoryStore.stores.some(store => store.id === storeId)) return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng' });
+      const productIds = new Set(memoryStore.products.filter(item => item.store_id === storeId).map(item => item.id));
+      const variantIds = new Set(memoryStore.product_variants.filter(item => productIds.has(item.product_id)).map(item => item.id));
+      const optionIds = new Set(memoryStore.product_options.filter(item => item.store_id === storeId).map(item => item.id));
+      const orderIds = new Set(memoryStore.orders.filter(item => item.store_id === storeId).map(item => item.id));
+      const orderItemIds = new Set(memoryStore.order_items.filter(item => orderIds.has(item.order_id)).map(item => item.id));
+      const managerIds = new Set(memoryStore.user_stores.filter(link => link.store_id === storeId)
+        .map(link => memoryStore.users.find(user => user.id === link.user_id))
+        .filter(user => user?.role === 'STORE_MANAGER').map(user => user.id));
+      memoryStore.stores = memoryStore.stores.filter(item => item.id !== storeId);
+      memoryStore.store_settings = memoryStore.store_settings.filter(item => item.store_id !== storeId);
+      memoryStore.user_stores = memoryStore.user_stores.filter(item => item.store_id !== storeId && !managerIds.has(item.user_id));
+      memoryStore.users = memoryStore.users.filter(item => !managerIds.has(item.id));
+      memoryStore.categories = memoryStore.categories.filter(item => item.store_id !== storeId);
+      memoryStore.products = memoryStore.products.filter(item => item.store_id !== storeId);
+      memoryStore.product_variants = memoryStore.product_variants.filter(item => !productIds.has(item.product_id));
+      memoryStore.product_options = memoryStore.product_options.filter(item => item.store_id !== storeId);
+      memoryStore.topping_groups = memoryStore.topping_groups.filter(item => item.store_id !== storeId);
+      memoryStore.product_option_products = memoryStore.product_option_products.filter(item => !productIds.has(item.product_id) && !optionIds.has(item.option_id));
+      memoryStore.areas = memoryStore.areas.filter(item => item.store_id !== storeId);
+      memoryStore.tables = memoryStore.tables.filter(item => item.store_id !== storeId);
+      memoryStore.shifts = memoryStore.shifts.filter(item => item.store_id !== storeId);
+      memoryStore.orders = memoryStore.orders.filter(item => item.store_id !== storeId);
+      memoryStore.order_items = memoryStore.order_items.filter(item => !orderIds.has(item.order_id));
+      memoryStore.order_item_options = memoryStore.order_item_options.filter(item => !orderItemIds.has(item.order_item_id));
+      memoryStore.payments = memoryStore.payments.filter(item => item.store_id !== storeId);
+      memoryStore.store_role_features = memoryStore.store_role_features.filter(item => item.store_id !== storeId);
+      memoryStore.audit_logs.forEach(log => { if (log.store_id === storeId) log.store_id = null; if (managerIds.has(log.user_id)) log.user_id = null; });
+    }
+    res.json({ success: true, message: 'Đã xóa cửa hàng và toàn bộ dữ liệu liên quan' });
+  } catch (error) {
+    console.error('deleteStore error:', error);
+    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Lỗi xóa cửa hàng' });
+  }
+}
+
 async function getStoreTypes(req, res) {
   try {
     let types = [];
@@ -338,6 +389,31 @@ async function updateStoreType(req, res) {
   }
 }
 
+async function deleteStoreType(req, res) {
+  const id = Number(req.params.id);
+  try {
+    if (isPostgresConnected()) {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query('UPDATE stores SET store_type_id=NULL WHERE store_type_id=$1', [id]);
+        const result = await client.query('DELETE FROM store_types WHERE id=$1 RETURNING id', [id]);
+        if (!result.rowCount) { const error = new Error('Không tìm thấy loại cửa hàng'); error.statusCode = 404; throw error; }
+        await client.query('COMMIT');
+      } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
+    } else {
+      if (!memoryStore.store_types.some(item => item.id === id)) return res.status(404).json({ success: false, message: 'Không tìm thấy loại cửa hàng' });
+      memoryStore.stores.forEach(store => { if (store.store_type_id === id) store.store_type_id = null; });
+      memoryStore.store_types = memoryStore.store_types.filter(item => item.id !== id);
+      memoryStore.store_type_features = memoryStore.store_type_features.filter(item => item.store_type_id !== id);
+    }
+    res.json({ success: true, message: 'Đã xóa loại cửa hàng' });
+  } catch (error) {
+    console.error('deleteStoreType error:', error);
+    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Lỗi xóa loại cửa hàng' });
+  }
+}
+
 async function updateStoreSettings(req, res) {
   const storeId = parseInt(req.params.id, 10);
   const { 
@@ -352,8 +428,8 @@ async function updateStoreSettings(req, res) {
     workflow_definition
   } = req.body;
 
-  if (kds_completion_message !== undefined && req.user?.role !== 'SUPER_ADMIN') {
-    return res.status(403).json({ success: false, message: 'Chỉ SUPER_ADMIN được cấu hình câu thông báo KDS' });
+  if (kds_completion_message !== undefined && !['SUPER_ADMIN', 'ADMIN'].includes(req.user?.role)) {
+    return res.status(403).json({ success: false, message: 'Chỉ ADMIN hoặc SUPER_ADMIN được cấu hình câu thông báo KDS' });
   }
   const normalizedKdsMessage = kds_completion_message === undefined
     ? undefined
@@ -415,9 +491,11 @@ module.exports = {
   getStoreDetails,
   createStore,
   updateStore,
+  deleteStore,
   getStoreTypes,
   createStoreType,
   updateStoreType,
+  deleteStoreType,
   updateStoreTypeFeature,
   updateStoreSettings
 };

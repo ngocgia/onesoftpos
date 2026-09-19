@@ -88,6 +88,49 @@ const adminApp = {
       .join("");
     return `<div class="field full"><span>Topping áp dụng cho món này</span><div style="display:flex;gap:8px;align-items:center;margin:8px 0"><input id="productToppingSearch" placeholder="Tìm topping hoặc nhóm..." oninput="adminApp.filterProductToppings(this.value)" style="flex:1"><strong id="productToppingCount">0 đã chọn</strong></div><div id="productToppingPicker" style="display:grid;gap:10px;max-height:360px;overflow:auto">${sections || '<p class="muted">Chưa có topping. Hãy tạo topping trước.</p>'}</div></div>`;
   },
+  variantPicker(productVariants = []) {
+    const activeSizes = this.sizes.filter(s => s.is_active);
+    if (!activeSizes.length) return '<div class="field full"><span>Kích cỡ (Biến thể)</span><p class="muted">Chưa có kích cỡ. Hãy tạo kích cỡ trong Quản lý kích cỡ trước.</p></div>';
+    
+    // Create a map for quick lookup of existing variants
+    const variantMap = {};
+    productVariants.forEach(v => {
+      variantMap[v.size_name] = v;
+    });
+
+    const rows = activeSizes.map(size => {
+      const existing = variantMap[size.name];
+      const isChecked = !!existing;
+      const priceAdj = existing ? existing.price_adjustment : 0;
+      const isDefault = existing ? existing.is_default : false;
+      
+      return `
+        <div style="display:flex;align-items:center;gap:12px;padding:8px;border:1px solid #e5e7eb;border-radius:6px;background:${isChecked ? 'var(--bg-card)' : 'transparent'}">
+          <label style="display:flex;align-items:center;gap:8px;margin:0;min-width:120px;cursor:pointer">
+            <input type="checkbox" name="product_variant_check" value="${this.esc(size.name)}" ${isChecked ? 'checked' : ''} onchange="this.parentElement.parentElement.style.background = this.checked ? 'var(--bg-card)' : 'transparent'">
+            <strong>${this.esc(size.name)}</strong>
+          </label>
+          <div style="flex:1;display:flex;align-items:center;gap:8px">
+            <span class="muted" style="font-size:12px">Giá cộng thêm:</span>
+            <input type="number" name="product_variant_price_${this.esc(size.name)}" value="${priceAdj}" style="width:100px;padding:4px 8px" ${isChecked ? '' : ''}>
+          </div>
+          <label style="display:flex;align-items:center;gap:4px;margin:0;cursor:pointer;font-size:13px">
+            <input type="radio" name="product_variant_default" value="${this.esc(size.name)}" ${isDefault ? 'checked' : ''}> Mặc định
+          </label>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="field full">
+        <span>Kích cỡ (Biến thể)</span>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;max-height:300px;overflow:auto">
+          ${rows}
+        </div>
+        <p class="muted" style="margin-top:4px;font-size:12px">Tích chọn để áp dụng kích cỡ cho món này. Chọn 1 kích cỡ làm Mặc định.</p>
+      </div>
+    `;
+  },
   refreshToppingPickerCount() {
     const root = document.getElementById("productToppingPicker");
     if (!root) return;
@@ -225,6 +268,8 @@ const adminApp = {
       this.manageCategories();
     document.getElementById("manageToppingsBtn").onclick = () =>
       this.manageToppings();
+    document.getElementById("manageSizesBtn").onclick = () =>
+      this.manageSizes();
     document.getElementById("addAreaBtn").onclick = () => this.editArea();
     document.getElementById("addTableBtn").onclick = () => this.editTable();
     document.getElementById("clearAuditBtn").onclick = () =>
@@ -1141,16 +1186,18 @@ const adminApp = {
     }
   },
   async loadProducts() {
-    const [p, c, t, g] = await Promise.all([
+    const [p, c, t, g, s] = await Promise.all([
       window.api.get("/products?include_inactive=true"),
       window.api.get("/categories"),
       window.api.get("/toppings"),
       window.api.get("/topping-groups"),
+      window.api.get("/sizes"),
     ]);
     this.products = p.products || [];
     this.categories = c.categories || [];
     this.toppings = t.toppings || [];
     this.toppingGroups = g.groups || [];
+    this.sizes = s.sizes || [];
     this.renderProducts();
   },
   renderProducts() {
@@ -1240,12 +1287,35 @@ const adminApp = {
             { value: "false", label: "Ngừng bán" },
           ])
         : "") +
+      this.variantPicker(p.variants || []) +
       this.toppingPicker(selectedToppings);
     this.openModal(
       id ? "Sửa sản phẩm" : "Thêm sản phẩm",
       html,
       async (data, form) => {
-        delete data.product_topping;
+        // Handle variants
+        const variants = [];
+        const variantChecks = form.querySelectorAll('input[name="product_variant_check"]:checked');
+        variantChecks.forEach(check => {
+          const sizeName = check.value;
+          const priceInput = form.querySelector(`input[name="product_variant_price_${sizeName}"]`);
+          const defaultRadio = form.querySelector(`input[name="product_variant_default"][value="${sizeName}"]`);
+          variants.push({
+            size_name: sizeName,
+            price_adjustment: priceInput ? Number(priceInput.value) : 0,
+            is_default: defaultRadio ? defaultRadio.checked : false
+          });
+        });
+        
+        // Clean up UI data fields from payload to avoid clutter
+        Object.keys(data).forEach(key => {
+          if (key.startsWith('product_variant_') || key === 'product_topping') {
+            delete data[key];
+          }
+        });
+        
+        data.variants = variants;
+        
         const topping_ids = [
           ...form.querySelectorAll('[name="product_topping"]:checked'),
         ].map((input) => Number(input.value));
@@ -1263,7 +1333,7 @@ const adminApp = {
         await window.api.put(`/products/${productId}/toppings`, {
           topping_ids,
         });
-        this.toast("Đã lưu sản phẩm và topping");
+        this.toast("Đã lưu sản phẩm, kích cỡ và topping");
         await this.loadProducts();
       },
     );
@@ -1309,6 +1379,43 @@ const adminApp = {
       this.toast("Đã thêm danh mục");
       await this.loadProducts();
     });
+  },
+  manageSizes() {
+    const rows =
+      this.sizes
+        .map(
+          (item) =>
+            `<div class="field full" style="display:flex;justify-content:space-between;align-items:center;gap:12px;overflow:visible"><span><strong>${this.esc(item.name)}</strong><br><span class="muted">${this.esc(item.description || "Không có mô tả")} · Sắp xếp: ${item.sort_order} · ${item.is_active ? "Đang dùng" : "Đã ẩn"}</span></span><span><div class="dropdown"><button class="dropdown-toggle" type="button" title="Thao tác"><i class="fa-solid fa-ellipsis-vertical"></i></button><div class="dropdown-menu"><button type="button" class="btn ghost small" onclick="adminApp.editSize(${item.id})"><i class="fa-solid fa-pen"></i> Sửa</button><button type="button" class="btn danger small" onclick="adminApp.deleteSize(${item.id})"><i class="fa-solid fa-trash"></i> Xóa</button></div></div></span></div>`,
+        )
+        .join("") || '<p class="field full muted">Chưa có kích cỡ</p>';
+    this.openModal(
+      "Quản lý kích cỡ",
+      `<div class="field full"><button type="button" class="btn primary" onclick="adminApp.editSize()"><i class="fa-solid fa-plus"></i> Thêm kích cỡ</button></div>${rows}`,
+      null,
+    );
+  },
+  editSize(id) {
+    const item = this.sizes.find((s) => s.id === id) || {};
+    const html =
+      this.field("name", "Tên kích cỡ", "text", item.name || "", null, false, true) +
+      this.field("description", "Mô tả", "text", item.description || "", null, false, false) +
+      this.field("sort_order", "Thứ tự sắp xếp", "number", item.sort_order || 0, null, false, true);
+    this.openModal(id ? "Sửa kích cỡ" : "Thêm kích cỡ", html, async (data) => {
+      data.sort_order = Number(data.sort_order);
+      if (id) await window.api.put(`/sizes/${id}`, data);
+      else await window.api.post("/sizes", data);
+      this.toast("Đã lưu kích cỡ");
+      await this.loadProducts();
+      this.manageSizes();
+    });
+  },
+  async deleteSize(id) {
+    const item = this.sizes.find((s) => s.id === id);
+    if (!confirm(`Bạn có chắc chắn muốn xóa kích cỡ "${item?.name || id}"?`)) return;
+    await window.api.del(`/sizes/${id}`);
+    this.toast("Đã xóa kích cỡ");
+    await this.loadProducts();
+    this.manageSizes();
   },
   manageToppings() {
     const rows =

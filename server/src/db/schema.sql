@@ -169,6 +169,17 @@ CREATE TABLE IF NOT EXISTS categories (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS sizes (
+    id SERIAL PRIMARY KEY,
+    store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+    name VARCHAR(50) NOT NULL,
+    description TEXT,
+    sort_order INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(store_id, name)
+);
+
 CREATE TABLE IF NOT EXISTS products (
     id SERIAL PRIMARY KEY,
     store_id INT REFERENCES stores(id) ON DELETE CASCADE,
@@ -369,3 +380,4 @@ CREATE INDEX IF NOT EXISTS idx_tables_store ON tables(store_id, status);
 CREATE INDEX IF NOT EXISTS idx_orders_store ON orders(store_id, order_status, created_at);
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_prepared_by ON order_items(prepared_by, prepared_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sizes_store ON sizes(store_id, is_active);

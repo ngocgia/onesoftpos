@@ -39,6 +39,12 @@ router.post('/categories', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN
 router.put('/categories/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('UPDATE', 'CATEGORY'), productController.updateCategory);
 router.delete('/categories/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('DELETE', 'CATEGORY'), productController.deleteCategory);
 
+router.get('/sizes', authenticateToken, productController.getSizes);
+router.post('/sizes', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('CREATE', 'SIZE'), productController.createSize);
+router.put('/sizes/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('UPDATE', 'SIZE'), productController.updateSize);
+router.delete('/sizes/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('DELETE', 'SIZE'), productController.deleteSize);
+
+
 router.get('/products', authenticateToken, productController.getProducts);
 router.post('/products', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('CREATE', 'PRODUCT'), productController.createProduct);
 router.put('/products/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('UPDATE', 'PRODUCT'), productController.updateProduct);

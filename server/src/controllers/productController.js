@@ -137,6 +137,104 @@ async function deleteCategory(req, res) {
   }
 }
 
+async function getSizes(req, res) {
+  const storeId = req.storeId || parseInt(req.query.store_id, 10);
+  try {
+    let sizes = [];
+    if (isPostgresConnected()) {
+      const result = await pool.query(
+        'SELECT * FROM sizes WHERE store_id = $1 AND is_active = TRUE ORDER BY sort_order ASC, id ASC',
+        [storeId]
+      );
+      sizes = result.rows;
+    } else {
+      sizes = memoryStore.sizes
+        .filter(s => s.store_id === storeId && s.is_active)
+        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    }
+    res.json({ success: true, sizes });
+  } catch (error) {
+    console.error('getSizes error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi lấy danh sách kích cỡ' });
+  }
+}
+
+async function createSize(req, res) {
+  const storeId = req.storeId || parseInt(req.body.store_id, 10);
+  const { name, description, sort_order } = req.body;
+  if (!name) return res.status(400).json({ success: false, message: 'Vui lòng nhập tên kích cỡ' });
+
+  try {
+    let newSize = null;
+    if (isPostgresConnected()) {
+      const result = await pool.query(
+        `INSERT INTO sizes (store_id, name, description, sort_order, is_active)
+         VALUES ($1, $2, $3, $4, TRUE) RETURNING *`,
+        [storeId, name, description, sort_order || 0]
+      );
+      newSize = result.rows[0];
+    } else {
+      const id = memoryStore.sizes.length ? Math.max(...memoryStore.sizes.map(s => s.id)) + 1 : 1;
+      newSize = { id, store_id: storeId, name, description, sort_order: sort_order || 0, is_active: true };
+      memoryStore.sizes.push(newSize);
+    }
+    res.status(201).json({ success: true, message: 'Tạo kích cỡ thành công', size: newSize });
+  } catch (error) {
+    console.error('createSize error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi tạo kích cỡ' });
+  }
+}
+
+async function updateSize(req, res) {
+  const id = Number(req.params.id);
+  const storeId = req.storeId || Number(req.body.store_id);
+  const { name, description, sort_order, is_active } = req.body;
+  try {
+    if (isPostgresConnected()) {
+      const result = await pool.query(
+        `UPDATE sizes SET name=COALESCE($1,name), description=COALESCE($2,description),
+         sort_order=COALESCE($3,sort_order), is_active=COALESCE($4,is_active)
+         WHERE id=$5 AND store_id=$6 RETURNING id`,
+        [name, description, sort_order, is_active, id, storeId]
+      );
+      if (!result.rowCount) return res.status(404).json({ success: false, message: 'Không tìm thấy kích cỡ' });
+    } else {
+      const size = memoryStore.sizes.find(item => item.id === id && item.store_id === storeId);
+      if (!size) return res.status(404).json({ success: false, message: 'Không tìm thấy kích cỡ' });
+      for (const field of ['name', 'description', 'sort_order', 'is_active']) {
+        if (req.body[field] !== undefined) size[field] = req.body[field];
+      }
+    }
+    res.json({ success: true, message: 'Cập nhật kích cỡ thành công' });
+  } catch (error) {
+    console.error('updateSize error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi cập nhật kích cỡ' });
+  }
+}
+
+async function deleteSize(req, res) {
+  if (req.user?.role === 'STORE_MANAGER') {
+    req.body = { ...(req.body || {}), is_active: false };
+    return updateSize(req, res);
+  }
+  const id = Number(req.params.id);
+  const storeId = req.storeId;
+  try {
+    if (isPostgresConnected()) {
+      const result = await pool.query('DELETE FROM sizes WHERE id=$1 AND store_id=$2 RETURNING id', [id, storeId]);
+      if (!result.rowCount) return res.status(404).json({ success: false, message: 'Không tìm thấy kích cỡ' });
+    } else {
+      const exists = memoryStore.sizes.some(item => item.id === id && item.store_id === storeId);
+      if (!exists) return res.status(404).json({ success: false, message: 'Không tìm thấy kích cỡ' });
+      memoryStore.sizes = memoryStore.sizes.filter(item => item.id !== id);
+    }
+    res.json({ success: true, message: 'Đã xóa kích cỡ' });
+  } catch (error) {
+    console.error('deleteSize error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi xóa kích cỡ' });
+  }
+}
+
 async function getProducts(req, res) {
   const storeId = req.storeId || parseInt(req.query.store_id, 10);
   const categoryId = req.query.category_id ? parseInt(req.query.category_id, 10) : null;
@@ -314,22 +412,60 @@ async function getOptions(req, res) {
 async function updateProduct(req, res) {
   const id = Number(req.params.id);
   const storeId = req.storeId || Number(req.body.store_id);
+  const { variants } = req.body;
   const fields = ['category_id','code','name','description','price','cost_price','unit','image_url','kitchen_type','is_active'];
   try {
     if (isPostgresConnected()) {
-      const values = fields.map(key => req.body[key]);
-      const result = await pool.query(`UPDATE products SET category_id=CASE WHEN $13 THEN $1 ELSE category_id END, code=COALESCE($2,code),
-        name=COALESCE($3,name), description=COALESCE($4,description), price=COALESCE($5,price),
-        cost_price=COALESCE($6,cost_price), unit=COALESCE($7,unit), image_url=COALESCE($8,image_url),
-        kitchen_type=COALESCE($9,kitchen_type), is_active=COALESCE($10,is_active), updated_at=CURRENT_TIMESTAMP
-        WHERE id=$11 AND store_id=$12 RETURNING id`, [...values, id, storeId, Object.prototype.hasOwnProperty.call(req.body, 'category_id')]);
-      if (!result.rowCount) return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm' });
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const values = fields.map(key => req.body[key]);
+        const result = await client.query(`UPDATE products SET category_id=CASE WHEN $13 THEN $1 ELSE category_id END, code=COALESCE($2,code),
+          name=COALESCE($3,name), description=COALESCE($4,description), price=COALESCE($5,price),
+          cost_price=COALESCE($6,cost_price), unit=COALESCE($7,unit), image_url=COALESCE($8,image_url),
+          kitchen_type=COALESCE($9,kitchen_type), is_active=COALESCE($10,is_active), updated_at=CURRENT_TIMESTAMP
+          WHERE id=$11 AND store_id=$12 RETURNING id`, [...values, id, storeId, Object.prototype.hasOwnProperty.call(req.body, 'category_id')]);
+        if (!result.rowCount) {
+          await client.query('ROLLBACK');
+          return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm' });
+        }
+        
+        if (variants && Array.isArray(variants)) {
+          await client.query('DELETE FROM product_variants WHERE product_id = $1', [id]);
+          for (let v of variants) {
+            await client.query(
+              `INSERT INTO product_variants (product_id, size_name, price_adjustment, is_default) VALUES ($1, $2, $3, $4)`,
+              [id, v.size_name, v.price_adjustment || 0, !!v.is_default]
+            );
+          }
+        }
+        
+        await client.query('COMMIT');
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
     } else {
       const product = memoryStore.products.find(item => item.id === id && item.store_id === storeId);
       if (!product) return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm' });
       for (const key of fields) if (req.body[key] !== undefined) product[key] = key === 'category_id' && req.body[key] === null
         ? null
         : (['category_id','price','cost_price'].includes(key) ? Number(req.body[key]) : req.body[key]);
+        
+      if (variants && Array.isArray(variants)) {
+        memoryStore.product_variants = memoryStore.product_variants.filter(v => v.product_id !== id);
+        variants.forEach((v, idx) => {
+          memoryStore.product_variants.push({
+            id: memoryStore.product_variants.length ? Math.max(...memoryStore.product_variants.map(x => x.id)) + 1 + idx : 1,
+            product_id: id,
+            size_name: v.size_name,
+            price_adjustment: parseFloat(v.price_adjustment || 0),
+            is_default: !!v.is_default
+          });
+        });
+      }
     }
     res.json({ success: true, message: 'Cập nhật sản phẩm thành công' });
   } catch (error) {
@@ -679,5 +815,9 @@ module.exports = {
   createTopping,
   updateTopping,
   deleteTopping,
-  updateProductToppings
+  updateProductToppings,
+  getSizes,
+  createSize,
+  updateSize,
+  deleteSize
 };

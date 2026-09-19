@@ -124,6 +124,7 @@ const memoryStore = {
     { id: 4, store_id: 2, code: 'GA_EXP', name: 'Gà Rán Mang Đi', description: 'Gà rán phục vụ nhanh', sort_order: 1, is_active: true },
     { id: 5, store_id: 2, code: 'NUOC_EXP', name: 'Trà & Nước Mang Đi', description: 'Đồ uống ly mang đi', sort_order: 2, is_active: true }
   ],
+  sizes: [],
   products: [
     { id: 1, store_id: 1, category_id: 1, code: 'GA01', name: 'Gà Rán Giòn Cay', description: 'Miếng gà rán tẩm bột giòn tan, vị cay vừa miệng', price: 35000, cost_price: 18000, unit: 'Miếng', image_url: '🍗', kitchen_type: 'KITCHEN', is_active: true },
     { id: 2, store_id: 1, category_id: 1, code: 'GA02', name: 'Cơm Gà Xối Mỡ Mắm Tỏi', description: 'Cơm vàng dẻo ăn kèm đùi gà góc tư sốt nước mắm tỏi ớt', price: 45000, cost_price: 22000, unit: 'Dĩa', image_url: '🍚', kitchen_type: 'KITCHEN', is_active: true },

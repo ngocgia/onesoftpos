@@ -389,6 +389,55 @@ window.tablesModule = {
     }
 
     if (modal) modal.style.display = 'flex';
+    this.loadActiveOrderDetails(table);
+  },
+
+  itemStatusLabel(status) {
+    return ({
+      PENDING: 'Chờ làm',
+      PREPARING: 'Đang làm',
+      READY: 'Đã xong',
+      SERVED: 'Đã phục vụ',
+      CANCELLED: 'Đã hủy'
+    })[status] || status || 'Chưa rõ';
+  },
+
+  async loadActiveOrderDetails(table) {
+    const details = document.getElementById('tableOrderDetails');
+    const list = document.getElementById('tableOrderItems');
+    const count = document.getElementById('tableOrderItemCount');
+    if (!details || !list) return;
+    if (!table.current_order_id) {
+      details.style.display = 'none';
+      return;
+    }
+
+    details.style.display = 'block';
+    list.innerHTML = '<div class="text-muted" style="padding:12px 0">Đang tải chi tiết đơn...</div>';
+    if (count) count.textContent = '';
+    try {
+      const result = await window.api.get(`/orders/${table.current_order_id}`);
+      if (this.activeTableForAction?.id !== table.id) return;
+      const items = result.items || [];
+      if (count) count.textContent = `${items.reduce((sum, item) => sum + Number(item.quantity || 1), 0)} món`;
+      list.innerHTML = items.length ? items.map(item => {
+        const options = (item.options || []).map(option => option.option_name).filter(Boolean).join(', ');
+        return `<div class="table-order-item">
+          <div class="table-order-item-main">
+            <strong>${Number(item.quantity || 1)} × ${this.escape(item.product_name)}</strong>
+            ${item.variant_name ? `<small>${this.escape(item.variant_name)}</small>` : ''}
+            ${options ? `<small>${this.escape(options)}</small>` : ''}
+            ${item.note ? `<small>Ghi chú: ${this.escape(item.note)}</small>` : ''}
+          </div>
+          <div class="table-order-item-side">
+            <span class="order-item-status status-${this.escape(String(item.status || '').toLowerCase())}">${this.itemStatusLabel(item.status)}</span>
+            <strong>${window.api.formatMoney(item.subtotal || 0)}</strong>
+          </div>
+        </div>`;
+      }).join('') : '<div class="text-muted" style="padding:12px 0">Đơn chưa có món.</div>';
+    } catch (error) {
+      list.innerHTML = `<div class="text-danger" style="padding:12px 0">Không tải được chi tiết đơn: ${this.escape(error.message)}</div>`;
+    }
   },
 
   populateTransferTargets() {

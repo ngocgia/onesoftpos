@@ -726,6 +726,7 @@ window.posModule = {
       const payload = {
         order_type: window.appState.cart.orderType,
         table_id: window.appState.cart.selectedTable ? window.appState.cart.selectedTable.id : null,
+        existing_order_id: window.appState.cart.existingOrderId || null,
         note: window.appState.cart.note,
         discount_amount: window.appState.getCartDiscount(),
         items: window.appState.cart.items,
@@ -733,6 +734,12 @@ window.posModule = {
       };
 
       const res = await window.api.post('/orders', payload);
+      if (window.appState.cart.orderType === 'DINE_IN' && res.order?.id) {
+        window.appState.cart.existingOrderId = res.order.id;
+        if (window.appState.cart.selectedTable) {
+          window.appState.cart.selectedTable.current_order_id = res.order.id;
+        }
+      }
       window.api.showToast(res.message || 'Đã tạo đơn và chuyển sang bước tiếp theo', 'success');
       if (this.isTakeawayOnlyOrder()) {
         window.appState.completeActiveTakeawayDraft();
@@ -743,7 +750,7 @@ window.posModule = {
       }
 
       // Refresh table view
-      if (window.tablesModule) window.tablesModule.loadTables();
+      if (window.tablesModule) window.tablesModule.loadAreasAndTables();
     } catch (err) {
       window.api.showToast('Lỗi gửi bếp: ' + err.message, 'error');
     }

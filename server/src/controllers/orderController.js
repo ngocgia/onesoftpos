@@ -34,6 +34,7 @@ async function createOrder(req, res) {
     customer_phone,
     delivery_address,
     scheduled_at,
+    existing_order_id,
     note,
     items = [],
     discount_amount = 0,
@@ -48,6 +49,7 @@ async function createOrder(req, res) {
 
   try {
     let createdOrder = null;
+    let appendedToExistingOrder = false;
     let workflowDefinition;
     let takeawayWorkspaceEnabled = false;
     if (isPostgresConnected()) {
@@ -142,6 +144,41 @@ async function createOrder(req, res) {
       try {
         await client.query('BEGIN');
 
+        let existingOrder = null;
+        if (order_type === 'DINE_IN' && table_id) {
+          const tableRes = await client.query(
+            'SELECT current_order_id FROM tables WHERE id=$1 AND store_id=$2 FOR UPDATE',
+            [table_id, storeId]
+          );
+          if (!tableRes.rows.length) {
+            const error = new Error('Không tìm thấy bàn');
+            error.statusCode = 404;
+            throw error;
+          }
+          const currentOrderId = tableRes.rows[0].current_order_id;
+          if (existing_order_id && Number(existing_order_id) !== Number(currentOrderId)) {
+            const error = new Error('Đơn hiện tại của bàn đã thay đổi, vui lòng tải lại bàn');
+            error.statusCode = 409;
+            throw error;
+          }
+          if (currentOrderId) {
+            const existingRes = await client.query(
+              `SELECT * FROM orders
+               WHERE id=$1 AND store_id=$2 AND table_id=$3
+                 AND payment_status='UNPAID' AND order_status NOT IN ('COMPLETED','CANCELLED')
+               FOR UPDATE`,
+              [currentOrderId, storeId, table_id]
+            );
+            existingOrder = existingRes.rows[0] || null;
+            if (!existingOrder) {
+              const error = new Error('Đơn hiện tại của bàn không còn khả dụng');
+              error.statusCode = 409;
+              throw error;
+            }
+            appendedToExistingOrder = true;
+          }
+        }
+
         const shiftRes = await client.query(
           `SELECT id FROM shifts
            WHERE store_id = $1 AND user_id = $2 AND status = 'OPEN'
@@ -150,7 +187,7 @@ async function createOrder(req, res) {
         );
         const shiftId = shiftRes.rows[0] ? shiftRes.rows[0].id : null;
 
-        const orderRes = await client.query(
+        const orderRes = existingOrder ? null : await client.query(
           `INSERT INTO orders (
             order_code, store_id, shift_id, order_type, fulfillment_type, table_id, customer_name, customer_phone,
             delivery_address, scheduled_at,
@@ -163,7 +200,7 @@ async function createOrder(req, res) {
             takeawayDetails.scheduled_at, cashierId, subtotal, discount_amount, tax_amount, totalAmount,
             initialStatus, initialStageIndex, JSON.stringify(workflow), note]
         );
-        createdOrder = orderRes.rows[0];
+        createdOrder = existingOrder || orderRes.rows[0];
 
         // Insert items
         for (let it of items) {
@@ -200,6 +237,20 @@ async function createOrder(req, res) {
           }
         }
 
+        if (existingOrder) {
+          const nextSubtotal = Number(existingOrder.subtotal || 0) + subtotal;
+          const nextDiscount = Number(existingOrder.discount_amount || 0) + Number(discount_amount || 0);
+          const nextTax = Number(existingOrder.tax_amount || 0) + Number(tax_amount || 0);
+          const nextTotal = Math.max(0, nextSubtotal - nextDiscount + nextTax);
+          const updated = await client.query(
+            `UPDATE orders SET subtotal=$1, discount_amount=$2, tax_amount=$3, total_amount=$4,
+              order_status=$5, workflow_stage_index=$6, updated_at=CURRENT_TIMESTAMP
+             WHERE id=$7 RETURNING *`,
+            [nextSubtotal, nextDiscount, nextTax, nextTotal, initialStatus, initialStageIndex, existingOrder.id]
+          );
+          createdOrder = updated.rows[0];
+        }
+
         // If dine-in, update table status
         if (order_type === 'DINE_IN' && table_id) {
           await client.query(
@@ -216,11 +267,28 @@ async function createOrder(req, res) {
         client.release();
       }
     } else {
-      const orderId = memoryStore.orders.length ? Math.max(...memoryStore.orders.map(o => o.id)) + 1 : 1;
+      const table = order_type === 'DINE_IN' && table_id
+        ? memoryStore.tables.find(item => item.id === parseInt(table_id, 10) && item.store_id === storeId)
+        : null;
+      if (order_type === 'DINE_IN' && table_id && !table) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy bàn' });
+      }
+      if (existing_order_id && Number(existing_order_id) !== Number(table?.current_order_id)) {
+        return res.status(409).json({ success: false, message: 'Đơn hiện tại của bàn đã thay đổi, vui lòng tải lại bàn' });
+      }
+      const existingOrder = table?.current_order_id
+        ? memoryStore.orders.find(item => item.id === table.current_order_id && item.store_id === storeId && item.table_id === table.id
+          && item.payment_status === 'UNPAID' && !['COMPLETED', 'CANCELLED'].includes(item.order_status))
+        : null;
+      if (table?.current_order_id && !existingOrder) {
+        return res.status(409).json({ success: false, message: 'Đơn hiện tại của bàn không còn khả dụng' });
+      }
+      appendedToExistingOrder = !!existingOrder;
+      const orderId = existingOrder?.id || (memoryStore.orders.length ? Math.max(...memoryStore.orders.map(o => o.id)) + 1 : 1);
       const currentShift = [...memoryStore.shifts].reverse().find(
         s => s.store_id === storeId && s.user_id === cashierId && s.status === 'OPEN'
       );
-      createdOrder = {
+      createdOrder = existingOrder || {
         id: orderId,
         order_code: orderCode,
         store_id: storeId,
@@ -244,7 +312,7 @@ async function createOrder(req, res) {
         note,
         created_at: new Date().toISOString()
       };
-      memoryStore.orders.unshift(createdOrder);
+      if (!existingOrder) memoryStore.orders.unshift(createdOrder);
 
       let nextItemId = memoryStore.order_items.length
         ? Math.max(...memoryStore.order_items.map(item => item.id)) + 1
@@ -284,6 +352,16 @@ async function createOrder(req, res) {
         }
       });
 
+      if (existingOrder) {
+        existingOrder.subtotal = Number(existingOrder.subtotal || 0) + subtotal;
+        existingOrder.discount_amount = Number(existingOrder.discount_amount || 0) + Number(discount_amount || 0);
+        existingOrder.tax_amount = Number(existingOrder.tax_amount || 0) + Number(tax_amount || 0);
+        existingOrder.total_amount = Math.max(0, existingOrder.subtotal - existingOrder.discount_amount + existingOrder.tax_amount);
+        existingOrder.order_status = initialStatus;
+        existingOrder.workflow_stage_index = initialStageIndex;
+        existingOrder.updated_at = new Date().toISOString();
+      }
+
       if (order_type === 'DINE_IN' && table_id) {
         const t = memoryStore.tables.find(tbl => tbl.id === parseInt(table_id, 10));
         if (t) {
@@ -295,7 +373,9 @@ async function createOrder(req, res) {
 
     res.status(201).json({
       success: true,
-      message: initialStep ? `Đã chuyển đơn đến bước: ${initialStep.name}` : 'Tạo đơn hàng thành công',
+      message: appendedToExistingOrder
+        ? (initialStep ? `Đã thêm món và chuyển đơn đến bước: ${initialStep.name}` : 'Đã thêm món vào đơn hiện tại')
+        : (initialStep ? `Đã chuyển đơn đến bước: ${initialStep.name}` : 'Tạo đơn hàng thành công'),
       order: createdOrder
     });
   } catch (error) {

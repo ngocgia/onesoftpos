@@ -65,7 +65,13 @@ router.put('/store/role-features/:role', authenticateToken, requireRole(['STORE_
 
 // 4. Area & Table routes (Dine-in)
 router.get('/areas', authenticateToken, requireFeature('TABLES'), tableController.getAreas);
+router.post('/areas', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('CREATE', 'AREA'), tableController.createArea);
+router.put('/areas/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('UPDATE', 'AREA'), tableController.updateArea);
+router.delete('/areas/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('DELETE', 'AREA'), tableController.deleteArea);
 router.get('/tables', authenticateToken, requireFeature('TABLES'), tableController.getTables);
+router.post('/tables', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('CREATE', 'TABLE'), tableController.createTable);
+router.put('/tables/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('UPDATE', 'TABLE'), tableController.updateTable);
+router.delete('/tables/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('DELETE', 'TABLE'), tableController.deleteTable);
 router.put('/tables/:id/status', authenticateToken, requireFeature('TABLES'), tableController.updateTableStatus);
 router.post('/tables/transfer', authenticateToken, requireFeature('TABLES'), tableController.transferTable);
 router.post('/tables/merge', authenticateToken, requireFeature('TABLES'), tableController.mergeTables);

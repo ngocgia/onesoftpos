@@ -284,11 +284,14 @@
             <div class="header-info">
               <h2>Sơ đồ phòng bàn</h2>
               <p class="text-muted">Quản lý trạng thái bàn, chọn bàn, chuyển bàn & ghép bàn</p>
+              <p class="text-muted" id="tableFeatureNotice" style="display:none">Tính năng bán tại bàn đang tắt; bạn vẫn có thể cấu hình khu vực và bàn.</p>
             </div>
-            <div class="tables-legend">
+            <div class="tables-legend" style="flex-wrap:wrap">
               <span class="legend-item"><span class="dot dot-empty"></span> Trống</span>
               <span class="legend-item"><span class="dot dot-occupied"></span> Có khách</span>
               <span class="legend-item"><span class="dot dot-reserved"></span> Đặt trước</span>
+              <button type="button" class="btn-secondary btn-sm" id="btnManageAreas" style="display:none"><i class="fa-solid fa-layer-group"></i> Khu vực / phòng</button>
+              <button type="button" class="btn-primary btn-sm" id="btnAddTable" style="display:none"><i class="fa-solid fa-plus"></i> Thêm bàn</button>
             </div>
           </div>
 
@@ -399,6 +402,9 @@
             <button class="admin-nav-tab" data-target="adminProducts">
               <i class="fa-solid fa-burger"></i> Danh mục & Sản phẩm
             </button>
+            <button class="admin-nav-tab" data-target="adminTables">
+              <i class="fa-solid fa-chair"></i> Phòng & bàn
+            </button>
             <button class="admin-nav-tab" data-target="adminStaff">
               <i class="fa-solid fa-users"></i> Nhân viên
             </button>
@@ -500,6 +506,17 @@
                   <!-- Loaded via JS -->
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          <div id="adminTables" class="admin-subview">
+            <div class="subview-header">
+              <div><h3>Quản lý khu vực, phòng và bàn</h3><p class="text-muted">Khu vực/phòng dùng chung một cấp; mỗi bàn được xếp vào một khu vực hoặc phòng.</p></div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn-secondary btn-sm" onclick="tablesModule.editArea()"><i class="fa-solid fa-layer-group"></i> Thêm khu vực / phòng</button><button type="button" class="btn-primary btn-sm" onclick="tablesModule.editTable()"><i class="fa-solid fa-plus"></i> Thêm bàn</button></div>
+            </div>
+            <div class="reports-split-grid">
+              <div class="report-box"><h3 class="box-title">Khu vực / phòng</h3><div id="adminAreasManagement"></div></div>
+              <div class="report-box"><h3 class="box-title">Danh sách bàn</h3><div id="adminTablesManagement"></div></div>
             </div>
           </div>
 
@@ -923,16 +940,16 @@
 
   <!-- SCRIPTS (Vanilla ES6 Modules) -->
   <script src="js/api.js"></script>
-  <script src="js/state.js?v=20260918-mobile-status-icons"></script>
+  <script src="js/state.js?v=20260919-table-management"></script>
   <script src="js/pos.js?v=20260918-toppings"></script>
-  <script src="js/tables.js"></script>
+  <script src="js/tables.js?v=20260919-table-management"></script>
   <script src="js/kds.js?v=20260918-kds-audio-2"></script>
   <script src="js/completed-items.js?v=20260918-completed-items"></script>
   <script src="js/orders.js?v=20260918-takeaway-history"></script>
   <script src="js/checkout.js?v=20260918-takeaway-history"></script>
   <script src="js/invoice.js?v=20260918-takeaway-actions"></script>
   <script src="js/shifts.js"></script>
-  <script src="js/admin.js?v=20260918-topping-group-select"></script>
+  <script src="js/admin.js?v=20260919-table-management"></script>
   <script src="js/app.js?v=20260918-completed-items"></script>
 </body>
 </html>

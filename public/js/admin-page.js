@@ -7,6 +7,8 @@ const adminApp = {
   categories: [],
   toppings: [],
   toppingGroups: [],
+  areas: [],
+  tables: [],
   roles: [],
   modalSubmit: null,
   featureLabels: {
@@ -205,6 +207,8 @@ const adminApp = {
       this.manageCategories();
     document.getElementById("manageToppingsBtn").onclick = () =>
       this.manageToppings();
+    document.getElementById("addAreaBtn").onclick = () => this.editArea();
+    document.getElementById("addTableBtn").onclick = () => this.editTable();
     document.getElementById("clearAuditBtn").onclick = () =>
       this.clearAuditLogs();
     document.getElementById("storeSearch").oninput = () => this.renderStores();
@@ -217,6 +221,10 @@ const adminApp = {
     document.getElementById("productStore").onchange = async (e) => {
       window.api.setCurrentStoreId(e.target.value);
       await this.loadProducts();
+    };
+    document.getElementById("tableStore").onchange = async (e) => {
+      window.api.setCurrentStoreId(e.target.value);
+      await this.loadTableManagement();
     };
   },
   async showPage(page, refresh = false) {
@@ -233,6 +241,7 @@ const adminApp = {
       users: "Người dùng & phân quyền",
       roleFeatures: "Hiển thị theo nhóm",
       products: "Danh mục & sản phẩm",
+      tables: "Quản lý phòng & bàn",
       audit: "Nhật ký hệ thống",
     };
     document.getElementById("pageTitle").textContent = titles[page];
@@ -242,6 +251,7 @@ const adminApp = {
     if (page === "users") await this.loadUsers();
     if (page === "roleFeatures") await this.loadRoleFeatures();
     if (page === "products") await this.prepareProducts();
+    if (page === "tables") await this.prepareTableManagement();
     if (page === "audit") await this.loadAudit();
   },
   async loadDashboard() {
@@ -291,6 +301,19 @@ const adminApp = {
           `<option value="${s.id}" ${String(s.id) === String(current) ? "selected" : ""}>${this.esc(s.name)}</option>`,
       )
       .join("");
+    const tableStore = document.getElementById("tableStore");
+    if (tableStore) {
+      const tableCurrent =
+        tableStore.value ||
+        window.api.getCurrentStoreId() ||
+        this.stores[0]?.id;
+      tableStore.innerHTML = this.stores
+        .map(
+          (s) =>
+            `<option value="${s.id}" ${String(s.id) === String(tableCurrent) ? "selected" : ""}>${this.esc(s.name)}</option>`,
+        )
+        .join("");
+    }
   },
   renderStores() {
     const q = document.getElementById("storeSearch").value.toLowerCase(),
@@ -913,6 +936,183 @@ const adminApp = {
     } catch (e) {
       input.checked = !enabled;
       this.toast(e.message, true);
+    }
+  },
+  async prepareTableManagement() {
+    if (!this.stores.length) await this.loadStores();
+    this.fillStoreControls();
+    const select = document.getElementById("tableStore");
+    const storeId = select.value || this.stores[0]?.id;
+    if (!storeId) {
+      this.areas = [];
+      this.tables = [];
+      this.renderTableManagement();
+      return;
+    }
+    select.value = String(storeId);
+    window.api.setCurrentStoreId(storeId);
+    await this.loadTableManagement();
+  },
+  async loadTableManagement() {
+    const [areaResult, tableResult] = await Promise.all([
+      window.api.get("/areas"),
+      window.api.get("/tables"),
+    ]);
+    this.areas = areaResult.areas || [];
+    this.tables = tableResult.tables || [];
+    this.renderTableManagement();
+  },
+  renderTableManagement() {
+    const areaList = document.getElementById("adminPageAreasList");
+    const tableList = document.getElementById("adminPageTablesList");
+    document.getElementById("areasSummary").textContent =
+      `${this.areas.length} khu vực`;
+    document.getElementById("tablesSummary").textContent =
+      `${this.tables.length} bàn`;
+    areaList.innerHTML =
+      this.areas
+        .map((area) => {
+          const count = this.tables.filter(
+            (table) => Number(table.area_id) === Number(area.id),
+          ).length;
+          return `<div class="field full" style="display:flex;justify-content:space-between;align-items:center;gap:12px"><span><strong>${this.esc(area.name)}</strong><br><span class="muted">${count} bàn · Thứ tự ${Number(area.sort_order) || 0}</span></span><span><button type="button" class="btn ghost small" onclick="adminApp.editArea(${area.id})">Sửa</button> <button type="button" class="btn danger small" onclick="adminApp.deleteArea(${area.id})">Xóa</button></span></div>`;
+        })
+        .join("") || '<p class="empty">Chưa có khu vực hoặc phòng.</p>';
+    tableList.innerHTML =
+      this.tables
+        .map(
+          (table) =>
+            `<div class="field full" style="display:flex;justify-content:space-between;align-items:center;gap:12px"><span><strong>${this.esc(table.code)} · ${this.esc(table.name)}</strong><br><span class="muted">${this.esc(table.area_name || "Chưa có khu vực")} · ${Number(table.seats) || 0} chỗ · ${this.tableStatusLabel(table.status)}</span></span><span><button type="button" class="btn ghost small" onclick="adminApp.editTable(${table.id})">Sửa</button> <button type="button" class="btn danger small" onclick="adminApp.deleteTable(${table.id})">Xóa</button></span></div>`,
+        )
+        .join("") ||
+      '<p class="empty">Chưa có bàn. Hãy tạo khu vực hoặc phòng trước.</p>';
+  },
+  tableStatusLabel(status) {
+    return (
+      {
+        EMPTY: "Đang trống",
+        OCCUPIED: "Đang có khách",
+        RESERVED: "Đã đặt trước",
+      }[status] || this.esc(status || "-")
+    );
+  },
+  editArea(id) {
+    const area = this.areas.find((item) => Number(item.id) === Number(id)) || {};
+    const html =
+      this.field(
+        "name",
+        "Tên khu vực / phòng",
+        "text",
+        area.name || "",
+        null,
+        false,
+        true,
+      ) +
+      this.field(
+        "sort_order",
+        "Thứ tự hiển thị",
+        "number",
+        area.sort_order || 0,
+      );
+    this.openModal(
+      id ? "Sửa khu vực / phòng" : "Thêm khu vực / phòng",
+      html,
+      async (data) => {
+        data.sort_order = Number(data.sort_order || 0);
+        if (id) await window.api.put(`/areas/${id}`, data);
+        else await window.api.post("/areas", data);
+        this.toast("Đã lưu khu vực / phòng");
+        await this.loadTableManagement();
+      },
+    );
+  },
+  async deleteArea(id) {
+    const area = this.areas.find((item) => Number(item.id) === Number(id));
+    if (
+      !confirm(
+        `Bạn có chắc chắn muốn xóa khu vực / phòng "${area?.name || id}"? Khu vực chỉ có thể xóa khi không còn bàn.`,
+      )
+    )
+      return;
+    try {
+      await window.api.del(`/areas/${id}`);
+      this.toast("Đã xóa khu vực / phòng");
+      await this.loadTableManagement();
+    } catch (error) {
+      this.toast(error.message, true);
+    }
+  },
+  editTable(id) {
+    if (!this.areas.length) {
+      this.toast("Hãy tạo khu vực / phòng trước khi thêm bàn", true);
+      this.editArea();
+      return;
+    }
+    const table =
+      this.tables.find((item) => Number(item.id) === Number(id)) || {};
+    const areaOptions = this.areas.map((area) => ({
+      value: area.id,
+      label: area.name,
+    }));
+    const html =
+      this.field(
+        "area_id",
+        "Khu vực / phòng",
+        "select",
+        table.area_id || areaOptions[0].value,
+        areaOptions,
+        false,
+        true,
+      ) +
+      this.field(
+        "code",
+        "Mã bàn",
+        "text",
+        table.code || "",
+        null,
+        false,
+        true,
+      ) +
+      this.field(
+        "name",
+        "Tên bàn",
+        "text",
+        table.name || "",
+        null,
+        false,
+        true,
+      ) +
+      this.field("seats", "Số chỗ", "number", table.seats || 4) +
+      this.field(
+        "sort_order",
+        "Thứ tự hiển thị",
+        "number",
+        table.sort_order || 0,
+      );
+    this.openModal(id ? "Sửa bàn" : "Thêm bàn", html, async (data) => {
+      data.area_id = Number(data.area_id);
+      data.seats = Number(data.seats || 0);
+      data.sort_order = Number(data.sort_order || 0);
+      if (id) await window.api.put(`/tables/${id}`, data);
+      else await window.api.post("/tables", data);
+      this.toast("Đã lưu bàn");
+      await this.loadTableManagement();
+    });
+  },
+  async deleteTable(id) {
+    const table = this.tables.find((item) => Number(item.id) === Number(id));
+    if (
+      !confirm(
+        `Bạn có chắc chắn muốn xóa bàn "${table?.name || id}"? Bàn đang có khách hoặc gắn với đơn hàng sẽ không thể xóa.`,
+      )
+    )
+      return;
+    try {
+      await window.api.del(`/tables/${id}`);
+      this.toast("Đã xóa bàn");
+      await this.loadTableManagement();
+    } catch (error) {
+      this.toast(error.message, true);
     }
   },
   async prepareProducts() {

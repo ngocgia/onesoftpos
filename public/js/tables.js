@@ -5,15 +5,20 @@ window.tablesModule = {
   tables: [],
   selectedAreaId: 'all',
   activeTableForAction: null,
+  editorSubmit: null,
 
   async init() {
     this.bindEvents();
+    this.configureManagement();
     await this.loadAreasAndTables();
 
     // Subscribe to state updates
     window.appState.subscribe((event) => {
       if (event === 'store_changed') {
+        this.configureManagement();
         this.loadAreasAndTables();
+      } else if (event === 'role_features_updated' || event === 'features_updated') {
+        this.configureManagement();
       }
     });
   },
@@ -75,6 +80,104 @@ window.tablesModule = {
     if (btnConfirmMerge) {
       btnConfirmMerge.addEventListener('click', () => this.confirmMerge());
     }
+    document.getElementById('btnManageAreas')?.addEventListener('click', () => this.manageAreas());
+    document.getElementById('btnAddTable')?.addEventListener('click', () => this.editTable());
+  },
+
+  canManage() {
+    return ['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER'].includes(window.appState.user?.role);
+  },
+
+  configureManagement() {
+    const allowed = this.canManage();
+    const manageAreas = document.getElementById('btnManageAreas');
+    const addTable = document.getElementById('btnAddTable');
+    const notice = document.getElementById('tableFeatureNotice');
+    if (manageAreas) manageAreas.style.display = allowed ? 'inline-flex' : 'none';
+    if (addTable) addTable.style.display = allowed ? 'inline-flex' : 'none';
+    if (notice) notice.style.display = allowed && !window.appState.features.enableTable ? 'block' : 'none';
+  },
+
+  escape(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));
+  },
+
+  field(name, label, type = 'text', value = '', options = null, required = false) {
+    if (type === 'select') return `<div class="form-group"><label>${label}</label><select class="form-input" name="${name}" ${required ? 'required' : ''}>${options.map(option => `<option value="${this.escape(option.value)}" ${String(option.value) === String(value) ? 'selected' : ''}>${this.escape(option.label)}</option>`).join('')}</select></div>`;
+    return `<div class="form-group"><label>${label}</label><input class="form-input" name="${name}" type="${type}" value="${this.escape(value)}" ${required ? 'required' : ''}></div>`;
+  },
+
+  ensureEditor() {
+    if (document.getElementById('tableManagerModal')) return;
+    document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="tableManagerModal" style="display:none"><form class="modal-dialog" id="tableManagerForm"><div class="modal-header"><div class="modal-title-box"><h3 id="tableManagerTitle"></h3></div><button type="button" class="btn-close-modal" id="btnCloseTableManager">&times;</button></div><div class="modal-body" id="tableManagerBody"></div><div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn-secondary" id="btnCancelTableManager">Đóng</button><button type="submit" class="btn-primary" id="btnSaveTableManager">Lưu</button></div></form></div>`);
+    const close = () => { document.getElementById('tableManagerModal').style.display = 'none'; this.editorSubmit = null; };
+    document.getElementById('btnCloseTableManager').onclick = close;
+    document.getElementById('btnCancelTableManager').onclick = close;
+    document.getElementById('tableManagerForm').onsubmit = async event => {
+      event.preventDefault();
+      try {
+        await this.editorSubmit?.(Object.fromEntries(new FormData(event.target).entries()));
+        close();
+      } catch (error) {
+        window.api.showToast(error.message, 'error');
+      }
+    };
+  },
+
+  openEditor(title, html, onSubmit, hideSave = false) {
+    this.ensureEditor();
+    document.getElementById('tableManagerTitle').textContent = title;
+    document.getElementById('tableManagerBody').innerHTML = html;
+    document.getElementById('btnSaveTableManager').style.display = hideSave ? 'none' : '';
+    this.editorSubmit = onSubmit;
+    document.getElementById('tableManagerModal').style.display = 'flex';
+  },
+
+  manageAreas() {
+    const rows = this.areas.map(area => `<div class="pay-row"><span><strong>${this.escape(area.name)}</strong><br><small class="text-muted">Thứ tự: ${area.sort_order || 0}</small></span><span><button type="button" class="btn-secondary btn-sm" onclick="tablesModule.editArea(${area.id})">Sửa</button> <button type="button" class="btn-secondary btn-sm" onclick="tablesModule.removeArea(${area.id})">Xóa</button></span></div>`).join('') || '<p class="text-muted">Chưa có khu vực/phòng.</p>';
+    this.openEditor('Khu vực / phòng', `<button type="button" class="btn-primary btn-sm" onclick="tablesModule.editArea()"><i class="fa-solid fa-plus"></i> Thêm khu vực / phòng</button><div style="margin-top:12px">${rows}</div>`, null, true);
+  },
+
+  editArea(id) {
+    const area = this.areas.find(item => item.id === id) || {};
+    this.openEditor(id ? 'Sửa khu vực / phòng' : 'Thêm khu vực / phòng', this.field('name','Tên khu vực / phòng','text',area.name || '',null,true) + this.field('sort_order','Thứ tự','number',area.sort_order || 0), async data => {
+      data.sort_order = Number(data.sort_order || 0);
+      if (id) await window.api.put(`/areas/${id}`, data); else await window.api.post('/areas', data);
+      window.api.showToast('Đã lưu khu vực/phòng', 'success');
+      await this.loadAreasAndTables();
+    });
+  },
+
+  async removeArea(id) {
+    if (!confirm('Xóa khu vực/phòng này?')) return;
+    try {
+      await window.api.del(`/areas/${id}`);
+      window.api.showToast('Đã xóa khu vực/phòng', 'success');
+      await this.loadAreasAndTables();
+      this.manageAreas();
+    } catch (error) { window.api.showToast(error.message, 'error'); }
+  },
+
+  editTable(id) {
+    if (!this.areas.length) {
+      window.api.showToast('Hãy tạo khu vực/phòng trước khi thêm bàn', 'error');
+      return this.editArea();
+    }
+    const table = this.tables.find(item => item.id === id) || {};
+    const areaOptions = this.areas.map(area => ({ value: area.id, label: area.name }));
+    const html = this.field('area_id','Khu vực / phòng','select',table.area_id || areaOptions[0].value,areaOptions,true) + this.field('code','Mã bàn','text',table.code || '',null,true) + this.field('name','Tên bàn','text',table.name || '',null,true) + this.field('seats','Số chỗ','number',table.seats || 4,null,true) + this.field('sort_order','Thứ tự','number',table.sort_order || 0);
+    this.openEditor(id ? 'Sửa bàn' : 'Thêm bàn', html, async data => {
+      data.area_id = Number(data.area_id); data.seats = Number(data.seats); data.sort_order = Number(data.sort_order || 0);
+      if (id) await window.api.put(`/tables/${id}`, data); else await window.api.post('/tables', data);
+      window.api.showToast('Đã lưu bàn', 'success');
+      await this.loadAreasAndTables();
+    });
+  },
+
+  async removeTable(id) {
+    if (!confirm('Xóa bàn này?')) return;
+    try { await window.api.del(`/tables/${id}`); window.api.showToast('Đã xóa bàn', 'success'); await this.loadAreasAndTables(); }
+    catch (error) { window.api.showToast(error.message, 'error'); }
   },
 
   async loadAreasAndTables() {
@@ -89,9 +192,20 @@ window.tablesModule = {
 
       this.renderAreaTabs();
       this.renderTables();
+      this.renderAdminManagement();
     } catch (err) {
       console.error('loadAreasAndTables error:', err);
     }
+  },
+
+  renderAdminManagement() {
+    const areaContainer = document.getElementById('adminAreasManagement');
+    const tableContainer = document.getElementById('adminTablesManagement');
+    if (areaContainer) areaContainer.innerHTML = this.areas.map(area => {
+      const count = this.tables.filter(table => table.area_id === area.id).length;
+      return `<div class="pay-row"><span><strong>${this.escape(area.name)}</strong><br><small class="text-muted">${count} bàn · Thứ tự ${area.sort_order || 0}</small></span><span><button type="button" class="btn-secondary btn-sm" onclick="tablesModule.editArea(${area.id})">Sửa</button> <button type="button" class="btn-secondary btn-sm" onclick="tablesModule.removeArea(${area.id})">Xóa</button></span></div>`;
+    }).join('') || '<p class="text-muted">Chưa có khu vực/phòng. Hãy bấm “Thêm khu vực / phòng”.</p>';
+    if (tableContainer) tableContainer.innerHTML = this.tables.map(table => `<div class="pay-row"><span><strong>${this.escape(table.code)} · ${this.escape(table.name)}</strong><br><small class="text-muted">${this.escape(table.area_name || 'Chưa có khu vực')} · ${table.seats || 4} chỗ · ${table.status}</small></span><span><button type="button" class="btn-secondary btn-sm" onclick="tablesModule.editTable(${table.id})">Sửa</button> <button type="button" class="btn-secondary btn-sm" onclick="tablesModule.removeTable(${table.id})">Xóa</button></span></div>`).join('') || '<p class="text-muted">Chưa có bàn. Hãy tạo khu vực/phòng trước, sau đó thêm bàn.</p>';
   },
 
   renderAreaTabs() {
@@ -158,6 +272,7 @@ window.tablesModule = {
               </div>
             `}
           </div>
+          ${this.canManage() ? `<div class="table-manage-actions" style="display:flex;gap:6px;padding:0 10px 10px"><button type="button" class="btn-secondary btn-sm" onclick="event.stopPropagation();tablesModule.editTable(${t.id})">Sửa</button><button type="button" class="btn-secondary btn-sm" onclick="event.stopPropagation();tablesModule.removeTable(${t.id})">Xóa</button></div>` : ''}
         </div>
       `;
     }).join('');

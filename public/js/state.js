@@ -168,6 +168,8 @@ window.appState = {
     const navItemKds = document.getElementById('navItemKds');
     const selectedTablePill = document.getElementById('selectedTablePill');
     const featurePillsContainer = document.getElementById('featurePillsContainer');
+    const canManageTables = ['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER'].includes(this.user?.role)
+      && this.roleFeatures.TABLES !== false;
 
     // 1. Kiểm tra tính năng Tại Chỗ (Dine-in) & Quản lý bàn (Table)
     if (this.features.enableDineIn && this.features.enableTable && this.roleFeatures.TABLES) {
@@ -175,7 +177,7 @@ window.appState = {
       if (navItemTables) navItemTables.style.display = 'flex';
     } else {
       if (btnDineInTab) btnDineInTab.style.display = 'none';
-      if (navItemTables) navItemTables.style.display = 'none';
+      if (navItemTables) navItemTables.style.display = canManageTables ? 'flex' : 'none';
       // Tự động chuyển về Mang đi nếu tính năng Tại chỗ bị tắt
       this.setOrderType('TAKEAWAY');
     }

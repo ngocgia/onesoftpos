@@ -24,6 +24,7 @@
       <button data-page="users"><i class="fa-solid fa-users-gear"></i>Người dùng & quyền</button>
       <button data-page="roleFeatures"><i class="fa-solid fa-eye"></i>Hiển thị theo nhóm</button>
       <button data-page="products"><i class="fa-solid fa-burger"></i>Sản phẩm</button>
+      <button data-page="tables"><i class="fa-solid fa-chair"></i>Phòng & bàn</button>
       <button data-page="audit"><i class="fa-solid fa-clock-rotate-left"></i>Nhật ký hệ thống</button>
     </nav>
     <div class="sidebar-footer">
@@ -60,6 +61,14 @@
       <div class="panel table-wrap"><table><thead><tr><th>Sản phẩm</th><th>Danh mục</th><th>Giá bán</th><th>Bếp</th><th>Trạng thái</th><th></th></tr></thead><tbody id="productsList"></tbody></table></div>
     </section>
 
+    <section class="page" id="page-tables">
+      <div class="toolbar"><select id="tableStore"></select><div><strong>Quản lý sơ đồ phục vụ theo cửa hàng</strong><p>Tạo khu vực hoặc phòng trước, sau đó thêm bàn vào khu vực tương ứng.</p></div><button class="btn ghost" id="addAreaBtn"><i class="fa-solid fa-vector-square"></i>Thêm khu vực / phòng</button><button class="btn primary" id="addTableBtn"><i class="fa-solid fa-plus"></i>Thêm bàn</button></div>
+      <div class="cards two">
+        <div class="panel"><div class="panel-head"><div><h2>Khu vực / phòng</h2><p id="areasSummary">0 khu vực</p></div></div><div id="adminPageAreasList"></div></div>
+        <div class="panel"><div class="panel-head"><div><h2>Danh sách bàn</h2><p id="tablesSummary">0 bàn</p></div></div><div id="adminPageTablesList"></div></div>
+      </div>
+    </section>
+
     <section class="page" id="page-roleFeatures">
       <div class="toolbar"><div><strong>Hiển thị chức năng theo nhóm người dùng</strong><p>Bật hoặc ẩn màn hình và thao tác cho từng vai trò. SUPER_ADMIN luôn có toàn quyền.</p></div><button class="btn ghost" data-refresh="roleFeatures"><i class="fa-solid fa-rotate"></i>Làm mới</button></div>
       <div class="cards two" id="roleFeaturesList"></div>
@@ -75,5 +84,6 @@
   <div id="toast"></div>
   <script src="js/api.js"></script>
   <script src="js/admin-page.js?v=20260919-checkbox-fix"></script>
+  <script src="js/admin-page.js?v=20260919-table-management"></script>
 </body>
 </html>

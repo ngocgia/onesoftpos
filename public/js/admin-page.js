@@ -259,6 +259,7 @@ const adminApp = {
       .forEach(
         (btn) => (btn.onclick = () => this.showPage(btn.dataset.refresh, true)),
       );
+    document.getElementById("btnFilterAdminReports").onclick = () => this.loadDashboard();
     document.getElementById("addStoreBtn").onclick = () => this.editStore();
     document.getElementById("addStoreTypeBtn").onclick = () =>
       this.editStoreType();
@@ -296,34 +297,38 @@ const adminApp = {
       .forEach((x) => x.classList.toggle("active", x.id === `page-${page}`));
     document
       .querySelectorAll("#adminNav button")
-      .forEach((x) => x.classList.toggle("active", x.dataset.page === page));
-    const titles = {
-      dashboard: "Tổng quan",
-      stores: "Quản lý cửa hàng",
-      storeTypes: "Loại cửa hàng & tính năng",
-      users: "Người dùng & phân quyền",
-      roleFeatures: "Hiển thị theo nhóm",
-      products: "Danh mục & sản phẩm",
-      tables: "Quản lý phòng & bàn",
-      audit: "Nhật ký hệ thống",
-    };
-    document.getElementById("pageTitle").textContent = titles[page];
+      .forEach((p) => p.classList.toggle("active", p.id === `page-${page}`));
     if (page === "dashboard") await this.loadDashboard();
     if (page === "stores") await this.loadStores();
-    if (page === "storeTypes" && refresh) await this.loadStoreTypes();
-    if (page === "users") await this.loadUsers();
+    if (page === "storeTypes") await this.loadStoreTypes();
+    if (page === "users") await this.prepareUsers();
     if (page === "roleFeatures") await this.loadRoleFeatures();
     if (page === "products") await this.prepareProducts();
     if (page === "tables") await this.prepareTableManagement();
     if (page === "audit") await this.loadAudit();
   },
   async loadDashboard() {
-    const d = await window.api.get("/admin/dashboard");
+    const startDate = document.getElementById("adminReportStartDate")?.value;
+    const endDate = document.getElementById("adminReportEndDate")?.value;
+    let url = "/admin/dashboard";
+    let labelToday = "hôm nay";
+    let labelRevenue = "Doanh thu hôm nay";
+    let labelOrders = "Đơn hôm nay";
+    if (startDate && endDate) {
+      url = `/admin/dashboard?startDate=${startDate}&endDate=${endDate}`;
+      const formatDt = (d) => { const p = d.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d; };
+      const rangeStr = `${formatDt(startDate)} - ${formatDt(endDate)}`;
+      labelToday = rangeStr;
+      labelRevenue = `Doanh thu (${rangeStr})`;
+      labelOrders = `Đơn (${rangeStr})`;
+    }
+
+    const d = await window.api.get(url);
     document.getElementById("metrics").innerHTML = [
       ["fa-store", "Cửa hàng hoạt động", d.activeStores],
       ["fa-users", "Người dùng hoạt động", d.activeUsers],
-      ["fa-receipt", "Đơn hôm nay", d.todayOrders],
-      ["fa-sack-dollar", "Doanh thu hôm nay", this.money(d.todayRevenue)],
+      ["fa-receipt", labelOrders, d.todayOrders],
+      ["fa-sack-dollar", labelRevenue, this.money(d.todayRevenue)],
       ["fa-calendar", "Doanh thu tháng", this.money(d.monthRevenue)],
     ]
       .map(

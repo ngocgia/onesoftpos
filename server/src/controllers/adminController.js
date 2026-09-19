@@ -36,15 +36,23 @@ function assertStoreManagerAssignment(role, storeIds) {
 
 async function dashboard(req, res) {
   try {
+    const { startDate, endDate } = req.query;
     if (isPostgresConnected()) {
+      let dateFilter = "created_at >= CURRENT_DATE";
+      let storeDateFilter = "";
+      if (startDate && endDate) {
+        dateFilter = `created_at >= '${startDate} 00:00:00' AND created_at <= '${endDate} 23:59:59'`;
+        storeDateFilter = `AND o.created_at >= '${startDate} 00:00:00' AND o.created_at <= '${endDate} 23:59:59'`;
+      }
+
       const [stores, users, summary, month, topStores] = await Promise.all([
         pool.query("SELECT COUNT(*)::int AS count FROM stores WHERE status = 'ACTIVE'"),
         pool.query("SELECT COUNT(*)::int AS count FROM users WHERE status = 'ACTIVE'"),
-        pool.query("SELECT COUNT(*)::int AS orders, COALESCE(SUM(total_amount), 0) AS revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= CURRENT_DATE"),
+        pool.query(`SELECT COUNT(*)::int AS orders, COALESCE(SUM(total_amount), 0) AS revenue FROM orders WHERE payment_status = 'PAID' AND ${dateFilter}`),
         pool.query("SELECT COALESCE(SUM(total_amount), 0) AS revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= date_trunc('month', CURRENT_DATE)"),
         pool.query(`SELECT s.id, s.name, COUNT(o.id)::int AS order_count,
                     COALESCE(SUM(o.total_amount), 0) AS revenue
-                    FROM stores s LEFT JOIN orders o ON o.store_id = s.id AND o.payment_status = 'PAID'
+                    FROM stores s LEFT JOIN orders o ON o.store_id = s.id AND o.payment_status = 'PAID' ${storeDateFilter}
                     GROUP BY s.id, s.name ORDER BY revenue DESC`)
       ]);
       return res.json({ success: true, activeStores: stores.rows[0].count, activeUsers: users.rows[0].count,
@@ -55,17 +63,25 @@ async function dashboard(req, res) {
     const paid = memoryStore.orders.filter(o => o.payment_status === 'PAID');
     const today = new Date().toISOString().slice(0, 10);
     const month = today.slice(0, 7);
-    const todayOrders = paid.filter(o => String(o.created_at || '').slice(0, 10) === today);
+    
+    let filteredOrders = paid.filter(o => String(o.created_at || '').slice(0, 10) === today);
+    if (startDate && endDate) {
+      filteredOrders = paid.filter(o => {
+        const d = String(o.created_at || '').slice(0, 10);
+        return d >= startDate && d <= endDate;
+      });
+    }
+
     const storeRows = memoryStore.stores.map(store => {
-      const orders = paid.filter(o => o.store_id === store.id);
+      const orders = filteredOrders.filter(o => o.store_id === store.id);
       return { id: store.id, name: store.name, order_count: orders.length,
         revenue: orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0) };
     }).sort((a, b) => b.revenue - a.revenue);
     res.json({ success: true,
       activeStores: memoryStore.stores.filter(s => s.status === 'ACTIVE').length,
       activeUsers: memoryStore.users.filter(u => u.status === 'ACTIVE').length,
-      todayOrders: todayOrders.length,
-      todayRevenue: todayOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0),
+      todayOrders: filteredOrders.length,
+      todayRevenue: filteredOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0),
       monthRevenue: paid.filter(o => String(o.created_at || '').slice(0, 7) === month)
         .reduce((sum, o) => sum + Number(o.total_amount || 0), 0),
       stores: storeRows

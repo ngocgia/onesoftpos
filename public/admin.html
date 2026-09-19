@@ -55,6 +55,17 @@
     </header>
 
     <section class="page active" id="page-dashboard">
+      <div class="toolbar">
+        <div>
+          <strong>Báo cáo doanh thu</strong>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="date" id="adminReportStartDate" class="form-input">
+          <span>-</span>
+          <input type="date" id="adminReportEndDate" class="form-input">
+          <button class="btn primary" id="btnFilterAdminReports">Lọc</button>
+        </div>
+      </div>
       <div class="metrics" id="metrics"></div>
       <div class="panel">
         <div class="panel-head">

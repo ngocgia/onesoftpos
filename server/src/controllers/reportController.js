@@ -12,8 +12,14 @@ async function getSummary(req, res) {
 
     if (isPostgresConnected()) {
       let dateFilter = "created_at >= CURRENT_DATE";
-      if (range === '7days') dateFilter = "created_at >= CURRENT_DATE - INTERVAL '7 days'";
-      if (range === '30days') dateFilter = "created_at >= CURRENT_DATE - INTERVAL '30 days'";
+      const { startDate, endDate } = req.query;
+      if (startDate && endDate) {
+        dateFilter = `created_at >= '${startDate} 00:00:00' AND created_at <= '${endDate} 23:59:59'`;
+      } else if (range === '7days') {
+        dateFilter = "created_at >= CURRENT_DATE - INTERVAL '7 days'";
+      } else if (range === '30days') {
+        dateFilter = "created_at >= CURRENT_DATE - INTERVAL '30 days'";
+      }
 
       // Revenue and order count
       const sumRes = await pool.query(
@@ -49,23 +55,54 @@ async function getSummary(req, res) {
       );
       topProducts = topRes.rows;
     } else {
-      const paidOrders = memoryStore.orders.filter(o => o.store_id === storeId && o.payment_status === 'PAID');
+      const { startDate, endDate } = req.query;
+      const todayDate = new Date().toISOString().slice(0, 10);
+      let paidOrders = memoryStore.orders.filter(o => o.store_id === storeId && o.payment_status === 'PAID');
+      let storePayments = memoryStore.payments.filter(p => p.store_id === storeId && p.status === 'SUCCESS');
+
+      if (startDate && endDate) {
+        paidOrders = paidOrders.filter(o => {
+          const d = o.created_at ? new Date(o.created_at).toISOString().slice(0, 10) : todayDate;
+          return d >= startDate && d <= endDate;
+        });
+        storePayments = storePayments.filter(p => {
+          const d = p.created_at ? new Date(p.created_at).toISOString().slice(0, 10) : todayDate;
+          return d >= startDate && d <= endDate;
+        });
+      } else if (range === 'today' || !range) {
+        paidOrders = paidOrders.filter(o => {
+          const d = o.created_at ? new Date(o.created_at).toISOString().slice(0, 10) : todayDate;
+          return d === todayDate;
+        });
+        storePayments = storePayments.filter(p => {
+          const d = p.created_at ? new Date(p.created_at).toISOString().slice(0, 10) : todayDate;
+          return d === todayDate;
+        });
+      }
+
       revenue = paidOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
       orderCount = paidOrders.length;
 
-      const storePayments = memoryStore.payments.filter(p => p.store_id === storeId && p.status === 'SUCCESS');
       storePayments.forEach(p => {
         paymentBreakdown[p.payment_method] = (paymentBreakdown[p.payment_method] || 0) + (p.amount || 0);
       });
 
-      // Fallback top products
-      topProducts = [
-        { product_name: 'Gà Rán Giòn Cay', total_qty: 28, total_revenue: 980000 },
-        { product_name: 'Cơm Gà Xối Mỡ Mắm Tỏi', total_qty: 24, total_revenue: 1080000 },
-        { product_name: 'Trà Sữa Trân Châu Đường Đen', total_qty: 35, total_revenue: 1050000 },
-        { product_name: 'Trà Đào Cam Sả', total_qty: 19, total_revenue: 532000 },
-        { product_name: 'Khoai Tây Chiên Lắc Phô Mai', total_qty: 15, total_revenue: 375000 }
-      ];
+      // Calculate real top products from memoryStore
+      const productStats = {};
+      paidOrders.forEach(o => {
+        const items = memoryStore.order_items.filter(oi => oi.order_id === o.id);
+        items.forEach(oi => {
+          if (!productStats[oi.product_name]) {
+            productStats[oi.product_name] = { product_name: oi.product_name, total_qty: 0, total_revenue: 0 };
+          }
+          productStats[oi.product_name].total_qty += Number(oi.quantity || 0);
+          productStats[oi.product_name].total_revenue += Number(oi.price || 0) * Number(oi.quantity || 0);
+        });
+      });
+
+      topProducts = Object.values(productStats)
+        .sort((a, b) => b.total_qty - a.total_qty)
+        .slice(0, 5);
     }
 
     res.json({

@@ -170,10 +170,15 @@ window.appState = {
     const selectedTablePill = document.getElementById('selectedTablePill');
     const featurePillsContainer = document.getElementById('featurePillsContainer');
     const canManageTables = ['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER'].includes(this.user?.role)
-      && this.roleFeatures.TABLES !== false;
+      && this.roleFeatures.TABLES !== false
+      && !this.features.enableTakeawayWorkspace;
 
     // 1. Kiểm tra tính năng Tại Chỗ (Dine-in) & Quản lý bàn (Table)
-    if (this.features.enableDineIn && this.features.enableTable && this.roleFeatures.TABLES) {
+    if (this.features.enableTakeawayWorkspace) {
+      if (btnDineInTab) btnDineInTab.style.display = 'none';
+      if (navItemTables) navItemTables.style.display = 'none';
+      this.setOrderType('TAKEAWAY');
+    } else if (this.features.enableDineIn && this.features.enableTable && this.roleFeatures.TABLES) {
       if (btnDineInTab) btnDineInTab.style.display = 'inline-flex';
       if (navItemTables) navItemTables.style.display = 'flex';
     } else {

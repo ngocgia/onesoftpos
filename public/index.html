@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/main.css?v=20260918-takeaway-drafts-scroll">
+  <link rel="stylesheet" href="css/main.css?v=20260919-table-action-v2">
 </head>
 <body class="theme-light">
   <!-- APP CONTAINER -->
@@ -781,42 +781,112 @@
 
   <!-- MODAL 4: TABLE ACTIONS (Chuyển bàn, Ghép bàn) -->
   <div class="modal-overlay" id="tableActionModal" style="display: none;">
-    <div class="modal-sheet-dialog">
-      <div class="modal-header">
+    <div class="modal-sheet-dialog table-action-dialog">
+      <div class="modal-header table-modal-header">
         <div class="modal-title-box">
-          <h3 id="tableActionTitle">Thao tác Bàn B01</h3>
-          <span class="badge-status" id="tableActionStatus">Có khách</span>
+          <div class="table-header-group">
+            <div class="table-code-badge" id="tableActionCodeBadge">B0</div>
+            <div class="table-meta-box">
+              <div class="table-name-row">
+                <h3 id="tableActionTitle">Bàn 0</h3>
+                <span class="badge-status table-status-badge status-occupied" id="tableActionStatus">
+                  <span class="status-dot"></span> Đang có khách
+                </span>
+              </div>
+              <div class="table-submeta" id="tableActionSubmeta">
+                <span id="tableActionArea"><i class="fa-solid fa-layer-group"></i> Khu vực chung</span>
+                <span class="meta-dot">·</span>
+                <span id="tableActionSeats"><i class="fa-solid fa-chair"></i> 4 chỗ</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <button type="button" class="btn-close-modal" id="btnCloseTableActionModal">&times;</button>
+        <button type="button" class="btn-close-modal" id="btnCloseTableActionModal" aria-label="Đóng">&times;</button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body table-modal-body">
+        <!-- Quick Order Overview Card -->
+        <div class="table-bill-overview" id="tableBillOverview">
+          <div class="bill-overview-main">
+            <div class="bill-overview-label"><i class="fa-solid fa-receipt"></i> TỔNG TẠM TÍNH ĐƠN HIỆN TẠI</div>
+            <div class="bill-overview-amount" id="tableBillAmount">0 đ</div>
+          </div>
+          <div class="bill-overview-extra">
+            <span class="bill-order-code" id="tableBillOrderCode">#ĐANG PHỤC VỤ</span>
+            <span class="bill-time-tag" id="tableBillTimeTag"><i class="fa-regular fa-clock"></i> Đang mở</span>
+          </div>
+        </div>
+
+        <!-- 3 Primary Action Tiles -->
         <div class="table-action-options">
-          <button type="button" class="btn-action-tile" id="btnActionOpenPos">
-            <i class="fa-solid fa-cart-plus"></i>
-            <div><strong>Xem & Thêm Món</strong><span>Gọi món cho bàn này</span></div>
+          <button type="button" class="btn-action-tile tile-pos" id="btnActionOpenPos">
+            <div class="tile-icon-box">
+              <i class="fa-solid fa-utensils"></i>
+            </div>
+            <div class="tile-content">
+              <div class="tile-title-row">
+                <strong>Xem & Thêm Món</strong>
+                <span class="tile-badge-recommend">Mở POS</span>
+              </div>
+              <span>Mở giỏ hàng, gọi thêm món hoặc xem chi tiết đơn</span>
+            </div>
+            <i class="fa-solid fa-chevron-right tile-arrow"></i>
           </button>
-          <button type="button" class="btn-action-tile" id="btnActionTransfer">
-            <i class="fa-solid fa-arrow-right-arrow-left"></i>
-            <div><strong>Chuyển Bàn (Rule 22)</strong><span>Chuyển khách sang bàn trống</span></div>
-          </button>
-          <button type="button" class="btn-action-tile" id="btnActionMerge">
-            <i class="fa-solid fa-object-group"></i>
-            <div><strong>Ghép Bàn (Rule 23)</strong><span>Gộp hóa đơn với bàn khác</span></div>
-          </button>
-        </div>
 
-        <!-- Transfer form subpanel -->
-        <div id="transferSubpanel" class="action-subpanel" style="display: none;">
-          <h4 class="subpanel-title">Chọn bàn đích cần chuyển sang:</h4>
-          <select id="transferTargetSelect" class="form-input"></select>
-          <button type="button" class="btn-primary btn-block mt-2" id="btnConfirmTransfer">Xác nhận chuyển bàn</button>
-        </div>
+          <button type="button" class="btn-action-tile tile-transfer" id="btnActionTransfer">
+            <div class="tile-icon-box">
+              <i class="fa-solid fa-arrow-right-arrow-left"></i>
+            </div>
+            <div class="tile-content">
+              <strong>Chuyển Bàn</strong>
+              <span>Dời toàn bộ món chưa thanh toán sang bàn trống khác</span>
+            </div>
+            <i class="fa-solid fa-chevron-down tile-arrow tile-arrow-toggle"></i>
+          </button>
 
-        <!-- Merge form subpanel -->
-        <div id="mergeSubpanel" class="action-subpanel" style="display: none;">
-          <h4 class="subpanel-title">Chọn bàn đang có khách để ghép vào:</h4>
-          <select id="mergeTargetSelect" class="form-input"></select>
-          <button type="button" class="btn-primary btn-block mt-2" id="btnConfirmMerge">Xác nhận ghép bàn</button>
+          <!-- Transfer form subpanel -->
+          <div id="transferSubpanel" class="action-subpanel" style="display: none;">
+            <div class="subpanel-header">
+              <i class="fa-solid fa-arrow-right-arrow-left"></i>
+              <h4 class="subpanel-title">Chọn bàn trống cần chuyển sang:</h4>
+            </div>
+            <div class="subpanel-select-wrap">
+              <select id="transferTargetSelect" class="form-input custom-table-select"></select>
+            </div>
+            <div class="subpanel-actions">
+              <button type="button" class="btn-subpanel-cancel" id="btnCancelTransfer">Hủy</button>
+              <button type="button" class="btn-primary btn-subpanel-confirm" id="btnConfirmTransfer">
+                <i class="fa-solid fa-check"></i> Xác nhận chuyển bàn
+              </button>
+            </div>
+          </div>
+
+          <button type="button" class="btn-action-tile tile-merge" id="btnActionMerge">
+            <div class="tile-icon-box">
+              <i class="fa-solid fa-object-group"></i>
+            </div>
+            <div class="tile-content">
+              <strong>Ghép Bàn</strong>
+              <span>Gộp đơn của bàn này vào một bàn đang có khách khác</span>
+            </div>
+            <i class="fa-solid fa-chevron-down tile-arrow tile-arrow-toggle"></i>
+          </button>
+
+          <!-- Merge form subpanel -->
+          <div id="mergeSubpanel" class="action-subpanel" style="display: none;">
+            <div class="subpanel-header">
+              <i class="fa-solid fa-object-group"></i>
+              <h4 class="subpanel-title">Chọn bàn đang có khách để ghép vào:</h4>
+            </div>
+            <div class="subpanel-select-wrap">
+              <select id="mergeTargetSelect" class="form-input custom-table-select"></select>
+            </div>
+            <div class="subpanel-actions">
+              <button type="button" class="btn-subpanel-cancel" id="btnCancelMerge">Hủy</button>
+              <button type="button" class="btn-primary btn-subpanel-confirm btn-merge-confirm" id="btnConfirmMerge">
+                <i class="fa-solid fa-check"></i> Xác nhận ghép bàn
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -942,7 +1012,7 @@
   <script src="js/api.js"></script>
   <script src="js/state.js?v=20260919-table-management"></script>
   <script src="js/pos.js?v=20260918-toppings"></script>
-  <script src="js/tables.js?v=20260919-table-management"></script>
+  <script src="js/tables.js?v=20260919-table-action-v2"></script>
   <script src="js/kds.js?v=20260918-kds-audio-2"></script>
   <script src="js/completed-items.js?v=20260918-completed-items"></script>
   <script src="js/orders.js?v=20260918-takeaway-history"></script>

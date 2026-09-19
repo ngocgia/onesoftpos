@@ -24,13 +24,29 @@ window.tablesModule = {
   },
 
   bindEvents() {
-    // Close table action modal
-    const btnCloseModal = document.getElementById('btnCloseTableActionModal');
-    if (btnCloseModal) {
-      btnCloseModal.addEventListener('click', () => {
-        document.getElementById('tableActionModal').style.display = 'none';
+    const tableActionModal = document.getElementById('tableActionModal');
+    const closeActionModal = () => {
+      if (tableActionModal) tableActionModal.style.display = 'none';
+      document.getElementById('btnActionTransfer')?.classList.remove('active-subpanel');
+      document.getElementById('btnActionMerge')?.classList.remove('active-subpanel');
+      if (document.getElementById('transferSubpanel')) document.getElementById('transferSubpanel').style.display = 'none';
+      if (document.getElementById('mergeSubpanel')) document.getElementById('mergeSubpanel').style.display = 'none';
+    };
+
+    // Close buttons & overlay click
+    document.getElementById('btnCloseTableActionModal')?.addEventListener('click', closeActionModal);
+    if (tableActionModal) {
+      tableActionModal.addEventListener('click', (e) => {
+        if (e.target === tableActionModal) closeActionModal();
       });
     }
+
+    // Escape key
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && tableActionModal && tableActionModal.style.display !== 'none') {
+        closeActionModal();
+      }
+    });
 
     // Action: Open POS for table
     const btnActionPos = document.getElementById('btnActionOpenPos');
@@ -38,43 +54,63 @@ window.tablesModule = {
       btnActionPos.addEventListener('click', () => {
         if (this.activeTableForAction) {
           window.appState.setSelectedTable(this.activeTableForAction);
-          document.getElementById('tableActionModal').style.display = 'none';
+          closeActionModal();
           window.appNavigation.switchView('viewPos');
         }
       });
     }
 
-    // Action: Transfer Table (Rule 22)
+    // Action: Transfer Table
     const btnActionTransfer = document.getElementById('btnActionTransfer');
     const transferSubpanel = document.getElementById('transferSubpanel');
     const mergeSubpanel = document.getElementById('mergeSubpanel');
 
     if (btnActionTransfer) {
       btnActionTransfer.addEventListener('click', () => {
-        if (mergeSubpanel) mergeSubpanel.style.display = 'none';
+        if (mergeSubpanel) {
+          mergeSubpanel.style.display = 'none';
+          document.getElementById('btnActionMerge')?.classList.remove('active-subpanel');
+        }
         if (transferSubpanel) {
-          transferSubpanel.style.display = transferSubpanel.style.display === 'block' ? 'none' : 'block';
-          this.populateTransferTargets();
+          const isOpening = transferSubpanel.style.display !== 'block';
+          transferSubpanel.style.display = isOpening ? 'block' : 'none';
+          btnActionTransfer.classList.toggle('active-subpanel', isOpening);
+          if (isOpening) this.populateTransferTargets();
         }
       });
     }
+
+    document.getElementById('btnCancelTransfer')?.addEventListener('click', () => {
+      if (transferSubpanel) transferSubpanel.style.display = 'none';
+      btnActionTransfer?.classList.remove('active-subpanel');
+    });
 
     const btnConfirmTransfer = document.getElementById('btnConfirmTransfer');
     if (btnConfirmTransfer) {
       btnConfirmTransfer.addEventListener('click', () => this.confirmTransfer());
     }
 
-    // Action: Merge Tables (Rule 23)
+    // Action: Merge Tables
     const btnActionMerge = document.getElementById('btnActionMerge');
     if (btnActionMerge) {
       btnActionMerge.addEventListener('click', () => {
-        if (transferSubpanel) transferSubpanel.style.display = 'none';
+        if (transferSubpanel) {
+          transferSubpanel.style.display = 'none';
+          document.getElementById('btnActionTransfer')?.classList.remove('active-subpanel');
+        }
         if (mergeSubpanel) {
-          mergeSubpanel.style.display = mergeSubpanel.style.display === 'block' ? 'none' : 'block';
-          this.populateMergeTargets();
+          const isOpening = mergeSubpanel.style.display !== 'block';
+          mergeSubpanel.style.display = isOpening ? 'block' : 'none';
+          btnActionMerge.classList.toggle('active-subpanel', isOpening);
+          if (isOpening) this.populateMergeTargets();
         }
       });
     }
+
+    document.getElementById('btnCancelMerge')?.addEventListener('click', () => {
+      if (mergeSubpanel) mergeSubpanel.style.display = 'none';
+      btnActionMerge?.classList.remove('active-subpanel');
+    });
 
     const btnConfirmMerge = document.getElementById('btnConfirmMerge');
     if (btnConfirmMerge) {
@@ -301,14 +337,56 @@ window.tablesModule = {
     const modal = document.getElementById('tableActionModal');
     const title = document.getElementById('tableActionTitle');
     const status = document.getElementById('tableActionStatus');
+    const codeBadge = document.getElementById('tableActionCodeBadge');
+    const areaTag = document.getElementById('tableActionArea');
+    const seatsTag = document.getElementById('tableActionSeats');
+    const billOverview = document.getElementById('tableBillOverview');
+    const billAmount = document.getElementById('tableBillAmount');
+    const billOrderCode = document.getElementById('tableBillOrderCode');
+
     const transferSubpanel = document.getElementById('transferSubpanel');
     const mergeSubpanel = document.getElementById('mergeSubpanel');
+
+    document.getElementById('btnActionTransfer')?.classList.remove('active-subpanel');
+    document.getElementById('btnActionMerge')?.classList.remove('active-subpanel');
 
     if (transferSubpanel) transferSubpanel.style.display = 'none';
     if (mergeSubpanel) mergeSubpanel.style.display = 'none';
 
-    if (title) title.textContent = `Thao tác ${table.code} - ${table.name}`;
-    if (status) status.textContent = table.status === 'OCCUPIED' ? 'Đang có khách' : 'Đặt trước';
+    const area = this.areas.find(a => a.id === table.area_id);
+    const areaName = area ? area.name : 'Chung';
+
+    if (codeBadge) codeBadge.textContent = table.code || 'Bàn';
+    if (title) title.textContent = table.name || `Bàn ${table.code}`;
+    if (areaTag) areaTag.innerHTML = `<i class="fa-solid fa-layer-group"></i> ${this.escape(areaName)}`;
+    if (seatsTag) seatsTag.innerHTML = `<i class="fa-solid fa-chair"></i> ${table.seats || 4} chỗ`;
+
+    const isOccupied = table.status === 'OCCUPIED';
+    const totalAmount = Number(table.total_amount || 0);
+
+    if (status) {
+      if (isOccupied) {
+        status.className = 'badge-status table-status-badge status-occupied';
+        status.innerHTML = `<span class="status-dot"></span> Đang có khách`;
+      } else {
+        status.className = 'badge-status table-status-badge status-reserved';
+        status.innerHTML = `<span class="status-dot"></span> Đặt trước`;
+      }
+    }
+
+    if (billOverview) {
+      if (isOccupied && totalAmount > 0) {
+        billOverview.style.display = 'flex';
+        if (billAmount) billAmount.textContent = window.api.formatMoney(totalAmount);
+        if (billOrderCode) billOrderCode.textContent = table.order_code ? `#${table.order_code}` : '#ĐANG PHỤC VỤ';
+      } else if (isOccupied) {
+        billOverview.style.display = 'flex';
+        if (billAmount) billAmount.textContent = '0 đ';
+        if (billOrderCode) billOrderCode.textContent = '#CHƯA GỌI MÓN';
+      } else {
+        billOverview.style.display = 'none';
+      }
+    }
 
     if (modal) modal.style.display = 'flex';
   },
@@ -320,13 +398,15 @@ window.tablesModule = {
     // Filter empty tables only
     const emptyTables = this.tables.filter(t => t.status === 'EMPTY');
     if (emptyTables.length === 0) {
-      select.innerHTML = '<option value="">Không có bàn trống nào!</option>';
+      select.innerHTML = '<option value="">⚠️ Không có bàn trống nào khả dụng!</option>';
       return;
     }
 
-    select.innerHTML = emptyTables.map(t => `
-      <option value="${t.id}">${t.code} - ${t.name} (${t.seats} chỗ)</option>
-    `).join('');
+    select.innerHTML = emptyTables.map(t => {
+      const area = this.areas.find(a => a.id === t.area_id);
+      const areaName = area ? ` [${area.name}]` : '';
+      return `<option value="${t.id}">${t.code} – ${t.name}${areaName} (${t.seats || 4} chỗ)</option>`;
+    }).join('');
   },
 
   populateMergeTargets() {
@@ -336,13 +416,16 @@ window.tablesModule = {
     // Filter other occupied tables
     const otherOccupied = this.tables.filter(t => t.status === 'OCCUPIED' && t.id !== this.activeTableForAction?.id);
     if (otherOccupied.length === 0) {
-      select.innerHTML = '<option value="">Không có bàn đang có khách khác để ghép!</option>';
+      select.innerHTML = '<option value="">⚠️ Không có bàn đang có khách khác để ghép!</option>';
       return;
     }
 
-    select.innerHTML = otherOccupied.map(t => `
-      <option value="${t.id}">${t.code} - ${t.name} (${window.api.formatMoney(t.total_amount)})</option>
-    `).join('');
+    select.innerHTML = otherOccupied.map(t => {
+      const area = this.areas.find(a => a.id === t.area_id);
+      const areaName = area ? ` [${area.name}]` : '';
+      const amountStr = window.api.formatMoney(t.total_amount || 0);
+      return `<option value="${t.id}">${t.code} – ${t.name}${areaName} · Đơn: ${amountStr}</option>`;
+    }).join('');
   },
 
   async confirmTransfer() {
@@ -350,7 +433,14 @@ window.tablesModule = {
     const targetId = targetSelect?.value;
 
     if (!this.activeTableForAction || !targetId) {
-      window.api.showToast('Vui lòng chọn bàn đích', 'error');
+      window.api.showToast('Vui lòng chọn bàn đích còn trống', 'warning');
+      return;
+    }
+
+    const targetTable = this.tables.find(t => t.id === parseInt(targetId, 10));
+    const targetName = targetTable ? `${targetTable.code} (${targetTable.name})` : 'bàn mới';
+
+    if (!confirm(`Xác nhận chuyển toàn bộ đơn từ bàn ${this.activeTableForAction.code} sang ${targetName}?`)) {
       return;
     }
 
@@ -360,7 +450,7 @@ window.tablesModule = {
         to_table_id: parseInt(targetId, 10)
       });
 
-      window.api.showToast('Chuyển bàn thành công!', 'success');
+      window.api.showToast(`Đã chuyển sang ${targetName} thành công!`, 'success');
       document.getElementById('tableActionModal').style.display = 'none';
       await this.loadAreasAndTables();
     } catch (err) {
@@ -373,7 +463,14 @@ window.tablesModule = {
     const targetId = targetSelect?.value;
 
     if (!this.activeTableForAction || !targetId) {
-      window.api.showToast('Vui lòng chọn bàn ghép', 'error');
+      window.api.showToast('Vui lòng chọn bàn đang có khách để ghép', 'warning');
+      return;
+    }
+
+    const targetTable = this.tables.find(t => t.id === parseInt(targetId, 10));
+    const targetName = targetTable ? `${targetTable.code} (${targetTable.name})` : 'bàn đích';
+
+    if (!confirm(`Xác nhận gộp đơn từ bàn ${this.activeTableForAction.code} vào ${targetName}? Hai hóa đơn sẽ được hợp nhất.`)) {
       return;
     }
 
@@ -383,7 +480,7 @@ window.tablesModule = {
         target_table_id: parseInt(targetId, 10)
       });
 
-      window.api.showToast('Ghép bàn thành công!', 'success');
+      window.api.showToast(`Đã ghép vào ${targetName} thành công!`, 'success');
       document.getElementById('tableActionModal').style.display = 'none';
       await this.loadAreasAndTables();
     } catch (err) {

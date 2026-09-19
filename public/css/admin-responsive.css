@@ -81,88 +81,6 @@ td:nth-last-child(-n + 2) {
   z-index: 2;
 }
 
-@media (max-width: 720px) {
-  .sidebar .brand div { display: none; }
-  .sidebar button,
-  .sidebar .secondary-link { font-size: 0; }
-  .sidebar button i,
-  .sidebar .secondary-link i { font-size: 17px; }
-
-  main {
-    overflow-x: hidden;
-  }
-
-  header {
-    gap: 10px;
-  }
-
-  h1 {
-    font-size: 21px;
-    line-height: 1.2;
-  }
-
-  .eyebrow {
-    font-size: 9px;
-  }
-
-  .metrics {
-    grid-template-columns: 1fr;
-  }
-
-  .metric {
-    padding: 16px;
-  }
-
-  .toolbar {
-    gap: 9px;
-  }
-
-  .toolbar .btn,
-  .toolbar input,
-  .toolbar select {
-    justify-content: center;
-    max-width: none;
-    width: 100%;
-  }
-
-  .cards,
-  .cards.two {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .card-head {
-    align-items: flex-start;
-  }
-
-  .feature-grid,
-  .checks {
-    grid-template-columns: 1fr;
-  }
-
-  .modal {
-    align-items: flex-end;
-    padding: 0;
-  }
-
-  .modal-card {
-    border-radius: 16px 16px 0 0;
-    max-height: 94dvh;
-    width: 100%;
-  }
-
-  .modal-head,
-  .form-grid,
-  .modal-actions {
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-
-  .modal-actions .btn {
-    flex: 1;
-    justify-content: center;
-  }
-}
-
 @media (min-width: 721px) and (max-width: 1100px) {
   main {
     padding-left: 22px;
@@ -170,7 +88,7 @@ td:nth-last-child(-n + 2) {
   }
 
   .metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .cards,
@@ -178,6 +96,7 @@ td:nth-last-child(-n + 2) {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
 @supports (height: 100dvh) {
   body {
     min-height: 100dvh;
@@ -217,6 +136,8 @@ td:nth-last-child(-n + 2) {
     padding: 6px max(8px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(8px, env(safe-area-inset-left));
     overflow: hidden;
     border-top: 1px solid rgba(255, 255, 255, 0.12);
+    border-right: none;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2);
   }
 
   .sidebar .brand {
@@ -226,7 +147,7 @@ td:nth-last-child(-n + 2) {
   .sidebar nav {
     display: flex;
     flex: 1 1 auto;
-    gap: 4px;
+    gap: 6px;
     min-width: 0;
     overflow-x: auto;
     scrollbar-width: none;
@@ -245,18 +166,29 @@ td:nth-last-child(-n + 2) {
     justify-content: center;
     min-width: 68px;
     min-height: 54px;
-    padding: 5px 4px;
+    padding: 6px 4px;
     gap: 4px;
     overflow: hidden;
-    font-size: 9px !important;
-    line-height: 1.05;
+    font-size: 10px !important;
+    line-height: 1.1;
     text-align: center;
     text-overflow: ellipsis;
     white-space: nowrap;
+    border-radius: 10px;
   }
 
   .sidebar nav button i {
     font-size: 17px;
+  }
+
+  .sidebar nav button.active {
+    background: rgba(239, 75, 37, 0.2) !important;
+    color: #ff7849 !important;
+    box-shadow: none !important;
+  }
+
+  .sidebar nav button.active i {
+    color: #ef4b25 !important;
   }
 
   .sidebar-footer {
@@ -264,9 +196,9 @@ td:nth-last-child(-n + 2) {
     flex: 0 0 auto;
     flex-direction: row;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     margin: 0;
-    padding: 0 0 0 5px;
+    padding: 0 0 0 6px;
     border: 0;
   }
 
@@ -280,6 +212,7 @@ td:nth-last-child(-n + 2) {
     padding: 0;
     overflow: hidden;
     font-size: 0;
+    border-radius: 10px;
   }
 
   .secondary-link i,
@@ -291,36 +224,80 @@ td:nth-last-child(-n + 2) {
   main {
     min-height: auto;
     margin-left: 0;
-    padding: 0 max(14px, env(safe-area-inset-right)) 24px max(14px, env(safe-area-inset-left));
+    padding: 0 max(16px, env(safe-area-inset-right)) 28px max(16px, env(safe-area-inset-left));
   }
 
   header {
     position: sticky;
     z-index: 10;
     top: 0;
-    min-height: calc(72px + env(safe-area-inset-top));
+    min-height: calc(68px + env(safe-area-inset-top));
     height: auto;
     padding-top: env(safe-area-inset-top);
-    background: var(--bg);
+    background: rgba(248, 250, 252, 0.9);
+    backdrop-filter: blur(10px);
+    margin-bottom: 20px;
+    gap: 10px;
   }
 
   header h1 {
-    font-size: clamp(20px, 6vw, 28px);
+    font-size: clamp(20px, 5.5vw, 26px);
+  }
+
+  .eyebrow {
+    font-size: 10px;
+  }
+
+  .profile {
+    padding: 4px 8px;
+  }
+
+  .profile div:last-child {
+    display: none;
   }
 
   .metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 12px;
   }
 
   .metric {
     min-width: 0;
-    padding: 13px;
+    padding: 16px 14px;
   }
 
   .metric strong {
-    font-size: 19px;
+    font-size: 20px;
     overflow-wrap: anywhere;
+  }
+
+  .toolbar {
+    gap: 10px;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .toolbar .btn,
+  .toolbar input,
+  .toolbar select {
+    justify-content: center;
+    max-width: none;
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .cards,
+  .cards.two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .card-head {
+    align-items: flex-start;
+  }
+
+  .feature-grid,
+  .checks {
+    grid-template-columns: 1fr;
   }
 
   .table-wrap {
@@ -334,11 +311,6 @@ td:nth-last-child(-n + 2) {
     min-width: 680px;
   }
 
-  .actions button,
-  .toolbar button {
-    min-height: 44px;
-  }
-
   .modal {
     align-items: flex-end;
     padding: env(safe-area-inset-top) 0 0;
@@ -350,21 +322,42 @@ td:nth-last-child(-n + 2) {
     max-height: calc(100dvh - env(safe-area-inset-top));
     margin: 0;
     border-radius: 20px 20px 0 0;
+    position: relative;
+  }
+
+  .modal-card::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: #cbd5e1;
+    border-radius: 2px;
+    margin: 10px auto 4px;
+  }
+
+  .modal-head,
+  .form-grid,
+  .modal-actions {
+    padding-left: 18px;
+    padding-right: 18px;
   }
 
   .modal-actions {
     padding-bottom: calc(16px + env(safe-area-inset-bottom));
   }
 
-  .modal-actions button {
-    min-height: 48px;
+  .modal-actions .btn {
+    flex: 1;
+    justify-content: center;
+    min-height: 46px;
   }
 
   #toast {
-    right: 12px;
-    bottom: calc(82px + env(safe-area-inset-bottom));
-    left: 12px;
+    right: 14px;
+    bottom: calc(84px + env(safe-area-inset-bottom));
+    left: 14px;
     text-align: center;
+    justify-content: center;
   }
 }
 

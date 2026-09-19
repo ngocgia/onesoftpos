@@ -3,20 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#111827">
+  <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>Quản trị hệ thống - Thích Gà POS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/admin-page.css?v=20260919-checkbox-fix">
-  <link rel="stylesheet" href="css/admin-responsive.css">
-  <link rel="stylesheet" href="css/admin-workflow.css">
+  <link rel="stylesheet" href="css/admin-page.css?v=20260919-v3">
+  <link rel="stylesheet" href="css/admin-responsive.css?v=20260919-v3">
+  <link rel="stylesheet" href="css/admin-workflow.css?v=20260919-v3">
 </head>
 <body>
   <aside class="sidebar">
-    <a class="brand" href="admin.html"><span>🍗</span><div><strong>THÍCH GÀ</strong><small id="adminRoleLabel">ADMIN</small></div></a>
+    <a class="brand" href="admin.html">
+      <span>🍗</span>
+      <div>
+        <strong>THÍCH GÀ POS</strong>
+        <small id="adminRoleLabel">ADMIN</small>
+      </div>
+    </a>
     <nav id="adminNav">
       <button class="active" data-page="dashboard"><i class="fa-solid fa-chart-pie"></i>Tổng quan</button>
       <button data-page="stores"><i class="fa-solid fa-store"></i>Cửa hàng</button>
@@ -34,56 +40,207 @@
   </aside>
 
   <main>
-    <header><div><p class="eyebrow">QUẢN TRỊ TOÀN HỆ THỐNG</p><h1 id="pageTitle">Tổng quan</h1></div><div class="profile"><div class="avatar" id="avatar">AD</div><div><strong id="adminName">Admin</strong><small id="adminAccessLabel">Toàn quyền quản trị</small></div></div></header>
+    <header>
+      <div>
+        <p class="eyebrow">HỆ THỐNG QUẢN TRỊ F&B</p>
+        <h1 id="pageTitle">Tổng quan</h1>
+      </div>
+      <div class="profile">
+        <div class="avatar" id="avatar">AD</div>
+        <div>
+          <strong id="adminName">Admin</strong>
+          <small id="adminAccessLabel">Toàn quyền quản trị</small>
+        </div>
+      </div>
+    </header>
 
     <section class="page active" id="page-dashboard">
       <div class="metrics" id="metrics"></div>
-      <div class="panel"><div class="panel-head"><div><h2>Hiệu quả theo cửa hàng</h2><p>Doanh thu đã thanh toán trên toàn hệ thống</p></div><button class="btn ghost" data-refresh="dashboard"><i class="fa-solid fa-rotate"></i>Làm mới</button></div><div class="table-wrap"><table><thead><tr><th>Cửa hàng</th><th>Số đơn</th><th>Doanh thu</th></tr></thead><tbody id="dashboardStores"></tbody></table></div></div>
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Hiệu quả theo cửa hàng</h2>
+            <p>Doanh thu đã thanh toán trên toàn hệ thống</p>
+          </div>
+          <button class="btn ghost" data-refresh="dashboard"><i class="fa-solid fa-rotate"></i>Làm mới</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Cửa hàng</th>
+                <th>Số đơn</th>
+                <th>Doanh thu</th>
+              </tr>
+            </thead>
+            <tbody id="dashboardStores"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <section class="page" id="page-stores">
-      <div class="toolbar"><input id="storeSearch" placeholder="Tìm mã, tên, địa chỉ..."><select id="storeTypeFilter"><option value="">Tất cả loại cửa hàng</option></select><button class="btn ghost" onclick="adminApp.configureOrderWorkflow()"><i class="fa-solid fa-route"></i>Cấu hình luồng</button><button class="btn ghost" onclick="adminApp.configureKdsAnnouncement()"><i class="fa-solid fa-volume-high"></i>Cấu hình loa KDS</button><button class="btn primary" id="addStoreBtn"><i class="fa-solid fa-plus"></i>Thêm cửa hàng</button></div>
+      <div class="toolbar">
+        <input id="storeSearch" placeholder="🔍 Tìm mã, tên, địa chỉ...">
+        <select id="storeTypeFilter">
+          <option value="">Tất cả loại cửa hàng</option>
+        </select>
+        <button class="btn ghost" onclick="adminApp.configureOrderWorkflow()"><i class="fa-solid fa-route"></i>Cấu hình luồng</button>
+        <button class="btn ghost" onclick="adminApp.configureKdsAnnouncement()"><i class="fa-solid fa-volume-high"></i>Cấu hình loa KDS</button>
+        <button class="btn primary" id="addStoreBtn"><i class="fa-solid fa-plus"></i>Thêm cửa hàng</button>
+      </div>
       <div class="cards" id="storesList"></div>
     </section>
 
     <section class="page" id="page-storeTypes">
-      <div class="toolbar"><div><strong>Cấu hình module theo mô hình vận hành</strong><p>Giao diện POS tự động thay đổi theo các cờ tính năng.</p></div><button class="btn primary" id="addStoreTypeBtn"><i class="fa-solid fa-plus"></i>Thêm loại cửa hàng</button></div>
+      <div class="toolbar">
+        <div>
+          <strong>Cấu hình module theo mô hình vận hành</strong>
+          <p>Giao diện POS tự động thay đổi theo các cờ tính năng được bật.</p>
+        </div>
+        <button class="btn primary" id="addStoreTypeBtn"><i class="fa-solid fa-plus"></i>Thêm loại cửa hàng</button>
+      </div>
       <div class="cards two" id="storeTypesList"></div>
     </section>
 
     <section class="page" id="page-users">
-      <div class="toolbar"><input id="userSearch" placeholder="Tìm tên, tài khoản, email..."><select id="roleFilter"><option value="">Tất cả vai trò</option></select><button class="btn primary" id="addUserBtn"><i class="fa-solid fa-user-plus"></i>Tạo người dùng</button></div>
-      <div class="panel table-wrap"><table><thead><tr><th>Người dùng</th><th>Vai trò</th><th>Cửa hàng được gán</th><th>Trạng thái</th><th></th></tr></thead><tbody id="usersList"></tbody></table></div>
+      <div class="toolbar">
+        <input id="userSearch" placeholder="🔍 Tìm tên, tài khoản, email...">
+        <select id="roleFilter">
+          <option value="">Tất cả vai trò</option>
+        </select>
+        <button class="btn primary" id="addUserBtn"><i class="fa-solid fa-user-plus"></i>Tạo người dùng</button>
+      </div>
+      <div class="panel table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Người dùng</th>
+              <th>Vai trò</th>
+              <th>Cửa hàng được gán</th>
+              <th>Trạng thái</th>
+              <th style="width:50px"></th>
+            </tr>
+          </thead>
+          <tbody id="usersList"></tbody>
+        </table>
+      </div>
     </section>
 
     <section class="page" id="page-products">
-      <div class="toolbar"><select id="productStore"></select><input id="productSearch" placeholder="Tìm mã hoặc tên sản phẩm..."><button class="btn ghost" id="addCategoryBtn"><i class="fa-solid fa-folder-plus"></i>Quản lý danh mục</button><button class="btn ghost" id="manageToppingsBtn"><i class="fa-solid fa-layer-group"></i>Quản lý topping</button><button class="btn primary" id="addProductBtn"><i class="fa-solid fa-plus"></i>Thêm sản phẩm</button></div>
-      <div class="panel table-wrap"><table><thead><tr><th>Sản phẩm</th><th>Danh mục</th><th>Giá bán</th><th>Bếp</th><th>Trạng thái</th><th></th></tr></thead><tbody id="productsList"></tbody></table></div>
+      <div class="toolbar">
+        <select id="productStore"></select>
+        <input id="productSearch" placeholder="🔍 Tìm mã hoặc tên sản phẩm...">
+        <button class="btn ghost" id="addCategoryBtn"><i class="fa-solid fa-folder-plus"></i>Quản lý danh mục</button>
+        <button class="btn ghost" id="manageToppingsBtn"><i class="fa-solid fa-layer-group"></i>Quản lý topping</button>
+        <button class="btn primary" id="addProductBtn"><i class="fa-solid fa-plus"></i>Thêm sản phẩm</button>
+      </div>
+      <div class="panel table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Sản phẩm</th>
+              <th>Danh mục</th>
+              <th>Giá bán</th>
+              <th>Bếp</th>
+              <th>Trạng thái</th>
+              <th style="width:50px"></th>
+            </tr>
+          </thead>
+          <tbody id="productsList"></tbody>
+        </table>
+      </div>
     </section>
 
     <section class="page" id="page-tables">
-      <div class="toolbar"><select id="tableStore"></select><div><strong>Quản lý sơ đồ phục vụ theo cửa hàng</strong><p>Tạo khu vực hoặc phòng trước, sau đó thêm bàn vào khu vực tương ứng.</p></div><button class="btn ghost" id="addAreaBtn"><i class="fa-solid fa-vector-square"></i>Thêm khu vực / phòng</button><button class="btn primary" id="addTableBtn"><i class="fa-solid fa-plus"></i>Thêm bàn</button></div>
+      <div class="toolbar">
+        <select id="tableStore"></select>
+        <div>
+          <strong>Quản lý sơ đồ phục vụ theo cửa hàng</strong>
+          <p>Tạo khu vực hoặc phòng trước, sau đó thêm bàn vào khu vực tương ứng.</p>
+        </div>
+        <button class="btn ghost" id="addAreaBtn"><i class="fa-solid fa-vector-square"></i>Thêm khu vực / phòng</button>
+        <button class="btn primary" id="addTableBtn"><i class="fa-solid fa-plus"></i>Thêm bàn</button>
+      </div>
       <div class="cards two">
-        <div class="panel"><div class="panel-head"><div><h2>Khu vực / phòng</h2><p id="areasSummary">0 khu vực</p></div></div><div id="adminPageAreasList"></div></div>
-        <div class="panel"><div class="panel-head"><div><h2>Danh sách bàn</h2><p id="tablesSummary">0 bàn</p></div></div><div id="adminPageTablesList"></div></div>
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Khu vực / phòng</h2>
+              <p id="areasSummary">0 khu vực</p>
+            </div>
+          </div>
+          <div id="adminPageAreasList"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Danh sách bàn</h2>
+              <p id="tablesSummary">0 bàn</p>
+            </div>
+          </div>
+          <div id="adminPageTablesList"></div>
+        </div>
       </div>
     </section>
 
     <section class="page" id="page-roleFeatures">
-      <div class="toolbar"><div><strong>Hiển thị chức năng theo nhóm người dùng</strong><p>Bật hoặc ẩn màn hình và thao tác cho từng vai trò. SUPER_ADMIN luôn có toàn quyền.</p></div><button class="btn ghost" data-refresh="roleFeatures"><i class="fa-solid fa-rotate"></i>Làm mới</button></div>
+      <div class="toolbar">
+        <div>
+          <strong>Hiển thị chức năng theo nhóm người dùng</strong>
+          <p>Bật hoặc ẩn màn hình và thao tác cho từng vai trò. SUPER_ADMIN luôn có toàn quyền.</p>
+        </div>
+        <button class="btn ghost" data-refresh="roleFeatures"><i class="fa-solid fa-rotate"></i>Làm mới</button>
+      </div>
       <div class="cards two" id="roleFeaturesList"></div>
     </section>
 
     <section class="page" id="page-audit">
-      <div class="toolbar"><div><strong>Lịch sử thay đổi quan trọng</strong><p>Theo dõi người thực hiện, đối tượng và thời điểm.</p></div><button class="btn danger" id="clearAuditBtn"><i class="fa-solid fa-trash"></i>Xóa nhật ký</button><button class="btn ghost" data-refresh="audit"><i class="fa-solid fa-rotate"></i>Làm mới</button></div>
-      <div class="panel table-wrap"><table><thead><tr><th>Thời gian</th><th>Người thực hiện</th><th>Hành động</th><th>Đối tượng</th><th>Cửa hàng</th><th>Chi tiết</th></tr></thead><tbody id="auditList"></tbody></table></div>
+      <div class="toolbar">
+        <div>
+          <strong>Lịch sử thay đổi quan trọng</strong>
+          <p>Theo dõi người thực hiện, đối tượng và thời điểm thao tác trên hệ thống.</p>
+        </div>
+        <button class="btn danger" id="clearAuditBtn"><i class="fa-solid fa-trash"></i>Xóa nhật ký</button>
+        <button class="btn ghost" data-refresh="audit"><i class="fa-solid fa-rotate"></i>Làm mới</button>
+      </div>
+      <div class="panel table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Thời gian</th>
+              <th>Người thực hiện</th>
+              <th>Hành động</th>
+              <th>Đối tượng</th>
+              <th>Cửa hàng</th>
+              <th>Chi tiết</th>
+            </tr>
+          </thead>
+          <tbody id="auditList"></tbody>
+        </table>
+      </div>
     </section>
   </main>
 
-  <div class="modal" id="formModal"><div class="modal-card"><div class="modal-head"><h2 id="modalTitle"></h2><button id="modalClose">×</button></div><form id="modalForm"><div id="modalFields" class="form-grid"></div><div class="modal-actions"><button type="button" class="btn ghost" id="modalCancel">Hủy</button><button type="submit" class="btn primary">Lưu thay đổi</button></div></form></div></div>
+  <div class="modal" id="formModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="modalTitle"></h2>
+        <button id="modalClose" type="button" aria-label="Đóng">&times;</button>
+      </div>
+      <form id="modalForm">
+        <div id="modalFields" class="form-grid"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn ghost" id="modalCancel">Hủy</button>
+          <button type="submit" class="btn primary"><i class="fa-solid fa-check"></i>Lưu thay đổi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="toast"></div>
+
   <script src="js/api.js"></script>
-  <script src="js/admin-page.js?v=20260919-checkbox-fix"></script>
-  <script src="js/admin-page.js?v=20260919-table-management"></script>
+  <script src="js/admin-page.js?v=20260919-v2"></script>
 </body>
 </html>

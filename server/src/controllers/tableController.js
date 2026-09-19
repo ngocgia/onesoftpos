@@ -61,6 +61,165 @@ async function getTables(req, res) {
   }
 }
 
+async function createArea(req, res) {
+  const storeId = req.storeId;
+  const name = String(req.body.name || '').trim();
+  const sortOrder = Number(req.body.sort_order) || 0;
+  if (!name) return res.status(400).json({ success: false, message: 'Vui lòng nhập tên khu vực/phòng' });
+  try {
+    let area;
+    if (isPostgresConnected()) {
+      const result = await pool.query(`INSERT INTO areas (store_id,name,sort_order,is_active)
+        VALUES ($1,$2,$3,TRUE) RETURNING *`, [storeId, name, sortOrder]);
+      area = result.rows[0];
+    } else {
+      const id = memoryStore.areas.length ? Math.max(...memoryStore.areas.map(item => item.id)) + 1 : 1;
+      area = { id, store_id: storeId, name, sort_order: sortOrder, is_active: true };
+      memoryStore.areas.push(area);
+    }
+    res.status(201).json({ success: true, message: 'Đã thêm khu vực/phòng', area });
+  } catch (error) {
+    console.error('createArea error:', error);
+    res.status(500).json({ success: false, message: 'Không thể thêm khu vực/phòng' });
+  }
+}
+
+async function updateArea(req, res) {
+  const id = Number(req.params.id);
+  const storeId = req.storeId;
+  const name = req.body.name === undefined ? undefined : String(req.body.name).trim();
+  const sortOrder = req.body.sort_order === undefined ? undefined : Number(req.body.sort_order) || 0;
+  if (name === '') return res.status(400).json({ success: false, message: 'Tên khu vực/phòng không được để trống' });
+  try {
+    if (isPostgresConnected()) {
+      const result = await pool.query(`UPDATE areas SET name=COALESCE($1,name),sort_order=COALESCE($2,sort_order)
+        WHERE id=$3 AND store_id=$4 RETURNING *`, [name, sortOrder, id, storeId]);
+      if (!result.rowCount) return res.status(404).json({ success: false, message: 'Không tìm thấy khu vực/phòng' });
+      return res.json({ success: true, message: 'Đã cập nhật khu vực/phòng', area: result.rows[0] });
+    }
+    const area = memoryStore.areas.find(item => item.id === id && item.store_id === storeId);
+    if (!area) return res.status(404).json({ success: false, message: 'Không tìm thấy khu vực/phòng' });
+    if (name !== undefined) area.name = name;
+    if (sortOrder !== undefined) area.sort_order = sortOrder;
+    res.json({ success: true, message: 'Đã cập nhật khu vực/phòng', area });
+  } catch (error) {
+    console.error('updateArea error:', error);
+    res.status(500).json({ success: false, message: 'Không thể cập nhật khu vực/phòng' });
+  }
+}
+
+async function deleteArea(req, res) {
+  const id = Number(req.params.id);
+  const storeId = req.storeId;
+  try {
+    if (isPostgresConnected()) {
+      const tableCount = await pool.query('SELECT COUNT(*)::int AS count FROM tables WHERE area_id=$1 AND store_id=$2', [id, storeId]);
+      if (tableCount.rows[0].count > 0) return res.status(409).json({ success: false, message: 'Hãy xóa hoặc chuyển hết bàn trước khi xóa khu vực/phòng' });
+      const result = await pool.query('DELETE FROM areas WHERE id=$1 AND store_id=$2 RETURNING id', [id, storeId]);
+      if (!result.rowCount) return res.status(404).json({ success: false, message: 'Không tìm thấy khu vực/phòng' });
+    } else {
+      if (memoryStore.tables.some(item => item.area_id === id && item.store_id === storeId)) return res.status(409).json({ success: false, message: 'Hãy xóa hoặc chuyển hết bàn trước khi xóa khu vực/phòng' });
+      const index = memoryStore.areas.findIndex(item => item.id === id && item.store_id === storeId);
+      if (index < 0) return res.status(404).json({ success: false, message: 'Không tìm thấy khu vực/phòng' });
+      memoryStore.areas.splice(index, 1);
+    }
+    res.json({ success: true, message: 'Đã xóa khu vực/phòng' });
+  } catch (error) {
+    console.error('deleteArea error:', error);
+    res.status(500).json({ success: false, message: 'Không thể xóa khu vực/phòng' });
+  }
+}
+
+async function createTable(req, res) {
+  const storeId = req.storeId;
+  const areaId = Number(req.body.area_id);
+  const code = String(req.body.code || '').trim().toUpperCase();
+  const name = String(req.body.name || '').trim();
+  const seats = Math.max(1, Number(req.body.seats) || 4);
+  const sortOrder = Number(req.body.sort_order) || 0;
+  if (!areaId || !code || !name) return res.status(400).json({ success: false, message: 'Vui lòng nhập khu vực, mã bàn và tên bàn' });
+  try {
+    if (isPostgresConnected()) {
+      const area = await pool.query('SELECT 1 FROM areas WHERE id=$1 AND store_id=$2 AND is_active=TRUE', [areaId, storeId]);
+      if (!area.rowCount) return res.status(400).json({ success: false, message: 'Khu vực/phòng không hợp lệ' });
+      const result = await pool.query(`INSERT INTO tables (store_id,area_id,code,name,seats,status,sort_order)
+        VALUES ($1,$2,$3,$4,$5,'EMPTY',$6) RETURNING *`, [storeId, areaId, code, name, seats, sortOrder]);
+      return res.status(201).json({ success: true, message: 'Đã thêm bàn', table: result.rows[0] });
+    }
+    if (!memoryStore.areas.some(item => item.id === areaId && item.store_id === storeId && item.is_active)) return res.status(400).json({ success: false, message: 'Khu vực/phòng không hợp lệ' });
+    if (memoryStore.tables.some(item => item.store_id === storeId && item.code === code)) return res.status(409).json({ success: false, message: 'Mã bàn đã tồn tại trong cửa hàng' });
+    const id = memoryStore.tables.length ? Math.max(...memoryStore.tables.map(item => item.id)) + 1 : 1;
+    const table = { id, store_id: storeId, area_id: areaId, code, name, seats, status: 'EMPTY', current_order_id: null, sort_order: sortOrder };
+    memoryStore.tables.push(table);
+    res.status(201).json({ success: true, message: 'Đã thêm bàn', table });
+  } catch (error) {
+    console.error('createTable error:', error);
+    res.status(error.code === '23505' ? 409 : 500).json({ success: false, message: error.code === '23505' ? 'Mã bàn đã tồn tại trong cửa hàng' : 'Không thể thêm bàn' });
+  }
+}
+
+async function updateTable(req, res) {
+  const id = Number(req.params.id);
+  const storeId = req.storeId;
+  const areaId = req.body.area_id === undefined ? undefined : Number(req.body.area_id);
+  const code = req.body.code === undefined ? undefined : String(req.body.code).trim().toUpperCase();
+  const name = req.body.name === undefined ? undefined : String(req.body.name).trim();
+  const seats = req.body.seats === undefined ? undefined : Math.max(1, Number(req.body.seats) || 1);
+  const sortOrder = req.body.sort_order === undefined ? undefined : Number(req.body.sort_order) || 0;
+  if (code === '' || name === '') return res.status(400).json({ success: false, message: 'Mã và tên bàn không được để trống' });
+  try {
+    if (isPostgresConnected()) {
+      if (areaId !== undefined) {
+        const area = await pool.query('SELECT 1 FROM areas WHERE id=$1 AND store_id=$2 AND is_active=TRUE', [areaId, storeId]);
+        if (!area.rowCount) return res.status(400).json({ success: false, message: 'Khu vực/phòng không hợp lệ' });
+      }
+      const result = await pool.query(`UPDATE tables SET area_id=COALESCE($1,area_id),code=COALESCE($2,code),
+        name=COALESCE($3,name),seats=COALESCE($4,seats),sort_order=COALESCE($5,sort_order)
+        WHERE id=$6 AND store_id=$7 RETURNING *`, [areaId, code, name, seats, sortOrder, id, storeId]);
+      if (!result.rowCount) return res.status(404).json({ success: false, message: 'Không tìm thấy bàn' });
+      return res.json({ success: true, message: 'Đã cập nhật bàn', table: result.rows[0] });
+    }
+    const table = memoryStore.tables.find(item => item.id === id && item.store_id === storeId);
+    if (!table) return res.status(404).json({ success: false, message: 'Không tìm thấy bàn' });
+    if (areaId !== undefined && !memoryStore.areas.some(item => item.id === areaId && item.store_id === storeId && item.is_active)) return res.status(400).json({ success: false, message: 'Khu vực/phòng không hợp lệ' });
+    if (code !== undefined && memoryStore.tables.some(item => item.id !== id && item.store_id === storeId && item.code === code)) return res.status(409).json({ success: false, message: 'Mã bàn đã tồn tại trong cửa hàng' });
+    if (areaId !== undefined) table.area_id = areaId;
+    if (code !== undefined) table.code = code;
+    if (name !== undefined) table.name = name;
+    if (seats !== undefined) table.seats = seats;
+    if (sortOrder !== undefined) table.sort_order = sortOrder;
+    res.json({ success: true, message: 'Đã cập nhật bàn', table });
+  } catch (error) {
+    console.error('updateTable error:', error);
+    res.status(error.code === '23505' ? 409 : 500).json({ success: false, message: error.code === '23505' ? 'Mã bàn đã tồn tại trong cửa hàng' : 'Không thể cập nhật bàn' });
+  }
+}
+
+async function deleteTable(req, res) {
+  const id = Number(req.params.id);
+  const storeId = req.storeId;
+  try {
+    if (isPostgresConnected()) {
+      const result = await pool.query(`DELETE FROM tables WHERE id=$1 AND store_id=$2
+        AND status='EMPTY' AND current_order_id IS NULL RETURNING id`, [id, storeId]);
+      if (!result.rowCount) {
+        const exists = await pool.query('SELECT 1 FROM tables WHERE id=$1 AND store_id=$2', [id, storeId]);
+        return res.status(exists.rowCount ? 409 : 404).json({ success: false, message: exists.rowCount ? 'Không thể xóa bàn đang có khách hoặc gắn với đơn hàng' : 'Không tìm thấy bàn' });
+      }
+    } else {
+      const index = memoryStore.tables.findIndex(item => item.id === id && item.store_id === storeId);
+      if (index < 0) return res.status(404).json({ success: false, message: 'Không tìm thấy bàn' });
+      const table = memoryStore.tables[index];
+      if (table.status !== 'EMPTY' || table.current_order_id) return res.status(409).json({ success: false, message: 'Không thể xóa bàn đang có khách hoặc gắn với đơn hàng' });
+      memoryStore.tables.splice(index, 1);
+    }
+    res.json({ success: true, message: 'Đã xóa bàn' });
+  } catch (error) {
+    console.error('deleteTable error:', error);
+    res.status(500).json({ success: false, message: 'Không thể xóa bàn' });
+  }
+}
+
 async function updateTableStatus(req, res) {
   const tableId = parseInt(req.params.id, 10);
   const { status } = req.body; // EMPTY, OCCUPIED, RESERVED
@@ -232,6 +391,12 @@ async function mergeTables(req, res) {
 module.exports = {
   getAreas,
   getTables,
+  createArea,
+  updateArea,
+  deleteArea,
+  createTable,
+  updateTable,
+  deleteTable,
   updateTableStatus,
   transferTable,
   mergeTables

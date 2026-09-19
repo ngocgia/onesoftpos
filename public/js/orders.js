@@ -177,6 +177,10 @@ window.ordersModule = {
           <td class="order-status-cell">${statusBadge}</td>
           <td class="order-actions-cell">
             <div class="order-row-actions">
+              <button type="button" class="btn-sm btn-secondary btn-order-detail" data-id="${o.id}" title="Xem chi tiết đơn">
+                <i class="fa-solid fa-eye"></i>
+                <span class="action-label">Chi tiết</span>
+              </button>
               <button type="button" class="btn-sm btn-secondary btn-reprint" data-id="${o.id}" title="In lại bill">
                 <i class="fa-solid fa-print"></i>
                 <span class="action-label">In biên lai</span>
@@ -194,6 +198,10 @@ window.ordersModule = {
     }).join('');
 
     // Attach action events
+    tbody.querySelectorAll('.btn-order-detail').forEach(btn => {
+      btn.addEventListener('click', () => this.showOrderDetail(parseInt(btn.getAttribute('data-id'), 10)));
+    });
+
     tbody.querySelectorAll('.btn-reprint').forEach(btn => {
       btn.addEventListener('click', async () => {
         const orderId = parseInt(btn.getAttribute('data-id'), 10);
@@ -229,5 +237,71 @@ window.ordersModule = {
         }
       });
     });
+  },
+
+  itemStatusInfo(status) {
+    return ({
+      PENDING: ['Chờ làm', 'pending'],
+      PREPARING: ['Đang làm', 'preparing'],
+      READY: ['Đã xong', 'ready'],
+      SERVED: ['Đã phục vụ', 'served'],
+      CANCELLED: ['Đã hủy', 'cancelled']
+    })[status] || [status || 'Chưa rõ', 'unknown'];
+  },
+
+  ensureOrderDetailModal() {
+    if (document.getElementById('orderDetailModal')) return;
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="modal-overlay" id="orderDetailModal" style="display:none">
+        <div class="modal-sheet-dialog order-detail-dialog">
+          <div class="modal-header">
+            <div class="modal-title-box"><h3 id="orderDetailTitle">Chi tiết đơn</h3><p id="orderDetailMeta"></p></div>
+            <button type="button" class="btn-close-modal" id="btnCloseOrderDetail" aria-label="Đóng">&times;</button>
+          </div>
+          <div class="modal-body"><div id="orderDetailItems"></div></div>
+        </div>
+      </div>`);
+    const modal = document.getElementById('orderDetailModal');
+    const close = () => { modal.style.display = 'none'; };
+    document.getElementById('btnCloseOrderDetail').addEventListener('click', close);
+    modal.addEventListener('click', event => { if (event.target === modal) close(); });
+  },
+
+  async showOrderDetail(orderId) {
+    this.ensureOrderDetailModal();
+    const modal = document.getElementById('orderDetailModal');
+    const title = document.getElementById('orderDetailTitle');
+    const meta = document.getElementById('orderDetailMeta');
+    const container = document.getElementById('orderDetailItems');
+    modal.style.display = 'flex';
+    title.textContent = 'Chi tiết đơn';
+    meta.textContent = '';
+    container.innerHTML = '<p class="text-muted">Đang tải chi tiết...</p>';
+    try {
+      const result = await window.api.get(`/orders/${orderId}`);
+      const order = result.order;
+      const items = result.items || [];
+      title.textContent = `Chi tiết đơn #${order.order_code}`;
+      meta.textContent = `${order.order_type === 'DINE_IN' ? (order.table_code || order.table_name || 'Tại bàn') : (order.customer_name || 'Mang đi')} · ${new Date(order.created_at).toLocaleString('vi-VN')}`;
+      container.innerHTML = items.length ? items.map(item => {
+        const [statusLabel, statusClass] = this.itemStatusInfo(item.status);
+        const options = (item.options || []).map(option => option.option_name).filter(Boolean).join(', ');
+        const cancelledAt = item.cancelled_at ? new Date(item.cancelled_at).toLocaleString('vi-VN') : '';
+        return `<article class="history-order-item status-${statusClass}">
+          <div class="history-order-item-main">
+            <div><strong>${Number(item.quantity || 1)} × ${this.esc(item.product_name)}</strong>${item.variant_name ? ` <small>(${this.esc(item.variant_name)})</small>` : ''}</div>
+            ${options ? `<small class="text-muted">${this.esc(options)}</small>` : ''}
+            ${item.note ? `<small class="text-muted">Ghi chú: ${this.esc(item.note)}</small>` : ''}
+            ${item.status === 'CANCELLED' ? `<small class="cancel-audit"><i class="fa-solid fa-user-xmark"></i> Hủy bởi: <strong>${this.esc(item.cancelled_by_name || 'Không có dữ liệu')}</strong>${cancelledAt ? ` · ${cancelledAt}` : ''}</small>` : ''}
+          </div>
+          <div class="history-order-item-side">
+            <span class="history-item-status">${statusLabel}</span>
+            <strong>${window.api.formatMoney(item.subtotal || 0)}</strong>
+          </div>
+        </article>`;
+      }).join('') : '<p class="text-muted">Đơn chưa có món.</p>';
+    } catch (error) {
+      container.innerHTML = `<p class="text-danger">Không tải được chi tiết đơn: ${this.esc(error.message)}</p>`;
+    }
   }
 };

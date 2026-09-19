@@ -292,6 +292,8 @@ async function testConnection() {
     await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMP WITH TIME ZONE');
     await client.query('ALTER TABLE order_items ADD COLUMN IF NOT EXISTS prepared_by INT REFERENCES users(id) ON DELETE SET NULL');
     await client.query('ALTER TABLE order_items ADD COLUMN IF NOT EXISTS prepared_at TIMESTAMP WITH TIME ZONE');
+    await client.query('ALTER TABLE order_items ADD COLUMN IF NOT EXISTS cancelled_by INT REFERENCES users(id) ON DELETE SET NULL');
+    await client.query('ALTER TABLE order_items ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP WITH TIME ZONE');
     await client.query('CREATE INDEX IF NOT EXISTS idx_order_items_prepared_by ON order_items(prepared_by, prepared_at DESC)');
     await client.query("ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS kds_completion_message TEXT DEFAULT 'Món ăn {mon}, bàn {ban} đã xong'");
     await client.query('ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS takeaway_workspace_enabled BOOLEAN DEFAULT NULL');

@@ -393,13 +393,11 @@ window.tablesModule = {
   },
 
   itemStatusLabel(status) {
-    return ({
-      PENDING: 'Chờ làm',
-      PREPARING: 'Đang làm',
-      READY: 'Đã xong',
-      SERVED: 'Đã phục vụ',
-      CANCELLED: 'Đã hủy'
-    })[status] || status || 'Chưa rõ';
+    return ({ PENDING: 'Chờ làm', PREPARING: 'Đang làm', READY: 'Đã xong', SERVED: 'Đã phục vụ', CANCELLED: 'Đã hủy' })[status] || status || 'Chưa rõ';
+  },
+
+  canCancelOrderItems() {
+    return ['STORE_MANAGER', 'CASHIER', 'KITCHEN'].includes(window.appState.user?.role);
   },
 
   async loadActiveOrderDetails(table) {
@@ -407,13 +405,10 @@ window.tablesModule = {
     const list = document.getElementById('tableOrderItems');
     const count = document.getElementById('tableOrderItemCount');
     if (!details || !list) return;
-    if (!table.current_order_id) {
-      details.style.display = 'none';
-      return;
-    }
+    if (!table.current_order_id) { details.style.display = 'none'; return; }
 
     details.style.display = 'block';
-    list.innerHTML = '<div class="text-muted" style="padding:12px 0">Đang tải chi tiết đơn...</div>';
+    list.innerHTML = '<div class="text-muted table-order-loading">Đang tải chi tiết đơn...</div>';
     if (count) count.textContent = '';
     try {
       const result = await window.api.get(`/orders/${table.current_order_id}`);
@@ -422,6 +417,7 @@ window.tablesModule = {
       if (count) count.textContent = `${items.reduce((sum, item) => sum + Number(item.quantity || 1), 0)} món`;
       list.innerHTML = items.length ? items.map(item => {
         const options = (item.options || []).map(option => option.option_name).filter(Boolean).join(', ');
+        const canCancel = this.canCancelOrderItems() && ['PENDING', 'PREPARING', 'READY'].includes(item.status);
         return `<div class="table-order-item">
           <div class="table-order-item-main">
             <strong>${Number(item.quantity || 1)} × ${this.escape(item.product_name)}</strong>
@@ -432,11 +428,34 @@ window.tablesModule = {
           <div class="table-order-item-side">
             <span class="order-item-status status-${this.escape(String(item.status || '').toLowerCase())}">${this.itemStatusLabel(item.status)}</span>
             <strong>${window.api.formatMoney(item.subtotal || 0)}</strong>
+            ${canCancel ? `<button type="button" class="btn-cancel-order-item" data-item-id="${item.id}" data-item-name="${this.escape(item.product_name)}"><i class="fa-solid fa-ban"></i> Hủy món</button>` : ''}
           </div>
         </div>`;
-      }).join('') : '<div class="text-muted" style="padding:12px 0">Đơn chưa có món.</div>';
+      }).join('') : '<div class="text-muted table-order-loading">Đơn chưa có món.</div>';
+      list.querySelectorAll('.btn-cancel-order-item').forEach(button => button.addEventListener('click', () => this.cancelOrderItem(button, table)));
     } catch (error) {
-      list.innerHTML = `<div class="text-danger" style="padding:12px 0">Không tải được chi tiết đơn: ${this.escape(error.message)}</div>`;
+      list.innerHTML = `<div class="text-danger table-order-loading">Không tải được chi tiết đơn: ${this.escape(error.message)}</div>`;
+    }
+  },
+
+  async cancelOrderItem(button, table) {
+    const itemId = Number(button.dataset.itemId);
+    const itemName = button.dataset.itemName || 'món này';
+    if (!confirm(`Xác nhận hủy ${itemName}? Thao tác này không thể hoàn tác.`)) return;
+    button.disabled = true;
+    try {
+      const result = await window.api.put(`/order-items/${itemId}/cancel`, {});
+      window.api.showToast('Đã hủy món và cập nhật tổng tiền đơn', 'success');
+      await this.loadAreasAndTables();
+      if (result.order?.order_status === 'CANCELLED') {
+        document.getElementById('tableActionModal').style.display = 'none';
+        return;
+      }
+      const refreshedTable = this.tables.find(item => item.id === table.id) || table;
+      this.openTableActionModal(refreshedTable);
+    } catch (error) {
+      button.disabled = false;
+      window.api.showToast('Không thể hủy món: ' + error.message, 'error');
     }
   },
 

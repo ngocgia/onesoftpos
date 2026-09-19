@@ -163,10 +163,8 @@ async function createOrder(req, res) {
           }
           if (currentOrderId) {
             const existingRes = await client.query(
-              `SELECT * FROM orders
-               WHERE id=$1 AND store_id=$2 AND table_id=$3
-                 AND payment_status='UNPAID' AND order_status NOT IN ('COMPLETED','CANCELLED')
-               FOR UPDATE`,
+              `SELECT * FROM orders WHERE id=$1 AND store_id=$2 AND table_id=$3
+               AND payment_status='UNPAID' AND order_status NOT IN ('COMPLETED','CANCELLED') FOR UPDATE`,
               [currentOrderId, storeId, table_id]
             );
             existingOrder = existingRes.rows[0] || null;
@@ -241,12 +239,11 @@ async function createOrder(req, res) {
           const nextSubtotal = Number(existingOrder.subtotal || 0) + subtotal;
           const nextDiscount = Number(existingOrder.discount_amount || 0) + Number(discount_amount || 0);
           const nextTax = Number(existingOrder.tax_amount || 0) + Number(tax_amount || 0);
-          const nextTotal = Math.max(0, nextSubtotal - nextDiscount + nextTax);
           const updated = await client.query(
-            `UPDATE orders SET subtotal=$1, discount_amount=$2, tax_amount=$3, total_amount=$4,
-              order_status=$5, workflow_stage_index=$6, updated_at=CURRENT_TIMESTAMP
-             WHERE id=$7 RETURNING *`,
-            [nextSubtotal, nextDiscount, nextTax, nextTotal, initialStatus, initialStageIndex, existingOrder.id]
+            `UPDATE orders SET subtotal=$1, discount_amount=$2, tax_amount=$3,
+             total_amount=GREATEST(0,$1-$2+$3), order_status=$4, workflow_stage_index=$5,
+             updated_at=CURRENT_TIMESTAMP WHERE id=$6 RETURNING *`,
+            [nextSubtotal, nextDiscount, nextTax, initialStatus, initialStageIndex, existingOrder.id]
           );
           createdOrder = updated.rows[0];
         }
@@ -509,7 +506,14 @@ async function getOrderById(req, res) {
       }
       order = orderRes.rows[0];
 
-      const itemRes = await pool.query('SELECT * FROM order_items WHERE order_id = $1 ORDER BY id ASC', [orderId]);
+      const itemRes = await pool.query(`
+        SELECT oi.*, prepared_user.full_name AS prepared_by_name,
+               cancelled_user.full_name AS cancelled_by_name
+        FROM order_items oi
+        LEFT JOIN users prepared_user ON prepared_user.id = oi.prepared_by
+        LEFT JOIN users cancelled_user ON cancelled_user.id = oi.cancelled_by
+        WHERE oi.order_id = $1 ORDER BY oi.id ASC
+      `, [orderId]);
       items = itemRes.rows;
 
       for (let item of items) {
@@ -533,8 +537,12 @@ async function getOrderById(req, res) {
       };
 
       items = memoryStore.order_items.filter(i => i.order_id === orderId).map(i => {
+        const preparedUser = memoryStore.users.find(user => user.id === i.prepared_by);
+        const cancelledUser = memoryStore.users.find(user => user.id === i.cancelled_by);
         return {
           ...i,
+          prepared_by_name: preparedUser?.full_name || null,
+          cancelled_by_name: cancelledUser?.full_name || null,
           options: memoryStore.order_item_options.filter(o => o.order_item_id === i.id)
         };
       });

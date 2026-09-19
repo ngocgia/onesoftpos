@@ -81,6 +81,7 @@ window.kdsModule = {
   renderOrders() {
     const grid = document.getElementById('kdsOrdersGrid');
     if (!grid) return;
+    const canCancel = ['STORE_MANAGER', 'CASHIER', 'KITCHEN'].includes(window.appState.user?.role);
 
     if (this.orders.length === 0) {
       grid.innerHTML = `
@@ -133,9 +134,15 @@ window.kdsModule = {
                       ${item.note ? `<div style="font-size: 11px; color: var(--accent);"><i class="fa-regular fa-note-sticky"></i> ${item.note}</div>` : ''}
                     </div>
                   </div>
-                  <button type="button" class="btn-kds-action status-${item.status}" data-item-id="${item.id}" data-next="${nextStatus}">
-                    ${actionBtnText}
-                  </button>
+                  <div class="kds-item-actions">
+                    <button type="button" class="btn-kds-action status-${item.status}" data-item-id="${item.id}" data-next="${nextStatus}">
+                      ${actionBtnText}
+                    </button>
+                    ${canCancel && ['PENDING', 'PREPARING', 'READY'].includes(item.status) ? `
+                      <button type="button" class="btn-kds-cancel" data-cancel-item-id="${item.id}" data-item-name="${item.product_name}">
+                        <i class="fa-solid fa-ban"></i> Hủy
+                      </button>` : ''}
+                  </div>
                 </div>
               `;
             }).join('')}
@@ -169,6 +176,27 @@ window.kdsModule = {
           window.api.showToast('Lỗi cập nhật: ' + err.message, 'error');
           btn.disabled = false;
           btn.textContent = oldText;
+        } finally {
+          this.updatingItems.delete(itemId);
+        }
+      });
+    });
+
+    grid.querySelectorAll('.btn-kds-cancel').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const itemId = btn.getAttribute('data-cancel-item-id');
+        const itemName = btn.getAttribute('data-item-name') || 'món này';
+        if (this.updatingItems.has(itemId) || !confirm(`Xác nhận hủy ${itemName}? Thao tác này không thể hoàn tác.`)) return;
+        this.updatingItems.add(itemId);
+        btn.disabled = true;
+        try {
+          await window.api.put(`/order-items/${itemId}/cancel`, {});
+          window.api.showToast('Đã hủy món và cập nhật tổng tiền đơn', 'success');
+          this.updatingItems.delete(itemId);
+          await this.loadKdsOrders(true);
+        } catch (err) {
+          btn.disabled = false;
+          window.api.showToast('Không thể hủy món: ' + err.message, 'error');
         } finally {
           this.updatingItems.delete(itemId);
         }

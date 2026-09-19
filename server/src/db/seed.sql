@@ -6,6 +6,8 @@ INSERT INTO store_types (id, code, name, description, is_active) VALUES
 (2, 'DINE_IN_TAKEAWAY', 'Tại chỗ & Mang đi', 'Mô hình Nhà hàng/Quán ăn vừa phục vụ tại bàn vừa bán mang về', TRUE)
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description;
 
+SELECT setval(pg_get_serial_sequence('store_types', 'id'), coalesce(max(id), 1)) FROM store_types;
+
 -- 2. STORE TYPE FEATURES (Rule 40 & 46)
 INSERT INTO store_type_features (store_type_id, feature_code, enabled) VALUES
 -- TAKEAWAY Features

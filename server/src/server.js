@@ -4,6 +4,8 @@ const path = require('path');
 const dotenv = require('dotenv');
 const { testConnection } = require('./config/db');
 const apiRoutes = require('./routes/api');
+const swaggerUi = require('swagger-ui-express');
+const { swaggerSpec, swaggerUiOptions } = require('./docs/swagger');
 
 dotenv.config();
 
@@ -14,6 +16,13 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Swagger OpenAPI Documentation
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 
 // Serve static frontend files
 const publicPath = path.join(__dirname, '../../public');
@@ -33,13 +42,25 @@ app.get('*', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, async () => {
+const server = app.listen(PORT, async () => {
   console.log(`====================================================`);
   console.log(`🚀 ThichGaPOS Server running on http://localhost:${PORT}`);
   console.log(`📱 Frontend Mobile-First UI: http://localhost:${PORT}`);
-  console.log(`⚡ API Documentation & Health: http://localhost:${PORT}/api/health`);
+  console.log(`📑 Swagger API Documentation: http://localhost:${PORT}/api-docs`);
+  console.log(`⚡ Raw OpenAPI Specification: http://localhost:${PORT}/api-docs.json`);
+  console.log(`⚡ API Health Check: http://localhost:${PORT}/api/health`);
   console.log(`====================================================`);
   
   // Test PostgreSQL connection
   await testConnection();
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ Cổng ${PORT} hiện đang bị chiếm dụng bởi một tiến trình khác.`);
+    console.error(`💡 Gợi ý: Hãy giải phóng cổng ${PORT} hoặc thay đổi PORT trong file server/.env.`);
+  } else {
+    console.error('❌ Server error:', err.message);
+  }
+  process.exit(1);
 });

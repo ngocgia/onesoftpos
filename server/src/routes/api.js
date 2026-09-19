@@ -83,6 +83,7 @@ router.post('/orders', authenticateToken, requireFeature('POS'), orderController
 router.put('/orders/:id/status', authenticateToken, requireFeature('ORDERS'), orderController.updateOrderStatus);
 router.post('/orders/:id/advance', authenticateToken, requireFeature('ORDERS'), orderController.advanceOrderWorkflow);
 router.post('/orders/:id/split', authenticateToken, requireFeature('ORDERS'), orderController.splitOrder);
+router.put('/order-items/:itemId/cancel', authenticateToken, requireStoreContext(), requireRole(['STORE_MANAGER', 'CASHIER', 'KITCHEN']), kdsController.cancelOrderItem);
 
 // 6. Payment & VietQR routes
 router.post('/payments/process', authenticateToken, requireFeature('PAYMENT'), paymentController.processPayment);

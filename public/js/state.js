@@ -3,6 +3,7 @@
 const createEmptyPosCart = () => ({
   orderType: 'TAKEAWAY',
   selectedTable: null,
+  existingOrderId: null,
   fulfillmentType: '',
   customerName: '',
   customerPhone: '',
@@ -259,6 +260,7 @@ window.appState = {
 
   setSelectedTable(table) {
     this.cart.selectedTable = table;
+    this.cart.existingOrderId = table?.current_order_id || null;
     const selectedTablePill = document.getElementById('selectedTablePill');
     const activeTableCode = document.getElementById('activeTableCode');
 

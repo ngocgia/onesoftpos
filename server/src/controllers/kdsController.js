@@ -275,6 +275,9 @@ async function updateKdsItemStatus(req, res) {
   if (!['PENDING', 'PREPARING', 'READY', 'SERVED', 'CANCELLED'].includes(status)) {
     return res.status(400).json({ success: false, message: 'Trạng thái món không hợp lệ' });
   }
+  if (status === 'CANCELLED' && !['STORE_MANAGER', 'CASHIER', 'KITCHEN'].includes(req.user?.role)) {
+    return res.status(403).json({ success: false, message: 'Bạn không có quyền hủy món' });
+  }
 
   try {
     if (isPostgresConnected()) {
@@ -325,9 +328,24 @@ async function updateKdsItemStatus(req, res) {
           UPDATE order_items
           SET status = $1::varchar,
               prepared_by = CASE WHEN $1::varchar = 'READY' AND status <> 'READY' THEN $3::int ELSE prepared_by END,
-              prepared_at = CASE WHEN $1::varchar = 'READY' AND status <> 'READY' THEN CURRENT_TIMESTAMP ELSE prepared_at END
+              prepared_at = CASE WHEN $1::varchar = 'READY' AND status <> 'READY' THEN CURRENT_TIMESTAMP ELSE prepared_at END,
+              cancelled_by = CASE WHEN $1::varchar = 'CANCELLED' AND status <> 'CANCELLED' THEN $3::int ELSE cancelled_by END,
+              cancelled_at = CASE WHEN $1::varchar = 'CANCELLED' AND status <> 'CANCELLED' THEN CURRENT_TIMESTAMP ELSE cancelled_at END
           WHERE id = $2
         `, [status, itemId, req.user.id]);
+        if (status === 'CANCELLED' && item.item_status !== 'CANCELLED') {
+          await client.query(`
+            UPDATE orders o SET
+              subtotal = totals.subtotal,
+              discount_amount = LEAST(o.discount_amount, totals.subtotal),
+              total_amount = GREATEST(0, totals.subtotal - LEAST(o.discount_amount, totals.subtotal) + o.tax_amount)
+            FROM (
+              SELECT order_id, COALESCE(SUM(subtotal) FILTER (WHERE status <> 'CANCELLED'), 0) AS subtotal
+              FROM order_items WHERE order_id=$1 GROUP BY order_id
+            ) totals
+            WHERE o.id=totals.order_id
+          `, [item.order_id]);
+        }
         const stateResult = await client.query('SELECT status FROM order_items WHERE order_id = $1', [item.order_id]);
         const statuses = stateResult.rows.map(row => row.status);
         const workflow = normalizeWorkflow(item.workflow_snapshot);
@@ -362,7 +380,7 @@ async function updateKdsItemStatus(req, res) {
           RETURNING id, table_id, order_status, payment_status, workflow_stage_index
         `, [orderStatus, stageIndex, item.order_id]);
 
-        if (orderStatus === 'COMPLETED' && orderResult.rows[0]?.table_id) {
+        if (['COMPLETED', 'CANCELLED'].includes(orderStatus) && orderResult.rows[0]?.table_id) {
           await client.query(
             'UPDATE tables SET status = $1, current_order_id = NULL WHERE id = $2',
             ['EMPTY', orderResult.rows[0].table_id]
@@ -407,17 +425,30 @@ async function updateKdsItemStatus(req, res) {
       }
       const previousStatus = item.status;
       item.status = status;
+      if (status === 'CANCELLED' && previousStatus !== 'CANCELLED') {
+        item.cancelled_by = req.user.id;
+        item.cancelled_at = new Date().toISOString();
+      }
       if (status === 'READY' && previousStatus !== 'READY') {
         item.prepared_by = req.user.id;
         item.prepared_at = new Date().toISOString();
       }
       const orderItems = memoryStore.order_items.filter(orderItem => orderItem.order_id === item.order_id);
+      if (status === 'CANCELLED' && previousStatus !== 'CANCELLED') {
+        order.subtotal = orderItems
+          .filter(orderItem => orderItem.status !== 'CANCELLED')
+          .reduce((sum, orderItem) => sum + Number(orderItem.subtotal || 0), 0);
+        order.discount_amount = Math.min(Number(order.discount_amount || 0), order.subtotal);
+        order.total_amount = Math.max(0, order.subtotal - Number(order.discount_amount || 0) + Number(order.tax_amount || 0));
+      }
       const statuses = orderItems.map(orderItem => orderItem.status);
       const workflow = normalizeWorkflow(order.workflow_snapshot);
       order.workflow_stage_index = resolveStageIndex(workflow, order.workflow_stage_index, order.order_status, !!order.workflow_snapshot);
       if (statuses.length && statuses.every(itemStatus => itemStatus === 'CANCELLED')) {
         order.order_status = 'CANCELLED';
         order.workflow_stage_index = workflow.steps.length;
+        const cancelledTable = memoryStore.tables.find(current => current.id === order.table_id);
+        if (cancelledTable) { cancelledTable.status = 'EMPTY'; cancelledTable.current_order_id = null; }
       } else if (statuses.length && statuses.every(itemStatus => ['READY', 'SERVED', 'CANCELLED'].includes(itemStatus))) {
         if (currentStep(workflow, order.workflow_stage_index)?.type === 'KITCHEN') order.workflow_stage_index += 1;
         order.order_status = legacyStatusForStep(currentStep(workflow, order.workflow_stage_index), order.payment_status);
@@ -457,9 +488,15 @@ async function updateKdsItemStatus(req, res) {
   }
 }
 
+function cancelOrderItem(req, res) {
+  req.body = { ...(req.body || {}), status: 'CANCELLED' };
+  return updateKdsItemStatus(req, res);
+}
+
 module.exports = {
   getKdsOrders,
   getKdsHistory,
   getCompletedItems,
-  updateKdsItemStatus
+  updateKdsItemStatus,
+  cancelOrderItem
 };

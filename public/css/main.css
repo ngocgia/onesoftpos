@@ -1290,6 +1290,27 @@ button:active {
   color: #fff;
 }
 
+.kds-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-kds-cancel {
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  padding: 7px 9px;
+  background: #fff1f2;
+  color: #be123c;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.btn-kds-cancel:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
 /* Completed dishes waiting for payment */
 .completed-items-view-container {
   padding: 16px;
@@ -2397,6 +2418,71 @@ textarea.form-input {
 }
 
 /* Action Tiles */
+.table-order-details {
+  margin: 12px 0 16px;
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--bg-surface, #fff);
+}
+
+.order-detail-dialog { max-width: 680px; }
+#orderDetailItems { display: grid; gap: 10px; max-height: 62vh; overflow-y: auto; }
+.history-order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-left: 4px solid #f59e0b;
+  border-radius: 12px;
+}
+.history-order-item.status-preparing { border-left-color: #3b82f6; }
+.history-order-item.status-ready,
+.history-order-item.status-served { border-left-color: #10b981; }
+.history-order-item.status-cancelled { border-left-color: #ef4444; background: rgba(239,68,68,.04); }
+.history-order-item-main { display: grid; gap: 4px; min-width: 0; }
+.history-order-item-side { display: grid; justify-items: end; gap: 6px; white-space: nowrap; }
+.history-item-status { padding: 4px 8px; border-radius: 999px; background: var(--bg-muted); font-size: 11px; font-weight: 700; }
+.status-cancelled .history-item-status { background: #fee2e2; color: #991b1b; }
+.status-ready .history-item-status,
+.status-served .history-item-status { background: #d1fae5; color: #065f46; }
+.cancel-audit { color: #b91c1c; }
+
+.table-order-details-header,
+.table-order-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.table-order-details-header { padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
+.table-order-details-header span { color: var(--text-muted); font-size: 12px; }
+#tableOrderItems { max-height: 240px; overflow-y: auto; }
+.table-order-loading { padding: 12px 0; }
+.table-order-item { padding: 10px 0; border-bottom: 1px dashed var(--border-color); }
+.table-order-item:last-child { border-bottom: 0; }
+.table-order-item-main { display: grid; gap: 3px; }
+.table-order-item-main small { color: var(--text-muted); }
+.table-order-item-side { display: grid; justify-items: end; gap: 5px; white-space: nowrap; }
+.order-item-status { padding: 3px 7px; border-radius: 999px; font-size: 11px; background: #fef3c7; color: #92400e; }
+.order-item-status.status-preparing { background: #dbeafe; color: #1d4ed8; }
+.order-item-status.status-ready,
+.order-item-status.status-served { background: #d1fae5; color: #065f46; }
+.order-item-status.status-cancelled { background: #fee2e2; color: #991b1b; }
+.btn-cancel-order-item {
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 5px 8px;
+  background: #fff1f2;
+  color: #be123c;
+  cursor: pointer;
+  font-weight: 700;
+}
+.btn-cancel-order-item:disabled { opacity: .55; cursor: wait; }
+
 .table-action-options {
   display: flex;
   flex-direction: column;

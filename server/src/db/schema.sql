@@ -319,6 +319,8 @@ CREATE TABLE IF NOT EXISTS order_items (
     kitchen_type VARCHAR(20) DEFAULT 'KITCHEN',
     prepared_by INT REFERENCES users(id) ON DELETE SET NULL,
     prepared_at TIMESTAMP WITH TIME ZONE,
+    cancelled_by INT REFERENCES users(id) ON DELETE SET NULL,
+    cancelled_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

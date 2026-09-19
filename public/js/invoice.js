@@ -70,6 +70,8 @@ window.invoiceModule = {
         fullOrder = res.order;
         items = res.items || [];
       }
+      // Món hủy vẫn được lưu trong đơn để truy vết, nhưng không được xuất hiện trên bill.
+      items = items.filter(item => item.status !== 'CANCELLED');
       const currentStore = window.appState.currentStore;
       const settings = window.appState.storeSettings;
 

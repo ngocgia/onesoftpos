@@ -404,6 +404,11 @@ const adminApp = {
       s = this.stores.find((x) => x.id === id) || {};
     if (id) detail = await window.api.get(`/stores/${id}`);
     const settings = detail?.settings || {};
+    let adminTabs = settings.admin_tabs;
+    if (typeof adminTabs === 'string') {
+      try { adminTabs = JSON.parse(adminTabs); } catch (_) { adminTabs = {}; }
+    }
+    adminTabs = adminTabs || {};
     const typeOptions = this.storeTypes.map((t) => ({
       value: t.id,
       label: `${t.code} - ${t.name}`,
@@ -510,7 +515,15 @@ const adminApp = {
             true,
           ) +
           `<p class="field full muted">Khi bật, màn bán hàng hỗ trợ nhiều đơn nháp và thông tin giao/nhận cho khách mang đi.</p>` +
-          `<p class="field full muted">Biến: <strong>{mon}</strong>, <strong>{ban}</strong>, <strong>{ma_don}</strong>, <strong>{ten_khach_hang}</strong>. Với Takeaway, bàn tự được thay bằng tên khách.</p>`
+          `<p class="field full muted">Biến: <strong>{mon}</strong>, <strong>{ban}</strong>, <strong>{ma_don}</strong>, <strong>{ten_khach_hang}</strong>. Với Takeaway, bàn tự được thay bằng tên khách.</p>` +
+          `<div class="field full"><label>Cấu hình tab màn Quản trị POS</label><div class="checks">` +
+          `<label><input type="checkbox" name="admin_tab_reports" ${adminTabs.reports !== false ? "checked" : ""}> Báo cáo</label>` +
+          `<label><input type="checkbox" name="admin_tab_stores" ${adminTabs.stores !== false ? "checked" : ""}> Cửa hàng</label>` +
+          `<label><input type="checkbox" name="admin_tab_storeTypes" ${adminTabs.storeTypes !== false ? "checked" : ""}> Luồng & phân quyền</label>` +
+          `<label><input type="checkbox" name="admin_tab_products" ${adminTabs.products !== false ? "checked" : ""}> Sản phẩm</label>` +
+          `<label><input type="checkbox" name="admin_tab_tables" ${adminTabs.tables !== false ? "checked" : ""}> Phòng bàn</label>` +
+          `<label><input type="checkbox" name="admin_tab_staff" ${adminTabs.staff !== false ? "checked" : ""}> Nhân viên</label>` +
+          `</div><p class="muted">Bật/tắt hiển thị các tab trong phần Quản trị của giao diện POS đối với cửa hàng này.</p></div>`
         : "");
     this.openModal(
       id ? "Sửa và cấu hình cửa hàng" : "Thêm cửa hàng",
@@ -519,6 +532,20 @@ const adminApp = {
         if (id) {
           data.takeaway_workspace_enabled =
             data.takeaway_workspace_enabled === "true";
+          data.admin_tabs = {
+            reports: data.admin_tab_reports === true || data.admin_tab_reports === 'on',
+            stores: data.admin_tab_stores === true || data.admin_tab_stores === 'on',
+            storeTypes: data.admin_tab_storeTypes === true || data.admin_tab_storeTypes === 'on',
+            products: data.admin_tab_products === true || data.admin_tab_products === 'on',
+            tables: data.admin_tab_tables === true || data.admin_tab_tables === 'on',
+            staff: data.admin_tab_staff === true || data.admin_tab_staff === 'on'
+          };
+          delete data.admin_tab_reports;
+          delete data.admin_tab_stores;
+          delete data.admin_tab_storeTypes;
+          delete data.admin_tab_products;
+          delete data.admin_tab_tables;
+          delete data.admin_tab_staff;
           await window.api.put(`/stores/${id}`, data);
           await window.api.put(`/stores/${id}/settings`, data);
         } else await window.api.post("/stores", data);

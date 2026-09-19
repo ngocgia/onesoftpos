@@ -161,8 +161,47 @@ window.appState = {
     const checkoutButton = document.getElementById('btnProceedCheckout');
     if (checkoutButton) checkoutButton.style.display = this.roleFeatures.PAYMENT ? '' : 'none';
     window.completedItemsModule?.configureAccess();
+    
+    this.applyAdminTabsConfig();
+    
     this.setOrderType(this.cart.orderType);
     this.notify('role_features_updated', this.roleFeatures);
+  },
+
+  applyAdminTabsConfig() {
+    let adminTabs = this.storeSettings?.admin_tabs;
+    if (typeof adminTabs === 'string') {
+      try { adminTabs = JSON.parse(adminTabs); } catch (_) { adminTabs = null; }
+    }
+    const defaultTabs = { reports: true, stores: true, storeTypes: true, products: true, tables: true, staff: true };
+    const settings = adminTabs || defaultTabs;
+    const canManageStaff = ['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER'].includes(this.user?.role);
+    
+    const mapping = {
+      tabAdminReports: settings.reports !== false,
+      tabAdminStores: settings.stores !== false,
+      tabAdminWorkflows: settings.storeTypes !== false,
+      tabAdminProducts: settings.products !== false,
+      tabAdminTables: settings.tables !== false && !this.features?.enableTakeawayWorkspace,
+      tabAdminStaff: settings.staff !== false && canManageStaff
+    };
+    
+    Object.entries(mapping).forEach(([id, isVisible]) => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = isVisible ? '' : 'none';
+    });
+
+    const activeAdminTab = document.querySelector('.admin-nav-tab.active');
+    if (activeAdminTab && activeAdminTab.style.display === 'none') {
+      const firstVisibleTab = Array.from(document.querySelectorAll('.admin-nav-tab')).find(tab => tab.style.display !== 'none');
+      if (firstVisibleTab) {
+        firstVisibleTab.click?.();
+        document.querySelectorAll('.admin-nav-tab').forEach(t => t.classList.remove('active'));
+        firstVisibleTab.classList.add('active');
+        const target = firstVisibleTab.dataset.target;
+        document.querySelectorAll('.admin-subview').forEach(v => v.classList.toggle('active', v.id === target));
+      }
+    }
   },
 
   // Rule 46: Cập nhật giao diện động theo STORE_TYPE_FEATURES
@@ -170,6 +209,8 @@ window.appState = {
   applyStoreFeatures(features) {
     if (!features) return;
     this.features = { ...this.features, ...features };
+    // Also apply admin tabs config whenever store features are applied
+    this.applyAdminTabsConfig();
 
     const btnDineInTab = document.getElementById('btnDineInTab');
     const navItemTables = document.getElementById('navItemTables');

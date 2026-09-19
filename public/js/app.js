@@ -36,6 +36,7 @@ window.appNavigation = {
     } else if (viewId === 'viewOrders' && window.ordersModule) {
       window.ordersModule.loadOrders();
     } else if (viewId === 'viewAdmin' && window.adminModule) {
+      window.appState.applyAdminTabsConfig();
       window.adminModule.loadReports();
     }
   },

@@ -436,7 +436,8 @@ async function updateStoreSettings(req, res) {
     kds_enabled,
     kds_completion_message,
     takeaway_workspace_enabled,
-    workflow_definition
+    workflow_definition,
+    admin_tabs
   } = req.body;
 
   if (kds_completion_message !== undefined && !['SUPER_ADMIN', 'ADMIN'].includes(req.user?.role)) {
@@ -459,6 +460,30 @@ async function updateStoreSettings(req, res) {
     normalizedWorkflow = validation.workflow;
   }
 
+  let parsedAdminTabs = admin_tabs;
+  if (typeof parsedAdminTabs === 'string') {
+    try {
+      parsedAdminTabs = JSON.parse(parsedAdminTabs);
+    } catch (_) {
+      parsedAdminTabs = null;
+    }
+  }
+  let normalizedAdminTabs;
+  if (parsedAdminTabs !== undefined) {
+    if (typeof parsedAdminTabs === 'object' && parsedAdminTabs !== null) {
+      normalizedAdminTabs = {
+        reports: parsedAdminTabs.reports !== false,
+        stores: parsedAdminTabs.stores !== false,
+        storeTypes: parsedAdminTabs.storeTypes !== false,
+        products: parsedAdminTabs.products !== false,
+        tables: parsedAdminTabs.tables !== false,
+        staff: parsedAdminTabs.staff !== false
+      };
+    } else {
+      normalizedAdminTabs = null;
+    }
+  }
+
   try {
     if (isPostgresConnected()) {
       await pool.query(
@@ -473,9 +498,24 @@ async function updateStoreSettings(req, res) {
              kds_completion_message = COALESCE($8, kds_completion_message),
              takeaway_workspace_enabled = COALESCE($9, takeaway_workspace_enabled),
              workflow_definition = COALESCE($10::jsonb, workflow_definition),
+             admin_tabs = CASE WHEN $11::boolean THEN $12::jsonb ELSE admin_tabs END,
              updated_at = CURRENT_TIMESTAMP
-         WHERE store_id = $11`,
-        [receipt_header, receipt_footer, receipt_paper_size, bank_name, bank_account_number, bank_account_holder, kds_enabled, normalizedKdsMessage, normalizedTakeawayWorkspace, normalizedWorkflow ? JSON.stringify(normalizedWorkflow) : null, storeId]
+         WHERE store_id = $13`,
+        [
+          receipt_header,
+          receipt_footer,
+          receipt_paper_size,
+          bank_name,
+          bank_account_number,
+          bank_account_holder,
+          kds_enabled,
+          normalizedKdsMessage,
+          normalizedTakeawayWorkspace,
+          normalizedWorkflow ? JSON.stringify(normalizedWorkflow) : null,
+          parsedAdminTabs !== undefined,
+          normalizedAdminTabs ? JSON.stringify(normalizedAdminTabs) : null,
+          storeId
+        ]
       );
     } else {
       let settings = memoryStore.store_settings.find(s => s.store_id === storeId);
@@ -493,6 +533,7 @@ async function updateStoreSettings(req, res) {
       if (normalizedKdsMessage !== undefined) settings.kds_completion_message = normalizedKdsMessage;
       if (normalizedTakeawayWorkspace !== undefined) settings.takeaway_workspace_enabled = normalizedTakeawayWorkspace;
       if (normalizedWorkflow !== undefined) settings.workflow_definition = normalizedWorkflow;
+      if (normalizedAdminTabs !== undefined) settings.admin_tabs = normalizedAdminTabs;
     }
 
     res.json({ success: true, message: 'Đã lưu cấu hình cửa hàng' });

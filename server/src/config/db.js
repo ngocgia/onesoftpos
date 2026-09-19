@@ -317,6 +317,7 @@ async function testConnection() {
     await client.query("ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS kds_completion_message TEXT DEFAULT 'Món ăn {mon}, bàn {ban} đã xong'");
     await client.query('ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS takeaway_workspace_enabled BOOLEAN DEFAULT NULL');
     await client.query(`ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS workflow_definition JSONB DEFAULT '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb`);
+    await client.query('ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS admin_tabs JSONB DEFAULT NULL');
     await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS workflow_stage_index INT DEFAULT 0');
     await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS workflow_snapshot JSONB');
     const legacyWorkflow = await client.query(`SELECT 1 FROM information_schema.columns WHERE table_name='store_settings' AND column_name='order_workflow'`);

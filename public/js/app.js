@@ -64,6 +64,48 @@ window.appNavigation = {
   }
 };
 
+const initializedAppModules = new Set();
+
+async function initializeAvailableModules({ refreshInitialized = false } = {}) {
+  const definitions = [
+    {
+      key: 'pos', feature: 'POS', get: () => window.posModule,
+      refresh: async module => {
+        await module.loadCatalog();
+        module.configureTakeawayWorkspace();
+        module.updateFulfillmentVisibility();
+        module.renderCart();
+      }
+    },
+    { key: 'tables', feature: 'TABLES', get: () => window.tablesModule, refresh: module => module.loadAreasAndTables() },
+    { key: 'kds', feature: 'KDS', get: () => window.kdsModule, refresh: module => module.loadKdsOrders() },
+    { key: 'completed-items', get: () => window.completedItemsModule, refresh: module => module.init() },
+    {
+      key: 'orders', feature: 'HISTORY', get: () => window.ordersModule,
+      refresh: module => {
+        module.configureView();
+        return module.loadOrders();
+      }
+    },
+    { key: 'checkout', feature: 'POS', get: () => window.checkoutModule },
+    { key: 'invoice', feature: 'POS', get: () => window.invoiceModule },
+    { key: 'shifts', feature: 'SHIFT', get: () => window.shiftsModule, refresh: module => module.loadCurrentShift() },
+    { key: 'admin', feature: 'ADMIN', get: () => window.adminModule, refresh: module => module.refresh() }
+  ];
+
+  for (const definition of definitions) {
+    if (definition.feature && window.appState.roleFeatures[definition.feature] === false) continue;
+    const module = definition.get();
+    if (!module) continue;
+    if (!initializedAppModules.has(definition.key)) {
+      await module.init();
+      initializedAppModules.add(definition.key);
+    } else if (refreshInitialized && definition.refresh) {
+      await definition.refresh(module);
+    }
+  }
+}
+
 // Global initialization
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
@@ -72,16 +114,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Auto login or check existing token
   await initAuth();
 
-  // Initialize modules
-  if (window.appState.roleFeatures.POS && window.posModule) await window.posModule.init();
-  if (window.appState.roleFeatures.TABLES && window.tablesModule) await window.tablesModule.init();
-  if (window.appState.roleFeatures.KDS && window.kdsModule) window.kdsModule.init();
-  if (window.completedItemsModule) window.completedItemsModule.init();
-  if (window.appState.roleFeatures.HISTORY && window.ordersModule) window.ordersModule.init();
-  if (window.appState.roleFeatures.POS && window.checkoutModule) window.checkoutModule.init();
-  if (window.appState.roleFeatures.POS && window.invoiceModule) window.invoiceModule.init();
-  if (window.appState.roleFeatures.SHIFT && window.shiftsModule) window.shiftsModule.init();
-  if (window.appState.roleFeatures.ADMIN && window.adminModule) window.adminModule.init();
+  await initializeAvailableModules();
 });
 
 // Authentication Initialization
@@ -344,7 +377,6 @@ async function executeLogin(username, password) {
     window.api.setToken(res.token);
     window.appState.user = res.user;
     window.appState.stores = res.stores || [];
-    window.appState.applyRoleFeatures(res.roleFeatures);
 
     if (['SUPER_ADMIN', 'ADMIN'].includes(res.user.role)) {
       window.location.replace('/admin.html');
@@ -353,11 +385,12 @@ async function executeLogin(username, password) {
 
     const defaultStoreId = res.defaultStore ? res.defaultStore.id : (res.stores[0]?.id || 1);
     window.api.setCurrentStoreId(defaultStoreId);
+    window.appState.applyRoleFeatures(res.roleFeatures);
 
     updateUserProfileUI();
     populateStoreSelector();
     await window.appNavigation.reloadCurrentStoreFeatures();
-    window.completedItemsModule?.init();
+    await initializeAvailableModules({ refreshInitialized: true });
 
     document.getElementById('loginModal').style.display = 'none';
     window.api.showToast(`Chào mừng ${res.user.full_name} (${res.user.role})!`, 'success');

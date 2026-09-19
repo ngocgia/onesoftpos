@@ -1,13 +1,12 @@
 // Completed kitchen items visible to the front-of-house team until payment.
 window.completedItemsModule = {
-  allowedRoles: ['STORE_MANAGER', 'ORDER_STAFF', 'CASHIER'],
   orders: [],
   initialized: false,
   isLoading: false,
   pollInterval: null,
 
   canView() {
-    return this.allowedRoles.includes(window.appState.user?.role);
+    return window.appState.roleFeatures.COMPLETED_ITEMS !== false;
   },
 
   init() {

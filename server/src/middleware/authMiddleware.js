@@ -130,7 +130,12 @@ function requireFeature(featureCode) {
     if (req.user.role === 'SUPER_ADMIN') return next();
     try {
       let setting;
+      let userOverride;
       if (isPostgresConnected()) {
+        if (featureCode === 'COMPLETED_ITEMS') {
+          const overrideResult = await pool.query('SELECT completed_items_enabled FROM users WHERE id=$1', [req.user.id]);
+          userOverride = overrideResult.rows[0]?.completed_items_enabled;
+        }
         const result = req.storeId
           ? await pool.query(`SELECT enabled FROM store_role_features WHERE store_id=$1 AND role=$2 AND feature_code=$3
               UNION ALL SELECT enabled FROM role_features WHERE role=$2 AND feature_code=$3
@@ -139,9 +144,13 @@ function requireFeature(featureCode) {
           : await pool.query('SELECT enabled FROM role_features WHERE role = $1 AND feature_code = $2', [req.user.role, featureCode]);
         setting = result.rows[0];
       } else {
+        if (featureCode === 'COMPLETED_ITEMS') {
+          userOverride = memoryStore.users.find(item => item.id === req.user.id)?.completed_items_enabled;
+        }
         setting = memoryStore.store_role_features.find(item => item.store_id === req.storeId && item.role === req.user.role && item.feature_code === featureCode)
           || memoryStore.role_features.find(item => item.role === req.user.role && item.feature_code === featureCode);
       }
+      if (typeof userOverride === 'boolean') setting = { enabled: userOverride };
       if (setting && !setting.enabled) {
         return res.status(403).json({ success: false, message: 'Nhóm người dùng của bạn không được cấp chức năng này' });
       }

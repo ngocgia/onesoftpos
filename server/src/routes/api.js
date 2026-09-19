@@ -85,7 +85,7 @@ router.get('/payments/vietqr/:orderId', authenticateToken, requireFeature('PAYME
 // 7. KDS routes
 router.get('/kds/orders', authenticateToken, requireFeature('KDS'), kdsController.getKdsOrders);
 router.get('/kds/history', authenticateToken, requireFeature('HISTORY'), kdsController.getKdsHistory);
-router.get('/kds/completed-items', authenticateToken, requireRole(['ADMIN', 'STORE_MANAGER', 'ORDER_STAFF', 'CASHIER']), requireStoreContext(), kdsController.getCompletedItems);
+router.get('/kds/completed-items', authenticateToken, requireStoreContext(), requireFeature('COMPLETED_ITEMS'), kdsController.getCompletedItems);
 router.put('/kds/items/:itemId/status', authenticateToken, requireFeature('KDS'), kdsController.updateKdsItemStatus);
 
 // 8. Shift routes

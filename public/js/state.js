@@ -28,7 +28,8 @@ window.appState = {
     enableKds: true,
     enableInvoice: true,
     enableQrPayment: true,
-    enableInventory: true
+    enableInventory: true,
+    enableTakeawayWorkspace: false
   },
   currentShift: null,
   roleFeatures: {
@@ -40,7 +41,8 @@ window.appState = {
     PAYMENT: true,
     ADMIN: true,
     SHIFT: true,
-    DISCOUNT: true
+    DISCOUNT: true,
+    COMPLETED_ITEMS: true
   },
 
   // Active Cart state
@@ -61,7 +63,7 @@ window.appState = {
   },
 
   isTakeawayOnlyStore() {
-    return this.storeType?.code === 'TAKEAWAY';
+    return this.features.enableTakeawayWorkspace === true;
   },
 
   getActiveTakeawayDraft() {

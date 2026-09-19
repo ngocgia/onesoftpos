@@ -3,9 +3,9 @@ const bcrypt = require('bcryptjs');
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
 const { JWT_SECRET } = require('../middleware/authMiddleware');
 
-const DEFAULT_ROLE_FEATURES = ['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT'];
+const DEFAULT_ROLE_FEATURES = ['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT', 'COMPLETED_ITEMS'];
 
-async function getRoleFeatures(role, storeId = null) {
+async function getRoleFeatures(role, storeId = null, userId = null) {
   if (role === 'SUPER_ADMIN') {
     return Object.fromEntries(DEFAULT_ROLE_FEATURES.map(code => [code, true]));
   }
@@ -24,10 +24,19 @@ async function getRoleFeatures(role, storeId = null) {
       return local || item;
     });
   }
-  return Object.fromEntries(DEFAULT_ROLE_FEATURES.map(code => {
+  const features = Object.fromEntries(DEFAULT_ROLE_FEATURES.map(code => {
     const found = rows.find(item => item.feature_code === code);
     return [code, found ? !!found.enabled : true];
   }));
+  let completedItemsOverride;
+  if (userId && isPostgresConnected()) {
+    const result = await pool.query('SELECT completed_items_enabled FROM users WHERE id=$1', [userId]);
+    completedItemsOverride = result.rows[0]?.completed_items_enabled;
+  } else if (userId) {
+    completedItemsOverride = memoryStore.users.find(item => item.id === userId)?.completed_items_enabled;
+  }
+  if (typeof completedItemsOverride === 'boolean') features.COMPLETED_ITEMS = completedItemsOverride;
+  return features;
 }
 
 async function login(req, res) {
@@ -104,7 +113,7 @@ async function login(req, res) {
     }
 
     const defaultStore = stores.find(s => s.is_default) || stores[0] || null;
-    const roleFeatures = await getRoleFeatures(user.role, defaultStore?.id);
+    const roleFeatures = await getRoleFeatures(user.role, defaultStore?.id, user.id);
 
     // Generate JWT
     const token = jwt.sign(
@@ -179,7 +188,7 @@ async function getMe(req, res) {
       success: true,
       user,
       stores,
-      roleFeatures: await getRoleFeatures(user.role, req.storeId || stores.find(store => store.is_default)?.id || stores[0]?.id)
+      roleFeatures: await getRoleFeatures(user.role, req.storeId || stores.find(store => store.is_default)?.id || stores[0]?.id, user.id)
     });
   } catch (error) {
     console.error('getMe error:', error);

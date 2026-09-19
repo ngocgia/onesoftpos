@@ -29,6 +29,7 @@ const adminApp = {
     ADMIN: "Quản trị cửa hàng",
     SHIFT: "Quản lý ca",
     DISCOUNT: "Áp dụng giảm giá",
+    COMPLETED_ITEMS: "Món đã xong",
   },
   esc(value = "") {
     const div = document.createElement("div");
@@ -401,6 +402,23 @@ const adminApp = {
             null,
             true,
           ) +
+          this.field(
+            "takeaway_workspace_enabled",
+            "Giao diện chuyên bán mang đi",
+            "select",
+            String(
+              typeof settings.takeaway_workspace_enabled === "boolean"
+                ? settings.takeaway_workspace_enabled
+                : !!detail?.features?.enableTakeawayWorkspace,
+            ),
+            [
+              { value: "true", label: "Bật" },
+              { value: "false", label: "Tắt" },
+            ],
+            false,
+            true,
+          ) +
+          `<p class="field full muted">Khi bật, màn bán hàng hỗ trợ nhiều đơn nháp và thông tin giao/nhận cho khách mang đi.</p>` +
           `<p class="field full muted">Biến: <strong>{mon}</strong>, <strong>{ban}</strong>, <strong>{ma_don}</strong>, <strong>{ten_khach_hang}</strong>. Với Takeaway, bàn tự được thay bằng tên khách.</p>`
         : "");
     this.openModal(
@@ -408,6 +426,8 @@ const adminApp = {
       html,
       async (data) => {
         if (id) {
+          data.takeaway_workspace_enabled =
+            data.takeaway_workspace_enabled === "true";
           await window.api.put(`/stores/${id}`, data);
           await window.api.put(`/stores/${id}/settings`, data);
         } else await window.api.post("/stores", data);
@@ -656,6 +676,19 @@ const adminApp = {
         statusOpts,
       ) +
       this.field(
+        "completed_items_enabled",
+        "Quyền xem Món đã xong",
+        "select",
+        typeof u.completed_items_override === "boolean"
+          ? String(u.completed_items_override)
+          : "inherit",
+        [
+          { value: "inherit", label: "Theo nhóm quyền" },
+          { value: "true", label: "Bật cho tài khoản này" },
+          { value: "false", label: "Tắt cho tài khoản này" },
+        ],
+      ) +
+      this.field(
         "password",
         id ? "Mật khẩu mới (để trống nếu giữ nguyên)" : "Mật khẩu",
         "password",
@@ -677,6 +710,10 @@ const adminApp = {
             "STORE_MANAGER phải được phân công đúng một cửa hàng",
           );
         if (!data.password) delete data.password;
+        data.completed_items_enabled =
+          data.completed_items_enabled === "inherit"
+            ? null
+            : data.completed_items_enabled === "true";
         if (id) await window.api.put(`/admin/users/${id}`, data);
         else await window.api.post("/admin/users", data);
         this.toast("Đã lưu người dùng");
@@ -763,7 +800,7 @@ const adminApp = {
         true,
         true,
       ) +
-      `<div class="field full"><div class="workflow-title"><span>Các bước xử lý</span><button type="button" class="btn ghost small" id="addWorkflowStep"><i class="fa-solid fa-plus"></i>Thêm bước</button></div><div id="workflowSteps"></div><p class="muted">Bước đầu tiên phải là Tạo đơn. Có thể thêm nhiều bước Phê duyệt và gán nhiều nhóm xử lý.</p></div>`;
+      `<div class="field full"><div class="workflow-title"><span>Các bước xử lý</span><button type="button" class="btn ghost small" id="addWorkflowStep"><i class="fa-solid fa-plus"></i>Thêm bước</button></div><div id="workflowSteps"></div><p class="muted">Chỉ bắt buộc bước đầu tiên là Tạo đơn và luồng có bước Thanh toán. Bếp và Phê duyệt là các bước tùy chọn; mỗi bước có thể gán nhiều nhóm xử lý.</p></div>`;
     this.openModal("Thiết kế luồng đơn hàng", html, async (data, form) => {
       const steps = [...form.querySelectorAll(".workflow-step")].map(
         (row, index) => ({

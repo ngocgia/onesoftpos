@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
 
 const STAFF_ROLES = ['ORDER_STAFF', 'CASHIER', 'KITCHEN'];
-const FEATURE_CODES = ['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT'];
+const FEATURE_CODES = ['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT', 'COMPLETED_ITEMS'];
 const USER_STATUSES = ['ACTIVE', 'INACTIVE'];
 
 function publicUser(user) {
@@ -10,17 +10,38 @@ function publicUser(user) {
   return safe;
 }
 
+function completedItemsOverride(value) {
+  if (value === undefined) return { provided: false, value: undefined };
+  if (value === null || value === '' || value === 'inherit') return { provided: true, value: null };
+  return { provided: true, value: value === true || String(value).toLowerCase() === 'true' };
+}
+
+function memoryCompletedItemsAccess(user, storeId) {
+  if (typeof user.completed_items_enabled === 'boolean') return user.completed_items_enabled;
+  const local = memoryStore.store_role_features.find(item => item.store_id === storeId && item.role === user.role && item.feature_code === 'COMPLETED_ITEMS');
+  const base = memoryStore.role_features.find(item => item.role === user.role && item.feature_code === 'COMPLETED_ITEMS');
+  return local ? !!local.enabled : (base ? !!base.enabled : true);
+}
+
 async function getStaff(req, res) {
   try {
     let staff;
     if (isPostgresConnected()) {
-      const result = await pool.query(`SELECT u.id,u.username,u.email,u.full_name,u.phone,u.role,u.status,u.created_at
+      const result = await pool.query(`SELECT u.id,u.username,u.email,u.full_name,u.phone,u.role,u.status,u.created_at,
+        u.completed_items_enabled AS completed_items_override,
+        COALESCE(u.completed_items_enabled, local_feature.enabled, base_feature.enabled, TRUE) AS completed_items_enabled
         FROM users u JOIN user_stores us ON us.user_id=u.id
+        LEFT JOIN role_features base_feature ON base_feature.role=u.role AND base_feature.feature_code='COMPLETED_ITEMS'
+        LEFT JOIN store_role_features local_feature ON local_feature.store_id=us.store_id AND local_feature.role=u.role AND local_feature.feature_code='COMPLETED_ITEMS'
         WHERE us.store_id=$1 AND u.role=ANY($2::varchar[]) ORDER BY u.id`, [req.storeId, STAFF_ROLES]);
       staff = result.rows;
     } else {
       const ids = new Set(memoryStore.user_stores.filter(item => item.store_id === req.storeId).map(item => item.user_id));
-      staff = memoryStore.users.filter(user => ids.has(user.id) && STAFF_ROLES.includes(user.role)).map(publicUser);
+      staff = memoryStore.users.filter(user => ids.has(user.id) && STAFF_ROLES.includes(user.role)).map(user => ({
+        ...publicUser(user),
+        completed_items_override: user.completed_items_enabled,
+        completed_items_enabled: memoryCompletedItemsAccess(user, req.storeId)
+      }));
     }
     res.json({ success: true, staff, roles: STAFF_ROLES });
   } catch (error) {
@@ -31,6 +52,7 @@ async function getStaff(req, res) {
 
 async function createStaff(req, res) {
   const { username, password, email, full_name, phone, role = 'CASHIER', status = 'ACTIVE' } = req.body;
+  const completedAccess = completedItemsOverride(req.body.completed_items_enabled);
   if (!username || !password || !email || !full_name || !STAFF_ROLES.includes(role) || !USER_STATUSES.includes(status)) {
     return res.status(400).json({ success: false, message: 'Thiếu thông tin hoặc vai trò nhân viên không hợp lệ' });
   }
@@ -41,9 +63,9 @@ async function createStaff(req, res) {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
-        const result = await client.query(`INSERT INTO users (username,password_hash,email,full_name,phone,role,status)
-          VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id,username,email,full_name,phone,role,status,created_at`,
-        [username, passwordHash, email, full_name, phone, role, status]);
+        const result = await client.query(`INSERT INTO users (username,password_hash,email,full_name,phone,role,status,completed_items_enabled)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,username,email,full_name,phone,role,status,completed_items_enabled,created_at`,
+        [username, passwordHash, email, full_name, phone, role, status, completedAccess.provided ? completedAccess.value : null]);
         user = result.rows[0];
         await client.query('INSERT INTO user_stores (user_id,store_id,is_default) VALUES ($1,$2,TRUE)', [user.id, req.storeId]);
         await client.query('COMMIT');
@@ -53,7 +75,7 @@ async function createStaff(req, res) {
         return res.status(409).json({ success: false, message: 'Tên đăng nhập hoặc email đã tồn tại' });
       }
       const id = memoryStore.users.length ? Math.max(...memoryStore.users.map(item => item.id)) + 1 : 1;
-      user = { id, username, password_hash: passwordHash, email, full_name, phone, role, status, created_at: new Date().toISOString() };
+      user = { id, username, password_hash: passwordHash, email, full_name, phone, role, status, completed_items_enabled: completedAccess.provided ? completedAccess.value : null, created_at: new Date().toISOString() };
       memoryStore.users.push(user);
       memoryStore.user_stores.push({ user_id: id, store_id: req.storeId, is_default: true });
     }
@@ -73,18 +95,22 @@ async function findManagedStaff(storeId, userId, client = pool) {
 async function updateStaff(req, res) {
   const id = Number(req.params.id);
   const { full_name, email, phone, role, status } = req.body;
+  const completedAccess = completedItemsOverride(req.body.completed_items_enabled);
   if (role && !STAFF_ROLES.includes(role)) return res.status(400).json({ success: false, message: 'Vai trò nhân viên không hợp lệ' });
   if (status && !USER_STATUSES.includes(status)) return res.status(400).json({ success: false, message: 'Trạng thái nhân viên không hợp lệ' });
   try {
     if (isPostgresConnected()) {
       if (!(await findManagedStaff(req.storeId, id))) return res.status(404).json({ success: false, message: 'Không tìm thấy nhân viên trong cửa hàng' });
       await pool.query(`UPDATE users SET full_name=COALESCE($1,full_name),email=COALESCE($2,email),phone=COALESCE($3,phone),
-        role=COALESCE($4,role),status=COALESCE($5,status),updated_at=CURRENT_TIMESTAMP WHERE id=$6`, [full_name, email, phone, role, status, id]);
+        role=COALESCE($4,role),status=COALESCE($5,status),
+        completed_items_enabled=CASE WHEN $6 THEN $7 ELSE completed_items_enabled END,
+        updated_at=CURRENT_TIMESTAMP WHERE id=$8`, [full_name, email, phone, role, status, completedAccess.provided, completedAccess.value, id]);
     } else {
       const assigned = memoryStore.user_stores.some(item => item.user_id === id && item.store_id === req.storeId);
       const user = memoryStore.users.find(item => item.id === id && STAFF_ROLES.includes(item.role));
       if (!assigned || !user) return res.status(404).json({ success: false, message: 'Không tìm thấy nhân viên trong cửa hàng' });
       for (const field of ['full_name', 'email', 'phone', 'role', 'status']) if (req.body[field] !== undefined) user[field] = req.body[field];
+      if (completedAccess.provided) user.completed_items_enabled = completedAccess.value;
     }
     res.json({ success: true, message: 'Đã cập nhật nhân viên' });
   } catch (error) {

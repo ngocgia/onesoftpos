@@ -3,8 +3,8 @@ const { normalizeWorkflow, currentStep, resolveStageIndex, roleCanHandle, legacy
 
 const TAKEAWAY_FULFILLMENT_TYPES = ['SHIP_DELIVERY', 'CUSTOMER_PICKUP', 'APP_DELIVERY'];
 
-function validateTakeawayDetails(storeTypeCode, orderType, details) {
-  if (storeTypeCode !== 'TAKEAWAY' || orderType !== 'TAKEAWAY') return null;
+function validateTakeawayDetails(takeawayWorkspaceEnabled, orderType, details) {
+  if (!takeawayWorkspaceEnabled || orderType !== 'TAKEAWAY') return null;
   if (!TAKEAWAY_FULFILLMENT_TYPES.includes(details.fulfillment_type)) return 'Vui lòng chọn loại đơn mang đi';
   if (!details.scheduled_at || Number.isNaN(new Date(details.scheduled_at).getTime())) return 'Vui lòng nhập giờ hẹn/giờ đến lấy hợp lệ';
   if (details.fulfillment_type === 'SHIP_DELIVERY' && (!details.customer_name || !details.customer_phone || !details.delivery_address)) {
@@ -49,17 +49,27 @@ async function createOrder(req, res) {
   try {
     let createdOrder = null;
     let workflowDefinition;
-    let storeTypeCode;
+    let takeawayWorkspaceEnabled = false;
     if (isPostgresConnected()) {
-      const workflowResult = await pool.query(`SELECT ss.workflow_definition, st.code AS store_type_code
+      const workflowResult = await pool.query(`SELECT ss.workflow_definition,
+        COALESCE(ss.takeaway_workspace_enabled,
+          EXISTS (SELECT 1 FROM store_type_features f WHERE f.store_type_id=s.store_type_id AND f.feature_code='TAKEAWAY' AND f.enabled=TRUE)
+          AND NOT EXISTS (SELECT 1 FROM store_type_features f WHERE f.store_type_id=s.store_type_id AND f.feature_code='DINE_IN' AND f.enabled=TRUE)
+          AND NOT EXISTS (SELECT 1 FROM store_type_features f WHERE f.store_type_id=s.store_type_id AND f.feature_code='TABLE' AND f.enabled=TRUE)
+        ) AS takeaway_workspace_enabled
         FROM stores s LEFT JOIN store_settings ss ON ss.store_id=s.id
-        LEFT JOIN store_types st ON st.id=s.store_type_id WHERE s.id=$1`, [storeId]);
+        WHERE s.id=$1`, [storeId]);
       workflowDefinition = workflowResult.rows[0]?.workflow_definition;
-      storeTypeCode = workflowResult.rows[0]?.store_type_code;
+      takeawayWorkspaceEnabled = !!workflowResult.rows[0]?.takeaway_workspace_enabled;
     } else {
-      workflowDefinition = memoryStore.store_settings.find(settings => settings.store_id === storeId)?.workflow_definition;
+      const settings = memoryStore.store_settings.find(item => item.store_id === storeId);
+      workflowDefinition = settings?.workflow_definition;
       const store = memoryStore.stores.find(item => item.id === storeId);
-      storeTypeCode = memoryStore.store_types.find(item => item.id === store?.store_type_id)?.code;
+      const featureEnabled = code => memoryStore.store_type_features
+        .some(item => item.store_type_id === store?.store_type_id && item.feature_code === code && item.enabled);
+      takeawayWorkspaceEnabled = typeof settings?.takeaway_workspace_enabled === 'boolean'
+        ? settings.takeaway_workspace_enabled
+        : featureEnabled('TAKEAWAY') && !featureEnabled('DINE_IN') && !featureEnabled('TABLE');
     }
 
     // Only accept toppings that are active and configured for the selected product.
@@ -105,7 +115,7 @@ async function createOrder(req, res) {
       delivery_address: String(delivery_address || '').trim() || null,
       scheduled_at: parsedSchedule && !Number.isNaN(parsedSchedule.getTime()) ? parsedSchedule.toISOString() : scheduled_at
     };
-    const fulfillmentError = validateTakeawayDetails(storeTypeCode, order_type, takeawayDetails);
+    const fulfillmentError = validateTakeawayDetails(takeawayWorkspaceEnabled, order_type, takeawayDetails);
     if (fulfillmentError) return res.status(400).json({ success: false, message: fulfillmentError });
     if (takeawayDetails.fulfillment_type === 'CUSTOMER_PICKUP') takeawayDetails.delivery_address = null;
     if (takeawayDetails.fulfillment_type === 'APP_DELIVERY') {
@@ -113,7 +123,7 @@ async function createOrder(req, res) {
       takeawayDetails.customer_phone = null;
       takeawayDetails.delivery_address = null;
     }
-    if (storeTypeCode !== 'TAKEAWAY' || order_type !== 'TAKEAWAY') {
+    if (!takeawayWorkspaceEnabled || order_type !== 'TAKEAWAY') {
       takeawayDetails.fulfillment_type = null;
       takeawayDetails.delivery_address = null;
       takeawayDetails.scheduled_at = null;

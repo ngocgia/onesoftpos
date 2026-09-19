@@ -31,7 +31,6 @@ function validateWorkflow(value) {
   if (workflow.steps.length < 2) return { valid: false, message: 'Luồng phải có ít nhất 2 bước' };
   if (workflow.steps[0].type !== 'CREATE') return { valid: false, message: 'Bước đầu tiên phải là Tạo đơn' };
   if (workflow.steps.filter(step => step.type === 'CREATE').length !== 1) return { valid: false, message: 'Luồng chỉ được có một bước Tạo đơn' };
-  if (!workflow.steps.some(step => step.type === 'KITCHEN')) return { valid: false, message: 'Luồng phải có bước Bếp' };
   if (!workflow.steps.some(step => step.type === 'PAYMENT')) return { valid: false, message: 'Luồng phải có bước Thanh toán' };
   if (workflow.steps.some(step => !STEP_TYPES.includes(step.type))) return { valid: false, message: 'Luồng có loại bước không hợp lệ' };
   if (workflow.steps.some(step => !step.roles.length)) return { valid: false, message: 'Mỗi bước phải có ít nhất một nhóm xử lý' };

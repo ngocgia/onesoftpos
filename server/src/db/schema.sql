@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS store_settings (
     kds_enabled BOOLEAN DEFAULT TRUE,
     kds_auto_print BOOLEAN DEFAULT FALSE,
     kds_completion_message TEXT DEFAULT 'Món ăn {mon}, bàn {ban} đã xong',
+    takeaway_workspace_enabled BOOLEAN DEFAULT NULL,
     workflow_definition JSONB DEFAULT '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -81,6 +82,7 @@ CREATE TABLE IF NOT EXISTS users (
     phone VARCHAR(20),
     role VARCHAR(30) NOT NULL DEFAULT 'CASHIER', -- SUPER_ADMIN, ADMIN, STORE_MANAGER, CASHIER, KITCHEN, STAFF
     status VARCHAR(20) DEFAULT 'ACTIVE',
+    completed_items_enabled BOOLEAN DEFAULT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

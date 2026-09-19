@@ -26,6 +26,9 @@ window.posModule = {
         this.loadCatalog();
         this.configureTakeawayWorkspace();
         this.updateFulfillmentVisibility();
+      } else if (event === 'features_updated') {
+        this.configureTakeawayWorkspace();
+        this.updateFulfillmentVisibility();
       } else if (event === 'takeaway_drafts_updated') {
         this.renderTakeawayDrafts();
       }
@@ -197,11 +200,11 @@ window.posModule = {
   },
 
   isTakeawayOnlyOrder() {
-    return window.appState.storeType?.code === 'TAKEAWAY' && window.appState.cart.orderType === 'TAKEAWAY';
+    return window.appState.isTakeawayOnlyStore() && window.appState.cart.orderType === 'TAKEAWAY';
   },
 
   configureTakeawayWorkspace() {
-    const enabled = window.appState.storeType?.code === 'TAKEAWAY';
+    const enabled = window.appState.isTakeawayOnlyStore();
     document.body.classList.toggle('takeaway-only-store', enabled);
     const tabs = document.getElementById('takeawayWorkspaceTabs');
     const draftsPanel = document.getElementById('takeawayDraftsPanel');
@@ -223,7 +226,7 @@ window.posModule = {
   },
 
   setTakeawayPane(pane) {
-    if (window.appState.storeType?.code !== 'TAKEAWAY') return;
+    if (!window.appState.isTakeawayOnlyStore()) return;
     const nextPane = pane === 'orders' ? 'orders' : 'menu';
     const workspace = document.getElementById('posWorkspace');
     if (workspace) workspace.dataset.takeawayPane = nextPane;
@@ -247,7 +250,7 @@ window.posModule = {
   },
 
   renderTakeawayDrafts() {
-    if (window.appState.storeType?.code !== 'TAKEAWAY') return;
+    if (!window.appState.isTakeawayOnlyStore()) return;
     const drafts = window.appState.takeawayDrafts;
     const active = window.appState.getActiveTakeawayDraft();
     const list = document.getElementById('takeawayDraftList');

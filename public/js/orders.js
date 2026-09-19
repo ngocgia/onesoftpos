@@ -22,7 +22,6 @@ window.ordersModule = {
   },
 
   bindEvents() {
-    if (this.isKitchenHistory()) return;
     const tabs = document.querySelectorAll('#orderStatusTabs .status-tab');
     tabs.forEach(tab => {
       tab.addEventListener('click', () => {

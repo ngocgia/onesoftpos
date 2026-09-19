@@ -83,8 +83,8 @@ const memoryStore = {
     { user_id: 5, store_id: 1, is_default: true }
   ],
   role_features: [
-    ...['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT'].map(feature_code => ({ role: 'ADMIN', feature_code, enabled: true })),
-    ...['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT'].map(feature_code => ({ role: 'STORE_MANAGER', feature_code, enabled: true })),
+    ...['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT', 'COMPLETED_ITEMS'].map(feature_code => ({ role: 'ADMIN', feature_code, enabled: true })),
+    ...['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT', 'COMPLETED_ITEMS'].map(feature_code => ({ role: 'STORE_MANAGER', feature_code, enabled: true })),
     { role: 'ORDER_STAFF', feature_code: 'POS', enabled: true },
     { role: 'ORDER_STAFF', feature_code: 'TABLES', enabled: true },
     { role: 'ORDER_STAFF', feature_code: 'KDS', enabled: false },
@@ -94,6 +94,7 @@ const memoryStore = {
     { role: 'ORDER_STAFF', feature_code: 'ADMIN', enabled: false },
     { role: 'ORDER_STAFF', feature_code: 'SHIFT', enabled: false },
     { role: 'ORDER_STAFF', feature_code: 'DISCOUNT', enabled: false },
+    { role: 'ORDER_STAFF', feature_code: 'COMPLETED_ITEMS', enabled: true },
     { role: 'CASHIER', feature_code: 'POS', enabled: true },
     { role: 'CASHIER', feature_code: 'TABLES', enabled: true },
     { role: 'CASHIER', feature_code: 'KDS', enabled: false },
@@ -103,6 +104,7 @@ const memoryStore = {
     { role: 'CASHIER', feature_code: 'ADMIN', enabled: false },
     { role: 'CASHIER', feature_code: 'SHIFT', enabled: true },
     { role: 'CASHIER', feature_code: 'DISCOUNT', enabled: true },
+    { role: 'CASHIER', feature_code: 'COMPLETED_ITEMS', enabled: true },
     { role: 'KITCHEN', feature_code: 'POS', enabled: false },
     { role: 'KITCHEN', feature_code: 'TABLES', enabled: false },
     { role: 'KITCHEN', feature_code: 'KDS', enabled: true },
@@ -111,7 +113,8 @@ const memoryStore = {
     { role: 'KITCHEN', feature_code: 'PAYMENT', enabled: false },
     { role: 'KITCHEN', feature_code: 'ADMIN', enabled: false },
     { role: 'KITCHEN', feature_code: 'SHIFT', enabled: false },
-    { role: 'KITCHEN', feature_code: 'DISCOUNT', enabled: false }
+    { role: 'KITCHEN', feature_code: 'DISCOUNT', enabled: false },
+    { role: 'KITCHEN', feature_code: 'COMPLETED_ITEMS', enabled: false }
   ],
   store_role_features: [],
   categories: [
@@ -202,6 +205,7 @@ async function testConnection() {
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (role, feature_code)
     )`);
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS completed_items_enabled BOOLEAN DEFAULT NULL');
     await client.query(`CREATE TABLE IF NOT EXISTS store_role_features (
       store_id INT REFERENCES stores(id) ON DELETE CASCADE,
       role VARCHAR(30) NOT NULL,
@@ -290,6 +294,7 @@ async function testConnection() {
     await client.query('ALTER TABLE order_items ADD COLUMN IF NOT EXISTS prepared_at TIMESTAMP WITH TIME ZONE');
     await client.query('CREATE INDEX IF NOT EXISTS idx_order_items_prepared_by ON order_items(prepared_by, prepared_at DESC)');
     await client.query("ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS kds_completion_message TEXT DEFAULT 'Món ăn {mon}, bàn {ban} đã xong'");
+    await client.query('ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS takeaway_workspace_enabled BOOLEAN DEFAULT NULL');
     await client.query(`ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS workflow_definition JSONB DEFAULT '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb`);
     await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS workflow_stage_index INT DEFAULT 0');
     await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS workflow_snapshot JSONB');
@@ -299,11 +304,11 @@ async function testConnection() {
       await client.query('ALTER TABLE store_settings DROP COLUMN order_workflow');
     }
     await client.query(`INSERT INTO role_features (role, feature_code, enabled) VALUES
-      ('ADMIN','POS',TRUE),('ADMIN','TABLES',TRUE),('ADMIN','KDS',TRUE),('ADMIN','ORDERS',TRUE),('ADMIN','HISTORY',TRUE),('ADMIN','PAYMENT',TRUE),('ADMIN','ADMIN',TRUE),('ADMIN','SHIFT',TRUE),('ADMIN','DISCOUNT',TRUE),
-      ('STORE_MANAGER','POS',TRUE),('STORE_MANAGER','TABLES',TRUE),('STORE_MANAGER','KDS',TRUE),('STORE_MANAGER','ORDERS',TRUE),('STORE_MANAGER','HISTORY',TRUE),('STORE_MANAGER','PAYMENT',TRUE),('STORE_MANAGER','ADMIN',TRUE),('STORE_MANAGER','SHIFT',TRUE),('STORE_MANAGER','DISCOUNT',TRUE),
-      ('ORDER_STAFF','POS',TRUE),('ORDER_STAFF','TABLES',TRUE),('ORDER_STAFF','KDS',FALSE),('ORDER_STAFF','ORDERS',TRUE),('ORDER_STAFF','HISTORY',TRUE),('ORDER_STAFF','PAYMENT',FALSE),('ORDER_STAFF','ADMIN',FALSE),('ORDER_STAFF','SHIFT',FALSE),('ORDER_STAFF','DISCOUNT',FALSE),
-      ('CASHIER','POS',TRUE),('CASHIER','TABLES',TRUE),('CASHIER','KDS',FALSE),('CASHIER','ORDERS',TRUE),('CASHIER','HISTORY',TRUE),('CASHIER','PAYMENT',TRUE),('CASHIER','ADMIN',FALSE),('CASHIER','SHIFT',TRUE),('CASHIER','DISCOUNT',TRUE),
-      ('KITCHEN','POS',FALSE),('KITCHEN','TABLES',FALSE),('KITCHEN','KDS',TRUE),('KITCHEN','ORDERS',FALSE),('KITCHEN','HISTORY',TRUE),('KITCHEN','PAYMENT',FALSE),('KITCHEN','ADMIN',FALSE),('KITCHEN','SHIFT',FALSE),('KITCHEN','DISCOUNT',FALSE)
+      ('ADMIN','POS',TRUE),('ADMIN','TABLES',TRUE),('ADMIN','KDS',TRUE),('ADMIN','ORDERS',TRUE),('ADMIN','HISTORY',TRUE),('ADMIN','PAYMENT',TRUE),('ADMIN','ADMIN',TRUE),('ADMIN','SHIFT',TRUE),('ADMIN','DISCOUNT',TRUE),('ADMIN','COMPLETED_ITEMS',TRUE),
+      ('STORE_MANAGER','POS',TRUE),('STORE_MANAGER','TABLES',TRUE),('STORE_MANAGER','KDS',TRUE),('STORE_MANAGER','ORDERS',TRUE),('STORE_MANAGER','HISTORY',TRUE),('STORE_MANAGER','PAYMENT',TRUE),('STORE_MANAGER','ADMIN',TRUE),('STORE_MANAGER','SHIFT',TRUE),('STORE_MANAGER','DISCOUNT',TRUE),('STORE_MANAGER','COMPLETED_ITEMS',TRUE),
+      ('ORDER_STAFF','POS',TRUE),('ORDER_STAFF','TABLES',TRUE),('ORDER_STAFF','KDS',FALSE),('ORDER_STAFF','ORDERS',TRUE),('ORDER_STAFF','HISTORY',TRUE),('ORDER_STAFF','PAYMENT',FALSE),('ORDER_STAFF','ADMIN',FALSE),('ORDER_STAFF','SHIFT',FALSE),('ORDER_STAFF','DISCOUNT',FALSE),('ORDER_STAFF','COMPLETED_ITEMS',TRUE),
+      ('CASHIER','POS',TRUE),('CASHIER','TABLES',TRUE),('CASHIER','KDS',FALSE),('CASHIER','ORDERS',TRUE),('CASHIER','HISTORY',TRUE),('CASHIER','PAYMENT',TRUE),('CASHIER','ADMIN',FALSE),('CASHIER','SHIFT',TRUE),('CASHIER','DISCOUNT',TRUE),('CASHIER','COMPLETED_ITEMS',TRUE),
+      ('KITCHEN','POS',FALSE),('KITCHEN','TABLES',FALSE),('KITCHEN','KDS',TRUE),('KITCHEN','ORDERS',FALSE),('KITCHEN','HISTORY',TRUE),('KITCHEN','PAYMENT',FALSE),('KITCHEN','ADMIN',FALSE),('KITCHEN','SHIFT',FALSE),('KITCHEN','DISCOUNT',FALSE),('KITCHEN','COMPLETED_ITEMS',FALSE)
       ON CONFLICT (role, feature_code) DO NOTHING`);
     isConnected = true;
     console.log(`[PostgreSQL] Connected successfully at ${res.rows[0].current_time}`);

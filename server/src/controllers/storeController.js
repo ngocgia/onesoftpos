@@ -11,7 +11,8 @@ function formatFeatures(featureRows = []) {
     enableKds: true,
     enableInvoice: true,
     enableQrPayment: true,
-    enableInventory: true
+    enableInventory: true,
+    enableTakeawayWorkspace: false
   };
 
   featureRows.forEach(f => {
@@ -24,6 +25,10 @@ function formatFeatures(featureRows = []) {
     if (f.feature_code === 'QR_PAYMENT') features.enableQrPayment = !!f.enabled;
     if (f.feature_code === 'INVENTORY') features.enableInventory = !!f.enabled;
   });
+
+  features.enableTakeawayWorkspace = features.enableTakeaway
+    && !features.enableDineIn
+    && !features.enableTable;
 
   return features;
 }
@@ -105,6 +110,11 @@ async function getStoreDetails(req, res) {
       storeType = memoryStore.store_types.find(t => t.id === store.store_type_id) || {};
       const featRows = memoryStore.store_type_features.filter(f => f.store_type_id === store.store_type_id);
       features = formatFeatures(featRows);
+    }
+
+    features = features || formatFeatures([]);
+    if (typeof settings.takeaway_workspace_enabled === 'boolean') {
+      features.enableTakeawayWorkspace = settings.takeaway_workspace_enabled;
     }
 
     res.json({
@@ -425,6 +435,7 @@ async function updateStoreSettings(req, res) {
     bank_account_holder, 
     kds_enabled,
     kds_completion_message,
+    takeaway_workspace_enabled,
     workflow_definition
   } = req.body;
 
@@ -434,6 +445,9 @@ async function updateStoreSettings(req, res) {
   const normalizedKdsMessage = kds_completion_message === undefined
     ? undefined
     : String(kds_completion_message).trim() || 'Món ăn {mon}, bàn {ban} đã xong';
+  const normalizedTakeawayWorkspace = takeaway_workspace_enabled === undefined
+    ? undefined
+    : takeaway_workspace_enabled === true || String(takeaway_workspace_enabled).toLowerCase() === 'true';
   if (normalizedKdsMessage && normalizedKdsMessage.length > 300) {
     return res.status(400).json({ success: false, message: 'Câu thông báo KDS không được vượt quá 300 ký tự' });
   }
@@ -457,10 +471,11 @@ async function updateStoreSettings(req, res) {
              bank_account_holder = COALESCE($6, bank_account_holder),
              kds_enabled = COALESCE($7, kds_enabled),
              kds_completion_message = COALESCE($8, kds_completion_message),
-             workflow_definition = COALESCE($9::jsonb, workflow_definition),
+             takeaway_workspace_enabled = COALESCE($9, takeaway_workspace_enabled),
+             workflow_definition = COALESCE($10::jsonb, workflow_definition),
              updated_at = CURRENT_TIMESTAMP
-         WHERE store_id = $10`,
-        [receipt_header, receipt_footer, receipt_paper_size, bank_name, bank_account_number, bank_account_holder, kds_enabled, normalizedKdsMessage, normalizedWorkflow ? JSON.stringify(normalizedWorkflow) : null, storeId]
+         WHERE store_id = $11`,
+        [receipt_header, receipt_footer, receipt_paper_size, bank_name, bank_account_number, bank_account_holder, kds_enabled, normalizedKdsMessage, normalizedTakeawayWorkspace, normalizedWorkflow ? JSON.stringify(normalizedWorkflow) : null, storeId]
       );
     } else {
       let settings = memoryStore.store_settings.find(s => s.store_id === storeId);
@@ -476,6 +491,7 @@ async function updateStoreSettings(req, res) {
       if (bank_account_holder !== undefined) settings.bank_account_holder = bank_account_holder;
       if (kds_enabled !== undefined) settings.kds_enabled = kds_enabled;
       if (normalizedKdsMessage !== undefined) settings.kds_completion_message = normalizedKdsMessage;
+      if (normalizedTakeawayWorkspace !== undefined) settings.takeaway_workspace_enabled = normalizedTakeawayWorkspace;
       if (normalizedWorkflow !== undefined) settings.workflow_definition = normalizedWorkflow;
     }
 

@@ -2,11 +2,17 @@ const bcrypt = require('bcryptjs');
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
 
 const ROLES = ['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER', 'ORDER_STAFF', 'CASHIER', 'KITCHEN'];
-const ROLE_FEATURES = ['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT'];
+const ROLE_FEATURES = ['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT', 'COMPLETED_ITEMS'];
 
 function publicUser(user) {
   const { password_hash, ...safe } = user;
   return safe;
+}
+
+function completedItemsOverride(value) {
+  if (value === undefined) return { provided: false, value: undefined };
+  if (value === null || value === '' || value === 'inherit') return { provided: true, value: null };
+  return { provided: true, value: value === true || String(value).toLowerCase() === 'true' };
 }
 
 function normalizeStoreIds(storeIds) {
@@ -75,13 +81,20 @@ async function getUsers(req, res) {
     let users;
     if (isPostgresConnected()) {
       const result = await pool.query(`SELECT u.id, u.username, u.email, u.full_name, u.phone, u.role, u.status,
+        u.completed_items_enabled AS completed_items_override,
+        COALESCE(u.completed_items_enabled,
+          (SELECT enabled FROM role_features rf WHERE rf.role=u.role AND rf.feature_code='COMPLETED_ITEMS'), TRUE) AS completed_items_enabled,
         u.created_at, COALESCE(json_agg(json_build_object('id', s.id, 'name', s.name))
         FILTER (WHERE s.id IS NOT NULL), '[]') AS stores
         FROM users u LEFT JOIN user_stores us ON us.user_id = u.id LEFT JOIN stores s ON s.id = us.store_id
         GROUP BY u.id ORDER BY u.id`);
       users = result.rows;
     } else {
-      users = memoryStore.users.map(user => ({ ...publicUser(user), stores: memoryStore.user_stores
+      users = memoryStore.users.map(user => ({ ...publicUser(user),
+        completed_items_override: user.completed_items_enabled,
+        completed_items_enabled: typeof user.completed_items_enabled === 'boolean' ? user.completed_items_enabled :
+          (memoryStore.role_features.find(item => item.role === user.role && item.feature_code === 'COMPLETED_ITEMS')?.enabled ?? true),
+        stores: memoryStore.user_stores
         .filter(us => us.user_id === user.id).map(us => memoryStore.stores.find(s => s.id === us.store_id)).filter(Boolean)
         .map(s => ({ id: s.id, name: s.name })) }));
     }
@@ -98,6 +111,7 @@ async function createUser(req, res) {
     return res.status(400).json({ success: false, message: 'Thiếu thông tin bắt buộc hoặc vai trò không hợp lệ' });
   }
   try {
+    const completedAccess = completedItemsOverride(req.body.completed_items_enabled);
     const normalizedStoreIds = normalizeStoreIds(store_ids);
     assertStoreManagerAssignment(role, normalizedStoreIds);
     const passwordHash = await bcrypt.hash(password, 10);
@@ -106,9 +120,9 @@ async function createUser(req, res) {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
-        const result = await client.query(`INSERT INTO users (username, password_hash, email, full_name, phone, role, status)
-          VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id, username, email, full_name, phone, role, status, created_at`,
-          [username, passwordHash, email, full_name, phone, role, status]);
+        const result = await client.query(`INSERT INTO users (username, password_hash, email, full_name, phone, role, status, completed_items_enabled)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id, username, email, full_name, phone, role, status, completed_items_enabled, created_at`,
+          [username, passwordHash, email, full_name, phone, role, status, completedAccess.provided ? completedAccess.value : null]);
         user = result.rows[0];
         for (let i = 0; i < normalizedStoreIds.length; i++) {
           await client.query(
@@ -121,7 +135,7 @@ async function createUser(req, res) {
     } else {
       if (memoryStore.users.some(u => u.username === username || u.email === email)) return res.status(409).json({ success: false, message: 'Tên đăng nhập hoặc email đã tồn tại' });
       const id = memoryStore.users.length ? Math.max(...memoryStore.users.map(u => u.id)) + 1 : 1;
-      user = { id, username, password_hash: passwordHash, email, full_name, phone, role, status };
+      user = { id, username, password_hash: passwordHash, email, full_name, phone, role, status, completed_items_enabled: completedAccess.provided ? completedAccess.value : null };
       memoryStore.users.push(user);
       normalizedStoreIds.forEach((storeId, index) => memoryStore.user_stores.push({ user_id: id, store_id: storeId, is_default: index === 0 }));
     }
@@ -138,6 +152,7 @@ async function updateUser(req, res) {
   if (role && !ROLES.includes(role)) return res.status(400).json({ success: false, message: 'Vai trò không hợp lệ' });
   if (id === req.user.id && status === 'INACTIVE') return res.status(400).json({ success: false, message: 'Không thể tự khóa tài khoản đang đăng nhập' });
   try {
+    const completedAccess = completedItemsOverride(req.body.completed_items_enabled);
     const normalizedStoreIds = Array.isArray(store_ids) ? normalizeStoreIds(store_ids) : null;
     const passwordHash = password ? await bcrypt.hash(password, 10) : null;
     if (isPostgresConnected()) {
@@ -156,8 +171,10 @@ async function updateUser(req, res) {
         assertStoreManagerAssignment(effectiveRole, effectiveStoreIds);
         const result = await client.query(`UPDATE users SET full_name=COALESCE($1,full_name), email=COALESCE($2,email),
           phone=COALESCE($3,phone), role=COALESCE($4,role), status=COALESCE($5,status),
-          password_hash=COALESCE($6,password_hash), updated_at=CURRENT_TIMESTAMP WHERE id=$7 RETURNING id`,
-          [full_name, email, phone, role, status, passwordHash, id]);
+          password_hash=COALESCE($6,password_hash),
+          completed_items_enabled=CASE WHEN $7 THEN $8 ELSE completed_items_enabled END,
+          updated_at=CURRENT_TIMESTAMP WHERE id=$9 RETURNING id`,
+          [full_name, email, phone, role, status, passwordHash, completedAccess.provided, completedAccess.value, id]);
         if (!result.rowCount) { const error = new Error('Không tìm thấy người dùng'); error.statusCode = 404; throw error; }
         if (normalizedStoreIds) {
           await client.query('DELETE FROM user_stores WHERE user_id=$1', [id]);
@@ -172,6 +189,7 @@ async function updateUser(req, res) {
       assertStoreManagerAssignment(role || user.role, normalizedStoreIds || currentStoreIds);
       for (const key of ['full_name', 'email', 'phone', 'role', 'status']) if (req.body[key] !== undefined) user[key] = req.body[key];
       if (passwordHash) user.password_hash = passwordHash;
+      if (completedAccess.provided) user.completed_items_enabled = completedAccess.value;
       if (normalizedStoreIds) {
         memoryStore.user_stores = memoryStore.user_stores.filter(us => us.user_id !== id);
         normalizedStoreIds.forEach((storeId, index) => memoryStore.user_stores.push({ user_id: id, store_id: storeId, is_default: index === 0 }));

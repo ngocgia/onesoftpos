@@ -149,7 +149,14 @@ window.appState = {
     };
     Object.entries(visibility).forEach(([id, code]) => {
       const element = document.getElementById(id);
-      if (element) element.style.display = this.roleFeatures[code] ? '' : 'none';
+      if (element) {
+        let isVisible = this.roleFeatures[code];
+        // Override for TABLES if takeaway workspace is enabled
+        if (id === 'navItemTables' && this.features?.enableTakeawayWorkspace) {
+          isVisible = false;
+        }
+        element.style.display = isVisible ? '' : 'none';
+      }
     });
     const checkoutButton = document.getElementById('btnProceedCheckout');
     if (checkoutButton) checkoutButton.style.display = this.roleFeatures.PAYMENT ? '' : 'none';

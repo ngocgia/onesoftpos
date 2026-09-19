@@ -1022,6 +1022,19 @@ const adminApp = {
     await this.loadTableManagement();
   },
   async loadTableManagement() {
+    const storeId = window.api.getCurrentStoreId();
+    let isTakeawayOnly = false;
+    try {
+      const storeRes = await window.api.get(`/stores/${storeId}`);
+      if (storeRes.features?.enableTakeawayWorkspace) {
+        isTakeawayOnly = true;
+      }
+    } catch (e) {
+      console.warn('Could not fetch store features for table management:', e);
+    }
+    
+    this.isTableManagementDisabled = isTakeawayOnly;
+
     const [areaResult, tableResult] = await Promise.all([
       window.api.get("/areas"),
       window.api.get("/tables"),
@@ -1033,6 +1046,22 @@ const adminApp = {
   renderTableManagement() {
     const areaList = document.getElementById("adminPageAreasList");
     const tableList = document.getElementById("adminPageTablesList");
+    const addAreaBtn = document.getElementById("addAreaBtn");
+    const addTableBtn = document.getElementById("addTableBtn");
+
+    if (this.isTableManagementDisabled) {
+      if (addAreaBtn) addAreaBtn.style.display = "none";
+      if (addTableBtn) addTableBtn.style.display = "none";
+      areaList.innerHTML = '<p class="empty">Cửa hàng này đang bật Giao diện bán mang đi. Chức năng Phòng & Bàn bị vô hiệu hóa.</p>';
+      tableList.innerHTML = '<p class="empty">Cửa hàng này đang bật Giao diện bán mang đi. Chức năng Phòng & Bàn bị vô hiệu hóa.</p>';
+      document.getElementById("areasSummary").textContent = `0 khu vực`;
+      document.getElementById("tablesSummary").textContent = `0 bàn`;
+      return;
+    }
+
+    if (addAreaBtn) addAreaBtn.style.display = "inline-flex";
+    if (addTableBtn) addTableBtn.style.display = "inline-flex";
+
     document.getElementById("areasSummary").textContent =
       `${this.areas.length} khu vực`;
     document.getElementById("tablesSummary").textContent =

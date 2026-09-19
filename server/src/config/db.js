@@ -207,6 +207,24 @@ async function testConnection() {
       PRIMARY KEY (role, feature_code)
     )`);
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS completed_items_enabled BOOLEAN DEFAULT NULL');
+    await client.query(`CREATE TABLE IF NOT EXISTS sizes (
+      id SERIAL PRIMARY KEY,
+      store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+      name VARCHAR(50) NOT NULL,
+      description TEXT,
+      sort_order INT DEFAULT 0,
+      is_active BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(store_id, name)
+    )`);
+    await client.query(`CREATE TABLE IF NOT EXISTS product_variants (
+      id SERIAL PRIMARY KEY,
+      product_id INT REFERENCES products(id) ON DELETE CASCADE,
+      size_name VARCHAR(50) NOT NULL,
+      price_adjustment NUMERIC(15, 2) DEFAULT 0,
+      is_default BOOLEAN DEFAULT FALSE
+    )`);
+    await client.query('ALTER TABLE order_items ADD COLUMN IF NOT EXISTS variant_id INT REFERENCES product_variants(id) ON DELETE SET NULL');
     await client.query(`CREATE TABLE IF NOT EXISTS store_role_features (
       store_id INT REFERENCES stores(id) ON DELETE CASCADE,
       role VARCHAR(30) NOT NULL,

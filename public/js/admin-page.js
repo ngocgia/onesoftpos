@@ -81,7 +81,7 @@ const adminApp = {
           (item) => String(item.group_id || "none") === String(group.id),
         );
         if (!items.length) return "";
-        return `<section class="topping-picker-group" data-group="${group.id}" style="border:1px solid #e5e7eb;border-radius:10px;padding:10px"><label style="display:flex;justify-content:space-between;gap:8px;font-weight:700"><span>${this.esc(group.name)} <small class="muted">(${items.length})</small></span><span><input type="checkbox" data-select-group="${group.id}" onchange="adminApp.toggleToppingGroup('${group.id}',this.checked)"> Chọn cả nhóm</span></label><div class="feature-grid" style="margin-top:8px">${items.map((item) => `<label class="feature topping-picker-item" data-search="${this.esc(`${item.name} ${group.name}`.toLowerCase())}"><span>${this.esc(item.name)}<br><small class="muted">${this.money(item.price)}${item.is_active ? "" : " · đã ẩn"}</small></span><input type="checkbox" name="product_topping" data-group-id="${group.id}" value="${item.id}" ${selected.has(item.id) ? "checked" : ""} onchange="adminApp.refreshToppingPickerCount()"></label>`).join("")}</div></section>`;
+        return `<section class="topping-picker-group" data-group="${group.id}" style="border:1px solid #e5e7eb;border-radius:10px;padding:10px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1" onclick="adminApp.toggleGroupExpand('${group.id}')"><i class="fa-solid fa-chevron-up" id="group-icon-${group.id}" style="color:var(--muted);width:16px;text-align:center"></i><strong style="font-size:13px;user-select:none">${this.esc(group.name)} <small class="muted">(${items.length})</small></strong></div><label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;font-weight:600;margin:0"><input type="checkbox" data-select-group="${group.id}" onchange="adminApp.toggleToppingGroup('${group.id}',this.checked)"> Chọn cả nhóm</label></div><div class="feature-grid" id="group-content-${group.id}">${items.map((item) => `<label class="feature topping-picker-item" data-search="${this.esc(`${item.name} ${group.name}`.toLowerCase())}" style="justify-content:flex-start;gap:10px;align-items:flex-start"><input type="checkbox" name="product_topping" data-group-id="${group.id}" value="${item.id}" ${selected.has(item.id) ? "checked" : ""} onchange="adminApp.refreshToppingPickerCount()" style="margin-top:2px"><span>${this.esc(item.name)}<br><small class="muted">${this.money(item.price)}${item.is_active ? "" : " · đã ẩn"}</small></span></label>`).join("")}</div></section>`;
       })
       .join("");
     return `<div class="field full"><span>Topping áp dụng cho món này</span><div style="display:flex;gap:8px;align-items:center;margin:8px 0"><input id="productToppingSearch" placeholder="Tìm topping hoặc nhóm..." oninput="adminApp.filterProductToppings(this.value)" style="flex:1"><strong id="productToppingCount">0 đã chọn</strong></div><div id="productToppingPicker" style="display:grid;gap:10px;max-height:360px;overflow:auto">${sections || '<p class="muted">Chưa có topping. Hãy tạo topping trước.</p>'}</div></div>`;
@@ -115,6 +115,17 @@ const adminApp = {
       });
     this.refreshToppingPickerCount();
   },
+  toggleGroupExpand(groupId) {
+    const content = document.getElementById(`group-content-${groupId}`);
+    const icon = document.getElementById(`group-icon-${groupId}`);
+    if (content.style.display === 'none') {
+      content.style.display = '';
+      icon.className = 'fa-solid fa-chevron-up';
+    } else {
+      content.style.display = 'none';
+      icon.className = 'fa-solid fa-chevron-down';
+    }
+  },
   filterProductToppings(value) {
     const query = String(value || "")
       .trim()
@@ -129,6 +140,13 @@ const adminApp = {
           if (show) visible++;
         });
         group.style.display = visible ? "block" : "none";
+        if (query && visible) {
+           const groupId = group.dataset.group;
+           const content = document.getElementById(`group-content-${groupId}`);
+           const icon = document.getElementById(`group-icon-${groupId}`);
+           if (content) content.style.display = '';
+           if (icon) icon.className = 'fa-solid fa-chevron-up';
+        }
       });
   },
   formData(form) {
@@ -304,7 +322,7 @@ const adminApp = {
       rows
         .map(
           (s) =>
-            `<article class="card"><div class="card-head"><div><h3>${this.esc(s.name)}</h3><p>${this.esc(s.code)} · ${this.esc(s.store_type_name || "Chưa phân loại")}</p></div><span class="badge ${s.status === "ACTIVE" ? "active" : "inactive"}">${s.status === "ACTIVE" ? "HOẠT ĐỘNG" : "TẠM KHÓA"}</span></div><p style="margin-top:12px"><i class="fa-solid fa-location-dot"></i> ${this.esc(s.address || "Chưa cập nhật")}<br><i class="fa-solid fa-phone"></i> ${this.esc(s.phone || "Chưa cập nhật")}</p><div class="card-actions"><button class="btn ghost small" onclick="adminApp.configureKdsAnnouncement(${s.id})"><i class="fa-solid fa-volume-high"></i> Loa KDS</button><button class="btn ghost small" onclick="adminApp.editStore(${s.id})">Sửa & cấu hình</button><button class="btn ${s.status === "ACTIVE" ? "danger" : "ghost"} small" onclick="adminApp.toggleStore(${s.id})">${s.status === "ACTIVE" ? "Tạm khóa" : "Kích hoạt"}</button><button class="btn danger small" onclick="adminApp.deleteStore(${s.id})"><i class="fa-solid fa-trash"></i> Xóa</button></div></article>`,
+            `<article class="card"><div class="card-head"><div><h3>${this.esc(s.name)}</h3><p>${this.esc(s.code)} · ${this.esc(s.store_type_name || "Chưa phân loại")}</p></div><span class="badge ${s.status === "ACTIVE" ? "active" : "inactive"}">${s.status === "ACTIVE" ? "HOẠT ĐỘNG" : "TẠM KHÓA"}</span></div><p style="margin-top:12px"><i class="fa-solid fa-location-dot"></i> ${this.esc(s.address || "Chưa cập nhật")}<br><i class="fa-solid fa-phone"></i> ${this.esc(s.phone || "Chưa cập nhật")}</p><div class="card-actions"><div class="dropdown"><button class="dropdown-toggle" type="button"><i class="fa-solid fa-ellipsis-vertical"></i></button><div class="dropdown-menu"><button class="btn ghost small" onclick="adminApp.configureKdsAnnouncement(${s.id})"><i class="fa-solid fa-volume-high"></i> Loa KDS</button><button class="btn ghost small" onclick="adminApp.editStore(${s.id})">Sửa & cấu hình</button><button class="btn ${s.status === "ACTIVE" ? "danger" : "ghost"} small" onclick="adminApp.toggleStore(${s.id})">${s.status === "ACTIVE" ? "Tạm khóa" : "Kích hoạt"}</button><button class="btn danger small" onclick="adminApp.deleteStore(${s.id})"><i class="fa-solid fa-trash"></i> Xóa</button></div></div></div></article>`,
         )
         .join("") || '<div class="panel empty">Không tìm thấy cửa hàng</div>';
   },
@@ -543,7 +561,7 @@ const adminApp = {
     el.innerHTML = this.storeTypes
       .map(
         (t) =>
-          `<article class="card"><div class="card-head"><div><h3>${this.esc(t.name)}</h3><p>${this.esc(t.code)} · ${this.esc(t.description || "")}</p></div><span><button class="btn ghost small" onclick="adminApp.editStoreType(${t.id})">Sửa</button> <button class="btn danger small" onclick="adminApp.deleteStoreType(${t.id})">Xóa</button></span></div><div class="feature-grid">${Object.entries(
+          `<article class="card"><div class="card-head"><div><h3>${this.esc(t.name)}</h3><p>${this.esc(t.code)} · ${this.esc(t.description || "")}</p></div><span><div class="dropdown"><button class="dropdown-toggle" type="button"><i class="fa-solid fa-ellipsis-vertical"></i></button><div class="dropdown-menu"><button class="btn ghost small" onclick="adminApp.editStoreType(${t.id})">Sửa</button><button class="btn danger small" onclick="adminApp.deleteStoreType(${t.id})">Xóa</button></div></div></span></div><div class="feature-grid">${Object.entries(
             this.featureLabels,
           )
             .map(([code, label]) => {
@@ -635,7 +653,7 @@ const adminApp = {
       rows
         .map(
           (u) =>
-            `<tr><td><strong>${this.esc(u.full_name)}</strong><br><span class="muted">${this.esc(u.username)} · ${this.esc(u.email)}</span></td><td><span class="badge active">${u.role}</span></td><td>${(u.stores || []).map((s) => this.esc(s.name)).join(", ") || '<span class="muted">Toàn hệ thống</span>'}</td><td><span class="badge ${u.status === "ACTIVE" ? "active" : "inactive"}">${u.status}</span></td><td><button class="btn ghost small" onclick="adminApp.editUser(${u.id})">Chỉnh sửa</button> ${u.id === this.me.id ? "" : `<button class="btn danger small" onclick="adminApp.deleteUser(${u.id})">Xóa</button>`}</td></tr>`,
+            `<tr><td><strong>${this.esc(u.full_name)}</strong><br><span class="muted">${this.esc(u.username)} · ${this.esc(u.email)}</span></td><td><span class="badge active">${u.role}</span></td><td>${(u.stores || []).map((s) => this.esc(s.name)).join(", ") || '<span class="muted">Toàn hệ thống</span>'}</td><td><span class="badge ${u.status === "ACTIVE" ? "active" : "inactive"}">${u.status}</span></td><td><div class="dropdown"><button class="dropdown-toggle" type="button"><i class="fa-solid fa-ellipsis-vertical"></i></button><div class="dropdown-menu"><button class="btn ghost small" onclick="adminApp.editUser(${u.id})">Chỉnh sửa</button>${u.id === this.me.id ? "" : `<button class="btn danger small" onclick="adminApp.deleteUser(${u.id})">Xóa</button>`}</div></div></td></tr>`,
         )
         .join("") ||
       '<tr><td class="empty" colspan="5">Không tìm thấy người dùng</td></tr>';
@@ -947,7 +965,7 @@ const adminApp = {
       rows
         .map(
           (p) =>
-            `<tr><td><strong>${this.esc(p.image_url || "🍗")} ${this.esc(p.name)}</strong><br><span class="muted">${this.esc(p.code)} · ${p.options?.length || 0} topping</span></td><td>${this.esc(p.category_name || "-")}</td><td><strong>${this.money(p.price)}</strong></td><td>${p.kitchen_type === "BAR" ? "Pha chế" : "Bếp"}</td><td><span class="badge ${p.is_active ? "active" : "inactive"}">${p.is_active ? "ĐANG BÁN" : "NGỪNG BÁN"}</span></td><td><button class="btn ghost small" onclick="adminApp.editProduct(${p.id})">Sửa</button> <button class="btn danger small" onclick="adminApp.deleteProduct(${p.id})">Xóa</button></td></tr>`,
+            `<tr><td><strong>${this.esc(p.image_url || "🍗")} ${this.esc(p.name)}</strong><br><span class="muted">${this.esc(p.code)} · ${p.options?.length || 0} topping</span></td><td>${this.esc(p.category_name || "-")}</td><td><strong>${this.money(p.price)}</strong></td><td>${p.kitchen_type === "BAR" ? "Pha chế" : "Bếp"}</td><td><span class="badge ${p.is_active ? "active" : "inactive"}">${p.is_active ? "ĐANG BÁN" : "NGỪNG BÁN"}</span></td><td><div class="dropdown"><button class="dropdown-toggle" type="button"><i class="fa-solid fa-ellipsis-vertical"></i></button><div class="dropdown-menu"><button class="btn ghost small" onclick="adminApp.editProduct(${p.id})">Sửa</button><button class="btn danger small" onclick="adminApp.deleteProduct(${p.id})">Xóa</button></div></div></td></tr>`,
         )
         .join("") ||
       '<tr><td class="empty" colspan="6">Chưa có sản phẩm</td></tr>';
@@ -1062,7 +1080,7 @@ const adminApp = {
     await this.loadProducts();
   },
   manageCategories() {
-    const rows = this.categories.map((item) => `<div class="field full" style="display:flex;justify-content:space-between;align-items:center;gap:12px"><span><strong>${this.esc(item.name)}</strong><br><span class="muted">${this.esc(item.code || "")}</span></span><span><button type="button" class="btn ghost small" onclick="adminApp.editCategory(${item.id})">Sửa</button> <button type="button" class="btn danger small" onclick="adminApp.deleteCategory(${item.id})">Xóa</button></span></div>`).join("") || '<p class="field full muted">Chưa có danh mục</p>';
+    const rows = this.categories.map((item) => `<div class="field full" style="display:flex;justify-content:space-between;align-items:center;gap:12px;overflow:visible"><span><strong>${this.esc(item.name)}</strong><br><span class="muted">${this.esc(item.code || "")}</span></span><span><div class="dropdown"><button class="dropdown-toggle" type="button"><i class="fa-solid fa-ellipsis-vertical"></i></button><div class="dropdown-menu"><button type="button" class="btn ghost small" onclick="adminApp.editCategory(${item.id})">Sửa</button><button type="button" class="btn danger small" onclick="adminApp.deleteCategory(${item.id})">Xóa</button></div></div></span></div>`).join("") || '<p class="field full muted">Chưa có danh mục</p>';
     this.openModal("Quản lý danh mục", `<div class="field full"><button type="button" class="btn primary" onclick="adminApp.editCategory()"><i class="fa-solid fa-plus"></i> Thêm danh mục</button></div>${rows}`, null);
   },
   editCategory(id) {
@@ -1100,7 +1118,7 @@ const adminApp = {
       this.toppings
         .map(
           (item) =>
-            `<div class="field full" style="display:flex;justify-content:space-between;align-items:center;gap:12px"><span><strong>${this.esc(item.name)}</strong><br><span class="muted">${this.esc(item.group_name || "Chưa phân nhóm")} · ${this.money(item.price)} · ${item.product_ids.length} món · ${item.is_active ? "Đang dùng" : "Đã ẩn"}</span></span><span><button type="button" class="btn ghost small" onclick="adminApp.editTopping(${item.id})">Sửa</button> <button type="button" class="btn ghost small" onclick="adminApp.toggleTopping(${item.id},${!item.is_active})">${item.is_active ? "Ẩn" : "Khôi phục"}</button> <button type="button" class="btn danger small" onclick="adminApp.deleteTopping(${item.id})">Xóa</button></span></div>`,
+            `<div class="field full" style="display:flex;justify-content:space-between;align-items:center;gap:12px;overflow:visible"><span><strong>${this.esc(item.name)}</strong><br><span class="muted">${this.esc(item.group_name || "Chưa phân nhóm")} · ${this.money(item.price)} · ${item.product_ids.length} món · ${item.is_active ? "Đang dùng" : "Đã ẩn"}</span></span><span><div class="dropdown"><button class="dropdown-toggle" type="button"><i class="fa-solid fa-ellipsis-vertical"></i></button><div class="dropdown-menu"><button type="button" class="btn ghost small" onclick="adminApp.editTopping(${item.id})">Sửa</button><button type="button" class="btn ghost small" onclick="adminApp.toggleTopping(${item.id},${!item.is_active})">${item.is_active ? "Ẩn" : "Khôi phục"}</button><button type="button" class="btn danger small" onclick="adminApp.deleteTopping(${item.id})">Xóa</button></div></div></span></div>`,
         )
         .join("") || '<p class="field full muted">Chưa có topping</p>';
     this.openModal(
@@ -1164,7 +1182,7 @@ const adminApp = {
       this.toppingGroups
         .map(
           (group) =>
-            `<div class="field full" style="display:flex;justify-content:space-between;align-items:center"><span><strong>${this.esc(group.name)}</strong><br><span class="muted">${group.topping_count} topping · ${group.is_active ? "Đang dùng" : "Đã ẩn"}</span></span><span><button type="button" class="btn ghost small" onclick="adminApp.editToppingGroup(${group.id})">Sửa</button> <button type="button" class="btn danger small" onclick="adminApp.deleteToppingGroup(${group.id})">Xóa</button></span></div>`,
+            `<div class="field full" style="display:flex;justify-content:space-between;align-items:center;overflow:visible"><span><strong>${this.esc(group.name)}</strong><br><span class="muted">${group.topping_count} topping · ${group.is_active ? "Đang dùng" : "Đã ẩn"}</span></span><span><div class="dropdown"><button class="dropdown-toggle" type="button"><i class="fa-solid fa-ellipsis-vertical"></i></button><div class="dropdown-menu"><button type="button" class="btn ghost small" onclick="adminApp.editToppingGroup(${group.id})">Sửa</button><button type="button" class="btn danger small" onclick="adminApp.deleteToppingGroup(${group.id})">Xóa</button></div></div></span></div>`,
         )
         .join("") || '<p class="field full muted">Chưa có nhóm topping</p>';
     this.openModal(
@@ -1268,3 +1286,15 @@ const adminApp = {
 };
 window.adminApp = adminApp;
 document.addEventListener("DOMContentLoaded", () => adminApp.init());
+
+document.addEventListener("click", (e) => {
+  const toggle = e.target.closest(".dropdown-toggle");
+  if (toggle) {
+    const menu = toggle.nextElementSibling;
+    const isShown = menu.classList.contains("show");
+    document.querySelectorAll(".dropdown-menu.show").forEach(m => m.classList.remove("show"));
+    if (!isShown) menu.classList.add("show");
+  } else {
+    document.querySelectorAll(".dropdown-menu.show").forEach(m => m.classList.remove("show"));
+  }
+});

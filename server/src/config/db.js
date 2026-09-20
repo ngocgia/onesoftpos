@@ -71,8 +71,8 @@ const memoryStore = {
     { id: 2, code: 'STORE002', name: 'Thích Gà Express - Kiot Nguyễn Huệ', display_name: 'Thích Gà Express', store_type_id: 1, phone: '0909888999', email: 'express@thichgapos.vn', address: '88 Phố Đi Bộ Nguyễn Huệ, Bến Nghé', province: 'Hồ Chí Minh', district: 'Quận 1', tax_code: '0312345678-001', logo_url: '🍗', opening_time: '09:00', closing_time: '23:00', currency: 'VND', status: 'ACTIVE' }
   ],
   store_settings: [
-    { store_id: 1, allow_negative_stock: false, allow_discount: true, allow_custom_price: false, allow_cancel_item: true, allow_cancel_order: true, allow_refund: true, payment_cash: true, payment_transfer: true, payment_qr: true, payment_card: true, receipt_header: 'HỆ THỐNG GÀ RÁN & TRÀ SỮA THÍCH GÀ', receipt_footer: 'Cảm ơn Quý khách & Hẹn gặp lại!', receipt_paper_size: '80mm', bank_name: 'MB Bank', bank_account_number: '090123456789', bank_account_holder: 'THICH GA POS CN1', kds_enabled: true, kds_completion_message: 'Món ăn {mon}, bàn {ban} đã xong', workflow_definition: { name: 'Thu ngân - Bếp - Thanh toán', steps: [{ id: 'create', name: 'Thu ngân tạo đơn', type: 'CREATE', roles: ['CASHIER'] }, { id: 'kitchen', name: 'Bếp chế biến', type: 'KITCHEN', roles: ['KITCHEN'] }, { id: 'payment', name: 'Thu ngân thanh toán', type: 'PAYMENT', roles: ['CASHIER'] }] } },
-    { store_id: 2, allow_negative_stock: false, allow_discount: true, allow_custom_price: false, allow_cancel_item: true, allow_cancel_order: true, allow_refund: true, payment_cash: true, payment_transfer: true, payment_qr: true, payment_card: true, receipt_header: 'THÍCH GÀ EXPRESS - MANG ĐI SIÊU TỐC', receipt_footer: 'Chúc Quý khách ngon miệng!', receipt_paper_size: '58mm', bank_name: 'MB Bank', bank_account_number: '090988899999', bank_account_holder: 'THICH GA EXPRESS', kds_enabled: true, kds_completion_message: 'Món ăn {mon}, bàn {ban} đã xong', workflow_definition: { name: 'Thu ngân - Bếp - Thanh toán', steps: [{ id: 'create', name: 'Thu ngân tạo đơn', type: 'CREATE', roles: ['CASHIER'] }, { id: 'kitchen', name: 'Bếp chế biến', type: 'KITCHEN', roles: ['KITCHEN'] }, { id: 'payment', name: 'Thu ngân thanh toán', type: 'PAYMENT', roles: ['CASHIER'] }] } }
+    { store_id: 1, allow_negative_stock: false, allow_discount: true, allow_custom_price: false, allow_cancel_item: true, allow_cancel_order: true, allow_refund: true, payment_cash: true, payment_transfer: true, payment_qr: true, payment_card: true, receipt_header: 'HỆ THỐNG GÀ RÁN & TRÀ SỮA THÍCH GÀ', receipt_footer: 'Cảm ơn Quý khách & Hẹn gặp lại!', receipt_paper_size: '80mm', bank_name: 'MB Bank', bank_account_number: '090123456789', bank_account_holder: 'THICH GA POS CN1', kds_enabled: true, kds_completion_message: 'Món ăn {mon}, bàn {ban} đã xong', inventory_transactions_enabled: true, workflow_definition: { name: 'Thu ngân - Bếp - Thanh toán', steps: [{ id: 'create', name: 'Thu ngân tạo đơn', type: 'CREATE', roles: ['CASHIER'] }, { id: 'kitchen', name: 'Bếp chế biến', type: 'KITCHEN', roles: ['KITCHEN'] }, { id: 'payment', name: 'Thu ngân thanh toán', type: 'PAYMENT', roles: ['CASHIER'] }] } },
+    { store_id: 2, allow_negative_stock: false, allow_discount: true, allow_custom_price: false, allow_cancel_item: true, allow_cancel_order: true, allow_refund: true, payment_cash: true, payment_transfer: true, payment_qr: true, payment_card: true, receipt_header: 'THÍCH GÀ EXPRESS - MANG ĐI SIÊU TỐC', receipt_footer: 'Chúc Quý khách ngon miệng!', receipt_paper_size: '58mm', bank_name: 'MB Bank', bank_account_number: '090988899999', bank_account_holder: 'THICH GA EXPRESS', kds_enabled: true, kds_completion_message: 'Món ăn {mon}, bàn {ban} đã xong', inventory_transactions_enabled: true, workflow_definition: { name: 'Thu ngân - Bếp - Thanh toán', steps: [{ id: 'create', name: 'Thu ngân tạo đơn', type: 'CREATE', roles: ['CASHIER'] }, { id: 'kitchen', name: 'Bếp chế biến', type: 'KITCHEN', roles: ['KITCHEN'] }, { id: 'payment', name: 'Thu ngân thanh toán', type: 'PAYMENT', roles: ['CASHIER'] }] } }
   ],
   user_stores: [
     { user_id: 1, store_id: 1, is_default: true },
@@ -83,8 +83,8 @@ const memoryStore = {
     { user_id: 5, store_id: 1, is_default: true }
   ],
   role_features: [
-    ...['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT', 'COMPLETED_ITEMS'].map(feature_code => ({ role: 'ADMIN', feature_code, enabled: true })),
-    ...['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT', 'COMPLETED_ITEMS'].map(feature_code => ({ role: 'STORE_MANAGER', feature_code, enabled: true })),
+    ...['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT', 'COMPLETED_ITEMS', 'INVENTORY'].map(feature_code => ({ role: 'ADMIN', feature_code, enabled: true })),
+    ...['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT', 'COMPLETED_ITEMS', 'INVENTORY'].map(feature_code => ({ role: 'STORE_MANAGER', feature_code, enabled: true })),
     { role: 'ORDER_STAFF', feature_code: 'POS', enabled: true },
     { role: 'ORDER_STAFF', feature_code: 'TABLES', enabled: true },
     { role: 'ORDER_STAFF', feature_code: 'KDS', enabled: false },
@@ -182,7 +182,33 @@ const memoryStore = {
   shifts: [
     { id: 1, store_id: 1, user_id: 3, opening_time: new Date().toISOString(), opening_cash: 1000000, closing_cash: 0, expected_cash: 1000000, difference: 0, status: 'OPEN', notes: 'Ca sáng thu ngân' }
   ],
-  audit_logs: []
+  audit_logs: [],
+  inventory_items: [
+    { id: 1, store_id: 1, code: 'NL01', name: 'Thịt gà góc tư tươi', category: 'Thịt & Hải sản', unit: 'kg', cost_price: 55000, current_stock: 45.5, min_stock: 15, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
+    { id: 2, store_id: 1, code: 'NL02', name: 'Đùi gà tỏi CP', category: 'Thịt & Hải sản', unit: 'kg', cost_price: 68000, current_stock: 32.0, min_stock: 10, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
+    { id: 3, store_id: 1, code: 'NL03', name: 'Bột chiên giòn cay cao cấp', category: 'Gia vị & Bột', unit: 'kg', cost_price: 35000, current_stock: 18.5, min_stock: 8, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
+    { id: 4, store_id: 1, code: 'NL04', name: 'Dầu ăn Nakydaco Can 25L', category: 'Dầu ăn & Bơ', unit: 'Can', cost_price: 650000, current_stock: 4, min_stock: 2, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
+    { id: 5, store_id: 1, code: 'NL05', name: 'Gạo thơm lài dẻo', category: 'Nông sản & Lương thực', unit: 'kg', cost_price: 22000, current_stock: 80.0, min_stock: 20, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
+    { id: 6, store_id: 1, code: 'NL06', name: 'Trà đen Phúc Long xuất khẩu', category: 'Trà & Cà phê', unit: 'gói 500g', cost_price: 85000, current_stock: 12, min_stock: 5, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
+    { id: 7, store_id: 1, code: 'NL07', name: 'Sữa đặc Phương Nam lon 1.28kg', category: 'Sữa & Kem', unit: 'Lon', cost_price: 62000, current_stock: 16, min_stock: 6, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
+    { id: 8, store_id: 1, code: 'NL08', name: 'Trân châu đen Đài Loan 3kg', category: 'Topping & Hạt', unit: 'Gói', cost_price: 95000, current_stock: 5, min_stock: 4, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
+    { id: 9, store_id: 1, code: 'NL09', name: 'Ly giấy Thích Gà 700ml kèm nắp', category: 'Bao bì & Ly hộp', unit: 'Cây 50 cái', cost_price: 48000, current_stock: 25, min_stock: 10, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
+    { id: 10, store_id: 1, code: 'NL10', name: 'Hộp giấy Kraft đựng gà rán', category: 'Bao bì & Ly hộp', unit: 'Cái', cost_price: 2500, current_stock: 350, min_stock: 100, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
+    { id: 11, store_id: 1, code: 'NL11', name: 'Tương ớt cay Cholimex can 2L', category: 'Gia vị & Bột', unit: 'Can', cost_price: 52000, current_stock: 3, min_stock: 5, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
+    { id: 12, store_id: 1, code: 'NL12', name: 'Bột phô mai lắc Tornado', category: 'Gia vị & Bột', unit: 'kg', cost_price: 160000, current_stock: 0, min_stock: 2, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
+    { id: 13, store_id: 2, code: 'EXP_GA', name: 'Đùi gà ướp sẵn chi nhánh Express', category: 'Thịt & Hải sản', unit: 'kg', cost_price: 65000, current_stock: 28.0, min_stock: 10, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
+    { id: 14, store_id: 2, code: 'EXP_LY', name: 'Ly nhựa mang đi kèm màng ép', category: 'Bao bì & Ly hộp', unit: 'Cuộn', cost_price: 180000, current_stock: 6, min_stock: 2, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' }
+  ],
+  inventory_transactions: [
+    { id: 1, transaction_code: 'PN-20260915-001', store_id: 1, item_id: 1, transaction_type: 'IN', quantity: 50, price: 55000, total_amount: 2750000, stock_before: 0, stock_after: 50, user_id: 1, note: 'Nhập thịt gà tươi từ CP Foods', created_at: '2026-09-15T08:30:00Z' },
+    { id: 2, transaction_code: 'PN-20260915-002', store_id: 1, item_id: 2, transaction_type: 'IN', quantity: 40, price: 68000, total_amount: 2720000, stock_before: 0, stock_after: 40, user_id: 1, note: 'Nhập đùi gà tỏi', created_at: '2026-09-15T09:00:00Z' },
+    { id: 3, transaction_code: 'PX-20260917-001', store_id: 1, item_id: 1, transaction_type: 'OUT', quantity: 4.5, price: 55000, total_amount: 247500, stock_before: 50, stock_after: 45.5, user_id: 4, note: 'Xuất chế biến gà rán ca sáng', created_at: '2026-09-17T11:00:00Z' },
+    { id: 4, transaction_code: 'PX-20260918-001', store_id: 1, item_id: 2, transaction_type: 'OUT', quantity: 8, price: 68000, total_amount: 544000, stock_before: 40, stock_after: 32, user_id: 4, note: 'Xuất đùi gà sốt cay Hàn Quốc', created_at: '2026-09-18T16:00:00Z' },
+    { id: 5, transaction_code: 'PN-20260919-001', store_id: 1, item_id: 3, transaction_type: 'IN', quantity: 20, price: 35000, total_amount: 700000, stock_before: 0, stock_after: 20, user_id: 2, note: 'Nhập bột chiên giòn cay', created_at: '2026-09-19T09:30:00Z' },
+    { id: 6, transaction_code: 'PX-20260919-002', store_id: 1, item_id: 3, transaction_type: 'OUT', quantity: 1.5, price: 35000, total_amount: 52500, stock_before: 20, stock_after: 18.5, user_id: 4, note: 'Xuất tẩm ướp gà', created_at: '2026-09-19T14:15:00Z' },
+    { id: 7, transaction_code: 'PN-20260920-001', store_id: 1, item_id: 5, transaction_type: 'IN', quantity: 100, price: 22000, total_amount: 2200000, stock_before: 0, stock_after: 100, user_id: 2, note: 'Nhập 2 bao gạo thơm lài', created_at: '2026-09-20T07:30:00Z' },
+    { id: 8, transaction_code: 'PX-20260920-002', store_id: 1, item_id: 5, transaction_type: 'OUT', quantity: 20, price: 22000, total_amount: 440000, stock_before: 100, stock_after: 80, user_id: 4, note: 'Nấu cơm gà phục vụ ca trưa', created_at: '2026-09-20T08:15:00Z' }
+  ]
 };
 
 async function testConnection() {
@@ -318,6 +344,7 @@ async function testConnection() {
     await client.query('ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS takeaway_workspace_enabled BOOLEAN DEFAULT NULL');
     await client.query(`ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS workflow_definition JSONB DEFAULT '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb`);
     await client.query('ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS admin_tabs JSONB DEFAULT NULL');
+    await client.query('ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS inventory_transactions_enabled BOOLEAN DEFAULT TRUE');
     await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS workflow_stage_index INT DEFAULT 0');
     await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS workflow_snapshot JSONB');
     const legacyWorkflow = await client.query(`SELECT 1 FROM information_schema.columns WHERE table_name='store_settings' AND column_name='order_workflow'`);
@@ -325,9 +352,66 @@ async function testConnection() {
       await client.query(`UPDATE store_settings SET workflow_definition='{"name":"Order - Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Nhân viên Order tạo đơn","type":"CREATE","roles":["ORDER_STAFF"]},{"id":"cashier_confirm","name":"Thu ngân xác nhận","type":"APPROVAL","roles":["CASHIER","STORE_MANAGER","ADMIN"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb WHERE order_workflow='ORDER_CASHIER_KITCHEN_PAYMENT'`);
       await client.query('ALTER TABLE store_settings DROP COLUMN order_workflow');
     }
+    await client.query(`CREATE TABLE IF NOT EXISTS inventory_items (
+      id SERIAL PRIMARY KEY,
+      store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+      code VARCHAR(50) NOT NULL,
+      name VARCHAR(150) NOT NULL,
+      category VARCHAR(100) DEFAULT 'Nguyên liệu',
+      unit VARCHAR(30) NOT NULL DEFAULT 'kg',
+      cost_price NUMERIC(15, 2) DEFAULT 0,
+      current_stock NUMERIC(15, 3) DEFAULT 0,
+      min_stock NUMERIC(15, 3) DEFAULT 5,
+      is_active BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(store_id, code)
+    )`);
+    await client.query(`CREATE TABLE IF NOT EXISTS inventory_transactions (
+      id SERIAL PRIMARY KEY,
+      transaction_code VARCHAR(50) NOT NULL,
+      store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+      item_id INT REFERENCES inventory_items(id) ON DELETE CASCADE,
+      transaction_type VARCHAR(20) NOT NULL,
+      quantity NUMERIC(15, 3) NOT NULL,
+      price NUMERIC(15, 2) DEFAULT 0,
+      total_amount NUMERIC(15, 2) DEFAULT 0,
+      stock_before NUMERIC(15, 3) DEFAULT 0,
+      stock_after NUMERIC(15, 3) DEFAULT 0,
+      user_id INT REFERENCES users(id) ON DELETE SET NULL,
+      note TEXT,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    )`);
+    await client.query('CREATE INDEX IF NOT EXISTS idx_inventory_items_store ON inventory_items(store_id, is_active)');
+    await client.query('CREATE INDEX IF NOT EXISTS idx_inventory_trans_store_created ON inventory_transactions(store_id, created_at DESC)');
+    await client.query('CREATE INDEX IF NOT EXISTS idx_inventory_trans_item ON inventory_transactions(item_id)');
+
+    const itemCountRes = await client.query('SELECT COUNT(*) as count FROM inventory_items');
+    if (parseInt(itemCountRes.rows[0].count, 10) === 0) {
+      for (const item of memoryStore.inventory_items) {
+        await client.query(
+          `INSERT INTO inventory_items (id, store_id, code, name, category, unit, cost_price, current_stock, min_stock, is_active)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           ON CONFLICT (id) DO NOTHING`,
+          [item.id, item.store_id, item.code, item.name, item.category, item.unit, item.cost_price, item.current_stock, item.min_stock, item.is_active]
+        );
+      }
+      await client.query("SELECT setval(pg_get_serial_sequence('inventory_items', 'id'), coalesce(max(id), 1)) FROM inventory_items");
+
+      for (const t of memoryStore.inventory_transactions) {
+        await client.query(
+          `INSERT INTO inventory_transactions (id, transaction_code, store_id, item_id, transaction_type, quantity, price, total_amount, stock_before, stock_after, user_id, note, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+           ON CONFLICT (id) DO NOTHING`,
+          [t.id, t.transaction_code, t.store_id, t.item_id, t.transaction_type, t.quantity, t.price, t.total_amount, t.stock_before, t.stock_after, t.user_id, t.note, t.created_at]
+        );
+      }
+      await client.query("SELECT setval(pg_get_serial_sequence('inventory_transactions', 'id'), coalesce(max(id), 1)) FROM inventory_transactions");
+      console.log('[Database Migration] Seeded initial inventory items and transactions.');
+    }
     await client.query(`INSERT INTO role_features (role, feature_code, enabled) VALUES
-      ('ADMIN','POS',TRUE),('ADMIN','TABLES',TRUE),('ADMIN','KDS',TRUE),('ADMIN','ORDERS',TRUE),('ADMIN','HISTORY',TRUE),('ADMIN','PAYMENT',TRUE),('ADMIN','ADMIN',TRUE),('ADMIN','SHIFT',TRUE),('ADMIN','DISCOUNT',TRUE),('ADMIN','COMPLETED_ITEMS',TRUE),
-      ('STORE_MANAGER','POS',TRUE),('STORE_MANAGER','TABLES',TRUE),('STORE_MANAGER','KDS',TRUE),('STORE_MANAGER','ORDERS',TRUE),('STORE_MANAGER','HISTORY',TRUE),('STORE_MANAGER','PAYMENT',TRUE),('STORE_MANAGER','ADMIN',TRUE),('STORE_MANAGER','SHIFT',TRUE),('STORE_MANAGER','DISCOUNT',TRUE),('STORE_MANAGER','COMPLETED_ITEMS',TRUE),
+      ('ADMIN','POS',TRUE),('ADMIN','TABLES',TRUE),('ADMIN','KDS',TRUE),('ADMIN','ORDERS',TRUE),('ADMIN','HISTORY',TRUE),('ADMIN','PAYMENT',TRUE),('ADMIN','ADMIN',TRUE),('ADMIN','SHIFT',TRUE),('ADMIN','DISCOUNT',TRUE),('ADMIN','COMPLETED_ITEMS',TRUE),('ADMIN','INVENTORY',TRUE),
+      ('STORE_MANAGER','POS',TRUE),('STORE_MANAGER','TABLES',TRUE),('STORE_MANAGER','KDS',TRUE),('STORE_MANAGER','ORDERS',TRUE),('STORE_MANAGER','HISTORY',TRUE),('STORE_MANAGER','PAYMENT',TRUE),('STORE_MANAGER','ADMIN',TRUE),('STORE_MANAGER','SHIFT',TRUE),('STORE_MANAGER','DISCOUNT',TRUE),('STORE_MANAGER','COMPLETED_ITEMS',TRUE),('STORE_MANAGER','INVENTORY',TRUE),
       ('ORDER_STAFF','POS',TRUE),('ORDER_STAFF','TABLES',TRUE),('ORDER_STAFF','KDS',FALSE),('ORDER_STAFF','ORDERS',TRUE),('ORDER_STAFF','HISTORY',TRUE),('ORDER_STAFF','PAYMENT',FALSE),('ORDER_STAFF','ADMIN',FALSE),('ORDER_STAFF','SHIFT',FALSE),('ORDER_STAFF','DISCOUNT',FALSE),('ORDER_STAFF','COMPLETED_ITEMS',TRUE),
       ('CASHIER','POS',TRUE),('CASHIER','TABLES',TRUE),('CASHIER','KDS',FALSE),('CASHIER','ORDERS',TRUE),('CASHIER','HISTORY',TRUE),('CASHIER','PAYMENT',TRUE),('CASHIER','ADMIN',FALSE),('CASHIER','SHIFT',TRUE),('CASHIER','DISCOUNT',TRUE),('CASHIER','COMPLETED_ITEMS',TRUE),
       ('KITCHEN','POS',FALSE),('KITCHEN','TABLES',FALSE),('KITCHEN','KDS',TRUE),('KITCHEN','ORDERS',FALSE),('KITCHEN','HISTORY',TRUE),('KITCHEN','PAYMENT',FALSE),('KITCHEN','ADMIN',FALSE),('KITCHEN','SHIFT',FALSE),('KITCHEN','DISCOUNT',FALSE),('KITCHEN','COMPLETED_ITEMS',FALSE)

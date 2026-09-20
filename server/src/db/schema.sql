@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS store_settings (
     takeaway_workspace_enabled BOOLEAN DEFAULT NULL,
     workflow_definition JSONB DEFAULT '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb,
     admin_tabs JSONB DEFAULT NULL,
+    inventory_transactions_enabled BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -382,3 +383,40 @@ CREATE INDEX IF NOT EXISTS idx_orders_store ON orders(store_id, order_status, cr
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_prepared_by ON order_items(prepared_by, prepared_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sizes_store ON sizes(store_id, is_active);
+
+-- 10. INVENTORY (QUẢN LÝ KHO, NGUYÊN VẬT LIỆU & GIAO DỊCH KHO)
+CREATE TABLE IF NOT EXISTS inventory_items (
+    id SERIAL PRIMARY KEY,
+    store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+    code VARCHAR(50) NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    category VARCHAR(100) DEFAULT 'Nguyên liệu', -- Nguyên liệu, Gia vị, Đồ uống, Bao bì, Khác
+    unit VARCHAR(30) NOT NULL DEFAULT 'kg', -- kg, g, lít, ml, bao, hộp, lon, chai, cái...
+    cost_price NUMERIC(15, 2) DEFAULT 0,
+    current_stock NUMERIC(15, 3) DEFAULT 0,
+    min_stock NUMERIC(15, 3) DEFAULT 5,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(store_id, code)
+);
+
+CREATE TABLE IF NOT EXISTS inventory_transactions (
+    id SERIAL PRIMARY KEY,
+    transaction_code VARCHAR(50) NOT NULL,
+    store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+    item_id INT REFERENCES inventory_items(id) ON DELETE CASCADE,
+    transaction_type VARCHAR(20) NOT NULL, -- IN (Nhập kho), OUT (Xuất kho), ADJUST (Cân bằng kiểm kê)
+    quantity NUMERIC(15, 3) NOT NULL,
+    price NUMERIC(15, 2) DEFAULT 0,
+    total_amount NUMERIC(15, 2) DEFAULT 0,
+    stock_before NUMERIC(15, 3) DEFAULT 0,
+    stock_after NUMERIC(15, 3) DEFAULT 0,
+    user_id INT REFERENCES users(id) ON DELETE SET NULL,
+    note TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_inventory_items_store ON inventory_items(store_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_inventory_trans_store_created ON inventory_transactions(store_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_inventory_trans_item ON inventory_transactions(item_id);

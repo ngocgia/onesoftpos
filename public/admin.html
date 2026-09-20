@@ -31,6 +31,7 @@
       <button data-page="roleFeatures"><i class="fa-solid fa-eye"></i>Hiển thị theo nhóm</button>
       <button data-page="products"><i class="fa-solid fa-burger"></i>Sản phẩm</button>
       <button data-page="tables"><i class="fa-solid fa-chair"></i>Phòng & bàn</button>
+      <button data-page="inventory"><i class="fa-solid fa-boxes-stacked"></i>Quản lý kho</button>
       <button data-page="audit"><i class="fa-solid fa-clock-rotate-left"></i>Nhật ký hệ thống</button>
     </nav>
     <div class="sidebar-footer">
@@ -205,6 +206,125 @@
         <button class="btn ghost" data-refresh="roleFeatures"><i class="fa-solid fa-rotate"></i>Làm mới</button>
       </div>
       <div class="cards two" id="roleFeaturesList"></div>
+    </section>
+
+    <section class="page" id="page-inventory">
+      <div class="toolbar" style="flex-wrap:wrap;gap:10px;">
+        <select id="inventoryStoreSelect" class="form-input" style="min-width:200px;font-weight:600;padding:6px 12px;"></select>
+        <div style="flex:1;">
+          <strong style="font-size:15px;">Quản lý kho & Nguyên vật liệu</strong>
+          <p style="margin:0;font-size:12px;color:var(--muted);">Theo dõi xuất - nhập - tồn, giá trị hàng hóa và lập phiếu kho</p>
+        </div>
+        <button class="btn primary" id="adminAddInventoryItemBtn"><i class="fa-solid fa-plus"></i>Thêm mặt hàng</button>
+        <button class="btn secondary" id="adminImportInventoryBtn"><i class="fa-solid fa-arrow-down"></i>Nhập kho</button>
+        <button class="btn secondary" id="adminExportInventoryBtn"><i class="fa-solid fa-arrow-up"></i>Xuất kho</button>
+        <button class="btn secondary" id="adminAdjustInventoryBtn"><i class="fa-solid fa-scale-balanced"></i>Kiểm kê</button>
+      </div>
+
+      <!-- KPI Metrics -->
+      <div class="metrics" id="adminInventoryMetrics" style="margin-bottom:16px;"></div>
+
+      <!-- Date-range filter toolbar -->
+      <div class="panel" style="margin-bottom:16px;padding:12px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <strong><i class="fa-solid fa-calendar-days text-primary"></i> Báo cáo Nhập - Xuất - Tồn theo ngày:</strong>
+          <input type="date" id="adminInvStartDate" class="form-input" style="width:auto;padding:5px 8px;">
+          <span>đến</span>
+          <input type="date" id="adminInvEndDate" class="form-input" style="width:auto;padding:5px 8px;">
+          <button class="btn primary" id="adminFilterInvReportsBtn"><i class="fa-solid fa-filter"></i> Lọc thống kê</button>
+          <div style="margin-left:auto;display:flex;gap:6px;">
+            <button class="btn ghost" onclick="adminApp.setInvDateRange('today')">Hôm nay</button>
+            <button class="btn ghost" onclick="adminApp.setInvDateRange('7days')">7 ngày</button>
+            <button class="btn ghost" onclick="adminApp.setInvDateRange('thisMonth')">Tháng này</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reports Turnover Table -->
+      <div class="panel table-wrap" style="margin-bottom:16px;">
+        <div class="panel-head">
+          <div>
+            <h2 id="adminInvReportTitle">Thống kê biến động kho theo mặt hàng</h2>
+            <p id="adminInvReportSubtitle">Chi tiết nhập, xuất, tồn trong khoảng thời gian đã chọn</p>
+          </div>
+        </div>
+        <table>
+          <thead id="adminInvReportsTableHead">
+            <tr>
+              <th>Mã</th>
+              <th>Tên mặt hàng</th>
+              <th>ĐVT</th>
+              <th>Giá vốn</th>
+              <th>Tồn đầu kỳ</th>
+              <th style="color:var(--success)">Tổng nhập</th>
+              <th style="color:var(--danger)">Tổng xuất</th>
+              <th>Kiểm kê +/-</th>
+              <th>Tồn cuối kỳ</th>
+              <th>Giá trị tồn cuối</th>
+            </tr>
+          </thead>
+          <tbody id="adminInvReportsTableBody"></tbody>
+          <tfoot id="adminInvReportsTableFoot"></tfoot>
+        </table>
+      </div>
+
+      <!-- Current Stock List Table -->
+      <div class="panel table-wrap" style="margin-bottom:16px;">
+        <div class="panel-head">
+          <div>
+            <h2>Danh sách tồn kho hiện tại</h2>
+            <p>Trạng thái tồn thực tế tại chi nhánh</p>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <input id="adminInvSearch" placeholder="🔍 Tìm mã hoặc tên mặt hàng..." style="padding:6px 12px;font-size:13px;border:1px solid var(--line);border-radius:6px;">
+            <button class="btn ghost" data-refresh="inventory"><i class="fa-solid fa-rotate"></i> Làm mới</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Mã</th>
+              <th>Tên mặt hàng</th>
+              <th>Phân loại</th>
+              <th>ĐVT</th>
+              <th>Giá vốn</th>
+              <th>Tồn hiện tại</th>
+              <th>Định mức</th>
+              <th>Tổng giá trị tồn</th>
+              <th>Trạng thái</th>
+              <th style="width:100px">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="adminInventoryTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Recent Transactions Table -->
+      <div class="panel table-wrap">
+        <div class="panel-head">
+          <div>
+            <h2>Nhật ký phiếu giao dịch kho gần nhất</h2>
+            <p>Lịch sử các lần nhập kho, xuất kho và kiểm kê</p>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Thời gian</th>
+              <th>Mã phiếu</th>
+              <th>Loại phiếu</th>
+              <th>Mặt hàng</th>
+              <th>Số lượng</th>
+              <th>Đơn giá</th>
+              <th>Thành tiền</th>
+              <th>Tồn trước ➔ sau</th>
+              <th>Người lập</th>
+              <th>Ghi chú</th>
+            </tr>
+          </thead>
+          <tbody id="adminInvTransactionsTableBody"></tbody>
+        </table>
+      </div>
     </section>
 
     <section class="page" id="page-audit">

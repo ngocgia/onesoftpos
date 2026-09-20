@@ -60,6 +60,7 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
     { name: 'KDS', description: 'Hệ thống hiển thị bếp (Kitchen Display System) và pha chế' },
     { name: 'Shifts', description: 'Quản lý ca làm việc, tiền mặt đầu ca và đối soát kết ca' },
     { name: 'Reports', description: 'Báo cáo doanh thu, số lượng đơn và top món bán chạy' },
+    { name: 'Inventory', description: 'Quản lý kho, nguyên vật liệu, phiếu nhập xuất và báo cáo thống kê từ ngày đến ngày' },
     { name: 'Admin', description: 'Trung tâm quản trị Super Admin: người dùng, vai trò và nhật ký hệ thống' },
     { name: 'Health', description: 'Kiểm tra trạng thái hoạt động của máy chủ' }
   ],
@@ -2007,6 +2008,186 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
               }
             }
           }
+        }
+      }
+    },
+
+    // ------------------------------------------------------------------------
+    // INVENTORY
+    // ------------------------------------------------------------------------
+    '/inventory/summary': {
+      get: {
+        tags: ['Inventory'],
+        summary: 'Báo cáo tổng hợp tồn kho hiện tại',
+        description: 'Trả về tổng mặt hàng, tổng giá trị tồn kho theo giá vốn, số lượng mặt hàng sắp hết/cạn kho và danh sách tồn kho.',
+        parameters: [
+          { $ref: '#/components/parameters/StoreIdHeader' }
+        ],
+        responses: {
+          200: {
+            description: 'Tổng hợp tồn kho thành công'
+          }
+        }
+      }
+    },
+    '/inventory/reports': {
+      get: {
+        tags: ['Inventory'],
+        summary: 'Báo cáo thống kê Nhập - Xuất - Tồn theo từ ngày đến ngày',
+        description: 'Thống kê tổng nhập, tổng xuất, chênh lệch tồn và bảng chi tiết biến động theo từng mặt hàng và theo ngày.',
+        parameters: [
+          { $ref: '#/components/parameters/StoreIdHeader' },
+          { name: 'startDate', in: 'query', schema: { type: 'string', example: '2026-09-01' }, description: 'Từ ngày (YYYY-MM-DD)' },
+          { name: 'endDate', in: 'query', schema: { type: 'string', example: '2026-09-20' }, description: 'Đến ngày (YYYY-MM-DD)' }
+        ],
+        responses: {
+          200: {
+            description: 'Báo cáo thống kê kho'
+          }
+        }
+      }
+    },
+    '/inventory/items': {
+      get: {
+        tags: ['Inventory'],
+        summary: 'Danh sách mặt hàng kho / nguyên vật liệu',
+        description: 'Lấy danh sách mặt hàng kho của cửa hàng có tìm kiếm, lọc theo phân loại và lọc sắp hết hàng.',
+        parameters: [
+          { $ref: '#/components/parameters/StoreIdHeader' },
+          { name: 'search', in: 'query', schema: { type: 'string' }, description: 'Tìm theo mã hoặc tên' },
+          { name: 'category', in: 'query', schema: { type: 'string' }, description: 'Lọc theo nhóm hàng' },
+          { name: 'low_stock', in: 'query', schema: { type: 'boolean' }, description: 'Chỉ lấy mặt hàng sắp hết' }
+        ],
+        responses: {
+          200: { description: 'Danh sách mặt hàng kho' }
+        }
+      },
+      post: {
+        tags: ['Inventory'],
+        summary: 'Thêm mới mặt hàng kho / nguyên vật liệu',
+        parameters: [
+          { $ref: '#/components/parameters/StoreIdHeader' }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['code', 'name'],
+                properties: {
+                  code: { type: 'string', example: 'NL99' },
+                  name: { type: 'string', example: 'Sốt tiêu đen đặc biệt' },
+                  category: { type: 'string', example: 'Gia vị & Bột' },
+                  unit: { type: 'string', example: 'Chai' },
+                  cost_price: { type: 'number', example: 45000 },
+                  current_stock: { type: 'number', example: 20 },
+                  min_stock: { type: 'number', example: 5 }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          201: { description: 'Thêm mặt hàng kho thành công' }
+        }
+      }
+    },
+    '/inventory/items/{id}': {
+      get: {
+        tags: ['Inventory'],
+        summary: 'Chi tiết mặt hàng kho',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+          { $ref: '#/components/parameters/StoreIdHeader' }
+        ],
+        responses: {
+          200: { description: 'Chi tiết mặt hàng và lịch sử biến động' }
+        }
+      },
+      put: {
+        tags: ['Inventory'],
+        summary: 'Cập nhật thông tin mặt hàng kho',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+          { $ref: '#/components/parameters/StoreIdHeader' }
+        ],
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  name: { type: 'string' },
+                  category: { type: 'string' },
+                  unit: { type: 'string' },
+                  cost_price: { type: 'number' },
+                  min_stock: { type: 'number' },
+                  is_active: { type: 'boolean' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: 'Cập nhật thành công' }
+        }
+      },
+      delete: {
+        tags: ['Inventory'],
+        summary: 'Xóa hoặc ẩn mặt hàng kho',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+          { $ref: '#/components/parameters/StoreIdHeader' }
+        ],
+        responses: {
+          200: { description: 'Đã xóa mặt hàng kho' }
+        }
+      }
+    },
+    '/inventory/transactions': {
+      get: {
+        tags: ['Inventory'],
+        summary: 'Lịch sử phiếu giao dịch kho',
+        parameters: [
+          { $ref: '#/components/parameters/StoreIdHeader' },
+          { name: 'startDate', in: 'query', schema: { type: 'string' } },
+          { name: 'endDate', in: 'query', schema: { type: 'string' } },
+          { name: 'item_id', in: 'query', schema: { type: 'integer' } },
+          { name: 'type', in: 'query', schema: { type: 'string', enum: ['IN', 'OUT', 'ADJUST'] } }
+        ],
+        responses: {
+          200: { description: 'Danh sách phiếu giao dịch kho' }
+        }
+      },
+      post: {
+        tags: ['Inventory'],
+        summary: 'Lập phiếu kho (Nhập kho, Xuất kho, Cân bằng kiểm kê)',
+        parameters: [
+          { $ref: '#/components/parameters/StoreIdHeader' }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['item_id', 'transaction_type', 'quantity'],
+                properties: {
+                  item_id: { type: 'integer', example: 1 },
+                  transaction_type: { type: 'string', enum: ['IN', 'OUT', 'ADJUST'], example: 'IN' },
+                  quantity: { type: 'number', example: 10 },
+                  price: { type: 'number', example: 55000 },
+                  note: { type: 'string', example: 'Nhập thêm từ nhà cung cấp' },
+                  new_stock: { type: 'number', description: 'Số lượng tồn kiểm kê thực tế nếu là phiếu ADJUST' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          201: { description: 'Lập phiếu kho thành công' }
         }
       }
     },

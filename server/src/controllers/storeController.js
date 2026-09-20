@@ -116,6 +116,7 @@ async function getStoreDetails(req, res) {
     if (typeof settings.takeaway_workspace_enabled === 'boolean') {
       features.enableTakeawayWorkspace = settings.takeaway_workspace_enabled;
     }
+    settings.inventory_transactions_enabled = settings.inventory_transactions_enabled !== false;
 
     res.json({
       success: true,
@@ -437,7 +438,8 @@ async function updateStoreSettings(req, res) {
     kds_completion_message,
     takeaway_workspace_enabled,
     workflow_definition,
-    admin_tabs
+    admin_tabs,
+    inventory_transactions_enabled
   } = req.body;
 
   if (kds_completion_message !== undefined && !['SUPER_ADMIN', 'ADMIN'].includes(req.user?.role)) {
@@ -452,6 +454,10 @@ async function updateStoreSettings(req, res) {
   if (normalizedKdsMessage && normalizedKdsMessage.length > 300) {
     return res.status(400).json({ success: false, message: 'Câu thông báo KDS không được vượt quá 300 ký tự' });
   }
+
+  const normalizedInventoryTransactions = inventory_transactions_enabled === undefined
+    ? undefined
+    : (inventory_transactions_enabled === true || String(inventory_transactions_enabled).toLowerCase() === 'true');
 
   let normalizedWorkflow;
   if (workflow_definition !== undefined) {
@@ -477,7 +483,8 @@ async function updateStoreSettings(req, res) {
         storeTypes: parsedAdminTabs.storeTypes !== false,
         products: parsedAdminTabs.products !== false,
         tables: parsedAdminTabs.tables !== false,
-        staff: parsedAdminTabs.staff !== false
+        staff: parsedAdminTabs.staff !== false,
+        inventory: parsedAdminTabs.inventory !== false
       };
     } else {
       normalizedAdminTabs = null;
@@ -499,8 +506,9 @@ async function updateStoreSettings(req, res) {
              takeaway_workspace_enabled = COALESCE($9, takeaway_workspace_enabled),
              workflow_definition = COALESCE($10::jsonb, workflow_definition),
              admin_tabs = CASE WHEN $11::boolean THEN $12::jsonb ELSE admin_tabs END,
+             inventory_transactions_enabled = COALESCE($13, inventory_transactions_enabled),
              updated_at = CURRENT_TIMESTAMP
-         WHERE store_id = $13`,
+         WHERE store_id = $14`,
         [
           receipt_header,
           receipt_footer,
@@ -514,6 +522,7 @@ async function updateStoreSettings(req, res) {
           normalizedWorkflow ? JSON.stringify(normalizedWorkflow) : null,
           parsedAdminTabs !== undefined,
           normalizedAdminTabs ? JSON.stringify(normalizedAdminTabs) : null,
+          normalizedInventoryTransactions,
           storeId
         ]
       );
@@ -534,6 +543,7 @@ async function updateStoreSettings(req, res) {
       if (normalizedTakeawayWorkspace !== undefined) settings.takeaway_workspace_enabled = normalizedTakeawayWorkspace;
       if (normalizedWorkflow !== undefined) settings.workflow_definition = normalizedWorkflow;
       if (normalizedAdminTabs !== undefined) settings.admin_tabs = normalizedAdminTabs;
+      if (normalizedInventoryTransactions !== undefined) settings.inventory_transactions_enabled = normalizedInventoryTransactions;
     }
 
     res.json({ success: true, message: 'Đã lưu cấu hình cửa hàng' });

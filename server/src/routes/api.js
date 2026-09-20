@@ -14,6 +14,7 @@ const shiftController = require('../controllers/shiftController');
 const reportController = require('../controllers/reportController');
 const adminController = require('../controllers/adminController');
 const storeStaffController = require('../controllers/storeStaffController');
+const inventoryController = require('../controllers/inventoryController');
 
 // 1. Auth routes
 router.post('/auth/login', authController.login);
@@ -108,6 +109,17 @@ router.post('/shifts/:id/close', authenticateToken, requireFeature('SHIFT'), shi
 
 // 9. Report routes
 router.get('/reports/summary', authenticateToken, reportController.getSummary);
+
+// 9.1 Inventory routes (Quản lý kho: CRUD, nhập/xuất/cân bằng, tổng hợp & thống kê)
+router.get('/inventory/summary', authenticateToken, requireStoreContext(), requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), inventoryController.getSummary);
+router.get('/inventory/reports', authenticateToken, requireStoreContext(), requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), inventoryController.getReports);
+router.get('/inventory/items', authenticateToken, requireStoreContext(), inventoryController.getItems);
+router.get('/inventory/items/:id', authenticateToken, requireStoreContext(), inventoryController.getItemById);
+router.post('/inventory/items', authenticateToken, requireStoreContext(), requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), audit('CREATE', 'INVENTORY_ITEM'), inventoryController.createItem);
+router.put('/inventory/items/:id', authenticateToken, requireStoreContext(), requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), audit('UPDATE', 'INVENTORY_ITEM'), inventoryController.updateItem);
+router.delete('/inventory/items/:id', authenticateToken, requireStoreContext(), requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), audit('DELETE', 'INVENTORY_ITEM'), inventoryController.deleteItem);
+router.get('/inventory/transactions', authenticateToken, requireStoreContext(), requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), inventoryController.getTransactions);
+router.post('/inventory/transactions', authenticateToken, requireStoreContext(), requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), audit('TRANSACTION', 'INVENTORY'), inventoryController.createTransaction);
 
 // 10. Dedicated Super Admin routes
 router.get('/admin/dashboard', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), adminController.dashboard);

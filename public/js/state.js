@@ -173,9 +173,10 @@ window.appState = {
     if (typeof adminTabs === 'string') {
       try { adminTabs = JSON.parse(adminTabs); } catch (_) { adminTabs = null; }
     }
-    const defaultTabs = { reports: true, stores: true, storeTypes: true, products: true, tables: true, staff: true };
+    const defaultTabs = { reports: true, stores: true, storeTypes: true, products: true, tables: true, staff: true, inventory: true };
     const settings = adminTabs || defaultTabs;
     const canManageStaff = ['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER'].includes(this.user?.role);
+    const canManageInventory = ['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER'].includes(this.user?.role);
     
     const mapping = {
       tabAdminReports: settings.reports !== false,
@@ -183,7 +184,8 @@ window.appState = {
       tabAdminWorkflows: settings.storeTypes !== false,
       tabAdminProducts: settings.products !== false,
       tabAdminTables: settings.tables !== false && !this.features?.enableTakeawayWorkspace,
-      tabAdminStaff: settings.staff !== false && canManageStaff
+      tabAdminStaff: settings.staff !== false && canManageStaff,
+      tabAdminInventory: settings.inventory !== false && canManageInventory && this.features?.enableInventory !== false
     };
     
     Object.entries(mapping).forEach(([id, isVisible]) => {

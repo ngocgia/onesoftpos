@@ -11,6 +11,11 @@ const adminApp = {
   tables: [],
   roles: [],
   modalSubmit: null,
+  inventoryItems: [],
+  inventorySummary: null,
+  inventoryTransactions: [],
+  inventoryReports: null,
+  inventoryCategories: ['Thịt & Hải sản', 'Gia vị & Bột', 'Dầu ăn & Bơ', 'Nông sản & Lương thực', 'Trà & Cà phê', 'Sữa & Kem', 'Topping & Hạt', 'Bao bì & Ly hộp', 'Khác'],
   featureLabels: {
     SALE: "Bán hàng",
     TAKEAWAY: "Mang đi",
@@ -32,6 +37,7 @@ const adminApp = {
     SHIFT: "Quản lý ca",
     DISCOUNT: "Áp dụng giảm giá",
     COMPLETED_ITEMS: "Món đã xong",
+    INVENTORY: "Quản lý kho",
   },
   esc(value = "") {
     const div = document.createElement("div");
@@ -91,7 +97,7 @@ const adminApp = {
   variantPicker(productVariants = []) {
     const activeSizes = this.sizes.filter(s => s.is_active);
     if (!activeSizes.length) return '<div class="field full"><span>Kích cỡ (Biến thể)</span><p class="muted">Chưa có kích cỡ. Hãy tạo kích cỡ trong Quản lý kích cỡ trước.</p></div>';
-    
+
     // Create a map for quick lookup of existing variants
     const variantMap = {};
     productVariants.forEach(v => {
@@ -103,7 +109,7 @@ const adminApp = {
       const isChecked = !!existing;
       const priceAdj = existing ? existing.price_adjustment : 0;
       const isDefault = existing ? existing.is_default : false;
-      
+
       return `
         <div style="display:flex;align-items:center;gap:12px;padding:8px;border:1px solid #e5e7eb;border-radius:6px;background:${isChecked ? 'var(--bg-card)' : 'transparent'}">
           <label style="display:flex;align-items:center;gap:8px;margin:0;min-width:120px;cursor:pointer">
@@ -186,11 +192,11 @@ const adminApp = {
         });
         group.style.display = visible ? "block" : "none";
         if (query && visible) {
-           const groupId = group.dataset.group;
-           const content = document.getElementById(`group-content-${groupId}`);
-           const icon = document.getElementById(`group-icon-${groupId}`);
-           if (content) content.style.display = '';
-           if (icon) icon.className = 'fa-solid fa-chevron-up';
+          const groupId = group.dataset.group;
+          const content = document.getElementById(`group-content-${groupId}`);
+          const icon = document.getElementById(`group-icon-${groupId}`);
+          if (content) content.style.display = '';
+          if (icon) icon.className = 'fa-solid fa-chevron-up';
         }
       });
   },
@@ -286,6 +292,16 @@ const adminApp = {
       window.api.setCurrentStoreId(e.target.value);
       await this.loadProducts();
     };
+    document.getElementById("adminAddInventoryItemBtn").onclick = () => this.openEditInventoryItem();
+    document.getElementById("adminImportInventoryBtn").onclick = () => this.openInventoryTransactionModal('IN');
+    document.getElementById("adminExportInventoryBtn").onclick = () => this.openInventoryTransactionModal('OUT');
+    document.getElementById("adminAdjustInventoryBtn").onclick = () => this.openInventoryTransactionModal('ADJUST');
+    document.getElementById("adminFilterInvReportsBtn").onclick = () => this.loadInventoryReports();
+    document.getElementById("adminInvSearch").oninput = () => this.renderInventoryItems();
+    document.getElementById("inventoryStoreSelect").onchange = async (e) => {
+      window.api.setCurrentStoreId(e.target.value);
+      await this.loadInventory();
+    };
     document.getElementById("tableStore").onchange = async (e) => {
       window.api.setCurrentStoreId(e.target.value);
       await this.loadTableManagement();
@@ -305,6 +321,7 @@ const adminApp = {
     if (page === "roleFeatures") await this.loadRoleFeatures();
     if (page === "products") await this.prepareProducts();
     if (page === "tables") await this.prepareTableManagement();
+    if (page === "inventory") await this.prepareInventory();
     if (page === "audit") await this.loadAudit();
   },
   async loadDashboard() {
@@ -456,74 +473,88 @@ const adminApp = {
       this.field("district", "Quận huyện", "text", s.district || "") +
       (id
         ? this.field(
-            "receipt_header",
-            "Tên trên hóa đơn",
-            "text",
-            settings.receipt_header || "",
-            null,
-            true,
-          ) +
-          this.field(
-            "receipt_footer",
-            "Chân hóa đơn",
-            "textarea",
-            settings.receipt_footer || "",
-            null,
-            true,
-          ) +
-          this.field(
-            "bank_name",
-            "Ngân hàng",
-            "text",
-            settings.bank_name || "",
-          ) +
-          this.field(
-            "bank_account_number",
-            "Số tài khoản",
-            "text",
-            settings.bank_account_number || "",
-          ) +
-          this.field(
-            "bank_account_holder",
-            "Chủ tài khoản",
-            "text",
-            settings.bank_account_holder || "",
-          ) +
-          this.field(
-            "kds_completion_message",
-            "Câu loa khi món hoàn thành",
-            "textarea",
-            settings.kds_completion_message ||
-              "Món ăn {mon}, bàn {ban} đã xong",
-            null,
-            true,
-          ) +
-          this.field(
-            "takeaway_workspace_enabled",
-            "Giao diện chuyên bán mang đi",
-            "select",
-            String(
-              typeof settings.takeaway_workspace_enabled === "boolean"
-                ? settings.takeaway_workspace_enabled
-                : !!detail?.features?.enableTakeawayWorkspace,
-            ),
-            [
-              { value: "true", label: "Bật" },
-              { value: "false", label: "Tắt" },
-            ],
-            false,
-            true,
-          ) +
-          `<p class="field full muted">Khi bật, màn bán hàng hỗ trợ nhiều đơn nháp và thông tin giao/nhận cho khách mang đi.</p>` +
-          `<p class="field full muted">Biến: <strong>{mon}</strong>, <strong>{ban}</strong>, <strong>{ma_don}</strong>, <strong>{ten_khach_hang}</strong>. Với Takeaway, bàn tự được thay bằng tên khách.</p>` +
-          `<div class="field full"><label>Cấu hình tab màn Quản trị POS</label><div class="checks">` +
-          `<label><input type="checkbox" name="admin_tab_reports" ${adminTabs.reports !== false ? "checked" : ""}> Báo cáo</label>` +
-          `<label><input type="checkbox" name="admin_tab_stores" ${adminTabs.stores !== false ? "checked" : ""}> Cửa hàng</label>` +
-          `<label><input type="checkbox" name="admin_tab_storeTypes" ${adminTabs.storeTypes !== false ? "checked" : ""}> Luồng & phân quyền</label>` +
-          `<label><input type="checkbox" name="admin_tab_products" ${adminTabs.products !== false ? "checked" : ""}> Sản phẩm</label>` +
-          `<label><input type="checkbox" name="admin_tab_tables" ${adminTabs.tables !== false ? "checked" : ""}> Phòng bàn</label>` +
-          `<label><input type="checkbox" name="admin_tab_staff" ${adminTabs.staff !== false ? "checked" : ""}> Nhân viên</label>` +
-          `</div><p class="muted">Bật/tắt hiển thị các tab trong phần Quản trị của giao diện POS đối với cửa hàng này.</p></div>`
+          "receipt_header",
+          "Tên trên hóa đơn",
+          "text",
+          settings.receipt_header || "",
+          null,
+          true,
+        ) +
+        this.field(
+          "receipt_footer",
+          "Chân hóa đơn",
+          "textarea",
+          settings.receipt_footer || "",
+          null,
+          true,
+        ) +
+        this.field(
+          "bank_name",
+          "Ngân hàng",
+          "text",
+          settings.bank_name || "",
+        ) +
+        this.field(
+          "bank_account_number",
+          "Số tài khoản",
+          "text",
+          settings.bank_account_number || "",
+        ) +
+        this.field(
+          "bank_account_holder",
+          "Chủ tài khoản",
+          "text",
+          settings.bank_account_holder || "",
+        ) +
+        this.field(
+          "kds_completion_message",
+          "Câu loa khi món hoàn thành",
+          "textarea",
+          settings.kds_completion_message ||
+          "Món ăn {mon}, bàn {ban} đã xong",
+          null,
+          true,
+        ) +
+        this.field(
+          "takeaway_workspace_enabled",
+          "Giao diện chuyên bán mang đi",
+          "select",
+          String(
+            typeof settings.takeaway_workspace_enabled === "boolean"
+              ? settings.takeaway_workspace_enabled
+              : !!detail?.features?.enableTakeawayWorkspace,
+          ),
+          [
+            { value: "true", label: "Bật" },
+            { value: "false", label: "Tắt" },
+          ],
+          false,
+          true,
+        ) +
+        `<p class="field full muted">Khi bật, màn bán hàng hỗ trợ nhiều đơn nháp và thông tin giao/nhận cho khách mang đi.</p>` +
+        `<p class="field full muted">Biến: <strong>{mon}</strong>, <strong>{ban}</strong>, <strong>{ma_don}</strong>, <strong>{ten_khach_hang}</strong>. Với Takeaway, bàn tự được thay bằng tên khách.</p>` +
+        this.field(
+          "inventory_transactions_enabled",
+          "Nghiệp vụ Phiếu kho (Dành cho Cửa hàng nhỏ)",
+          "select",
+          String(settings.inventory_transactions_enabled !== false),
+          [
+            { value: "true", label: "Bật - Đầy đủ nghiệp vụ phiếu kho (Nhập, Xuất, Kiểm kê)" },
+            { value: "false", label: "Tắt (Dành cho Cửa hàng nhỏ) - Chỉ CRUD mặt hàng & Thống kê nhập hàng tháng" }
+          ],
+          false,
+          true
+        ) +
+        `<p class="field full muted">Cửa hàng nhỏ không có thủ kho có thể tắt để quản lý hàng hóa và xem tổng lượng, tổng giá trị nhập trong tháng đơn giản nhất.</p>` +
+        `<div class="field full"><label>Cấu hình tab màn Quản trị POS</label><div class="checks">` +
+        `<label><input type="checkbox" name="admin_tab_reports" ${adminTabs.reports !== false ? "checked" : ""}> Báo cáo</label>` +
+        `<label><input type="checkbox" name="admin_tab_stores" ${adminTabs.stores !== false ? "checked" : ""}> Cửa hàng</label>` +
+        `<label><input type="checkbox" name="admin_tab_storeTypes" ${adminTabs.storeTypes !== false ? "checked" : ""}> Luồng & phân quyền</label>` +
+        `<label><input type="checkbox" name="admin_tab_products" ${adminTabs.products !== false ? "checked" : ""}> Sản phẩm</label>` +
+        `<label><input type="checkbox" name="admin_tab_tables" ${adminTabs.tables !== false ? "checked" : ""}> Phòng bàn</label>` +
+        `<label><input type="checkbox" name="admin_tab_staff" ${adminTabs.staff !== false ? "checked" : ""}> Nhân viên</label>` +
+        `<label><input type="checkbox" name="admin_tab_inventory" ${adminTabs.inventory !== false ? "checked" : ""}> Quản lý kho</label>` +
+        `</div><p class="muted">Bật/tắt hiển thị các tab trong phần Quản trị của giao diện POS đối với cửa hàng này.</p></div>`
         : "");
     this.openModal(
       id ? "Sửa và cấu hình cửa hàng" : "Thêm cửa hàng",
@@ -532,13 +563,16 @@ const adminApp = {
         if (id) {
           data.takeaway_workspace_enabled =
             data.takeaway_workspace_enabled === "true";
+          data.inventory_transactions_enabled =
+            data.inventory_transactions_enabled === "true";
           data.admin_tabs = {
             reports: data.admin_tab_reports === true || data.admin_tab_reports === 'on',
             stores: data.admin_tab_stores === true || data.admin_tab_stores === 'on',
             storeTypes: data.admin_tab_storeTypes === true || data.admin_tab_storeTypes === 'on',
             products: data.admin_tab_products === true || data.admin_tab_products === 'on',
             tables: data.admin_tab_tables === true || data.admin_tab_tables === 'on',
-            staff: data.admin_tab_staff === true || data.admin_tab_staff === 'on'
+            staff: data.admin_tab_staff === true || data.admin_tab_staff === 'on',
+            inventory: data.admin_tab_inventory === true || data.admin_tab_inventory === 'on'
           };
           delete data.admin_tab_reports;
           delete data.admin_tab_stores;
@@ -546,6 +580,7 @@ const adminApp = {
           delete data.admin_tab_products;
           delete data.admin_tab_tables;
           delete data.admin_tab_staff;
+          delete data.admin_tab_inventory;
           await window.api.put(`/stores/${id}`, data);
           await window.api.put(`/stores/${id}/settings`, data);
         } else await window.api.post("/stores", data);
@@ -688,13 +723,13 @@ const adminApp = {
       (id
         ? ""
         : `<div class="field full"><label>Tính năng mặc định</label><div class="checks">${Object.entries(
-            this.featureLabels,
+          this.featureLabels,
+        )
+          .map(
+            ([c, l]) =>
+              `<label class="check"><input type="checkbox" name="feature_${c}" checked>${l}</label>`,
           )
-            .map(
-              ([c, l]) =>
-                `<label class="check"><input type="checkbox" name="feature_${c}" checked>${l}</label>`,
-            )
-            .join("")}</div></div>`);
+          .join("")}</div></div>`);
     this.openModal(
       id ? "Sửa loại cửa hàng" : "Thêm loại cửa hàng",
       html,
@@ -753,7 +788,7 @@ const adminApp = {
       rows
         .map(
           (u) =>
-            `<tr><td><div style="display:flex;align-items:center;gap:10px"><div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#ffedd5,#fed7aa);color:#ea580c;font-weight:800;font-size:12px;display:grid;place-items:center">${this.esc(u.full_name || "U").split(" ").map(w=>w[0]).slice(-2).join("").toUpperCase()}</div><div><strong>${this.esc(u.full_name)}</strong><br><span class="muted">${this.esc(u.username)} · ${this.esc(u.email)}</span></div></div></td><td><span class="badge ${['SUPER_ADMIN','ADMIN'].includes(u.role) ? 'info' : u.role === 'STORE_MANAGER' ? 'warning' : 'active'}">${u.role}</span></td><td>${(u.stores || []).map((s) => this.esc(s.name)).join(", ") || '<span class="muted">Toàn hệ thống</span>'}</td><td><span class="badge ${u.status === "ACTIVE" ? "active" : "inactive"}">${u.status}</span></td><td><div class="dropdown"><button class="dropdown-toggle" type="button" title="Thao tác"><i class="fa-solid fa-ellipsis-vertical"></i></button><div class="dropdown-menu"><button class="btn ghost small" onclick="adminApp.editUser(${u.id})"><i class="fa-solid fa-user-pen"></i> Chỉnh sửa</button>${u.id === this.me.id ? "" : `<button class="btn danger small" onclick="adminApp.deleteUser(${u.id})"><i class="fa-solid fa-trash"></i> Xóa</button>`}</div></div></td></tr>`,
+            `<tr><td><div style="display:flex;align-items:center;gap:10px"><div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#ffedd5,#fed7aa);color:#ea580c;font-weight:800;font-size:12px;display:grid;place-items:center">${this.esc(u.full_name || "U").split(" ").map(w => w[0]).slice(-2).join("").toUpperCase()}</div><div><strong>${this.esc(u.full_name)}</strong><br><span class="muted">${this.esc(u.username)} · ${this.esc(u.email)}</span></div></div></td><td><span class="badge ${['SUPER_ADMIN', 'ADMIN'].includes(u.role) ? 'info' : u.role === 'STORE_MANAGER' ? 'warning' : 'active'}">${u.role}</span></td><td>${(u.stores || []).map((s) => this.esc(s.name)).join(", ") || '<span class="muted">Toàn hệ thống</span>'}</td><td><span class="badge ${u.status === "ACTIVE" ? "active" : "inactive"}">${u.status}</span></td><td><div class="dropdown"><button class="dropdown-toggle" type="button" title="Thao tác"><i class="fa-solid fa-ellipsis-vertical"></i></button><div class="dropdown-menu"><button class="btn ghost small" onclick="adminApp.editUser(${u.id})"><i class="fa-solid fa-user-pen"></i> Chỉnh sửa</button>${u.id === this.me.id ? "" : `<button class="btn danger small" onclick="adminApp.deleteUser(${u.id})"><i class="fa-solid fa-trash"></i> Xóa</button>`}</div></div></td></tr>`,
         )
         .join("") ||
       '<tr><td class="empty" colspan="5">Không tìm thấy người dùng</td></tr>';
@@ -975,13 +1010,13 @@ const adminApp = {
     const roles = this.roles.length
       ? this.roles
       : [
-          "SUPER_ADMIN",
-          "ADMIN",
-          "STORE_MANAGER",
-          "ORDER_STAFF",
-          "CASHIER",
-          "KITCHEN",
-        ];
+        "SUPER_ADMIN",
+        "ADMIN",
+        "STORE_MANAGER",
+        "ORDER_STAFF",
+        "CASHIER",
+        "KITCHEN",
+      ];
     const typeLabels = {
       CREATE: "Tạo đơn",
       APPROVAL: "Phê duyệt",
@@ -1059,7 +1094,7 @@ const adminApp = {
     } catch (e) {
       console.warn('Could not fetch store features for table management:', e);
     }
-    
+
     this.isTableManagementDisabled = isTakeawayOnly;
 
     const [areaResult, tableResult] = await Promise.all([
@@ -1278,9 +1313,9 @@ const adminApp = {
   editProduct(id) {
     const p = this.products.find((x) => x.id === id) || {};
     const catOpts = [
-        { value: "", label: "Không có danh mục" },
-        ...this.categories.map((c) => ({ value: c.id, label: c.name })),
-      ],
+      { value: "", label: "Không có danh mục" },
+      ...this.categories.map((c) => ({ value: c.id, label: c.name })),
+    ],
       selectedToppings = this.toppings
         .filter((item) =>
           (item.product_ids || []).map(Number).includes(Number(id)),
@@ -1344,9 +1379,9 @@ const adminApp = {
       ) +
       (id
         ? this.field("is_active", "Trạng thái", "select", String(p.is_active), [
-            { value: "true", label: "Đang bán" },
-            { value: "false", label: "Ngừng bán" },
-          ])
+          { value: "true", label: "Đang bán" },
+          { value: "false", label: "Ngừng bán" },
+        ])
         : "") +
       this.variantPicker(p.variants || []) +
       this.toppingPicker(selectedToppings);
@@ -1367,16 +1402,16 @@ const adminApp = {
             is_default: defaultRadio ? defaultRadio.checked : false
           });
         });
-        
+
         // Clean up UI data fields from payload to avoid clutter
         Object.keys(data).forEach(key => {
           if (key.startsWith('product_variant_') || key === 'product_topping') {
             delete data[key];
           }
         });
-        
+
         data.variants = variants;
-        
+
         const topping_ids = [
           ...form.querySelectorAll('[name="product_topping"]:checked'),
         ].map((input) => Number(input.value));
@@ -1584,15 +1619,15 @@ const adminApp = {
       ) +
       (id
         ? this.field(
-            "is_active",
-            "Trạng thái",
-            "select",
-            String(group.is_active),
-            [
-              { value: "true", label: "Đang dùng" },
-              { value: "false", label: "Ẩn" },
-            ],
-          )
+          "is_active",
+          "Trạng thái",
+          "select",
+          String(group.is_active),
+          [
+            { value: "true", label: "Đang dùng" },
+            { value: "false", label: "Ẩn" },
+          ],
+        )
         : "");
     this.openModal(
       id ? "Sửa nhóm topping" : "Thêm nhóm topping",
@@ -1648,6 +1683,448 @@ const adminApp = {
     this.toast("Đã xóa toàn bộ nhật ký");
     await this.loadAudit();
   },
+
+  async prepareInventory() {
+    const select = document.getElementById("inventoryStoreSelect");
+    if (!select) return;
+    if (!this.stores.length) await this.loadStores();
+    select.innerHTML = this.stores
+      .map((s) => `<option value="${s.id}">${this.esc(s.name)}</option>`)
+      .join("");
+    const currentStoreId = window.api.getCurrentStoreId() || this.stores[0]?.id;
+    select.value = currentStoreId;
+    window.api.setCurrentStoreId(select.value);
+
+    const today = new Date().toISOString().slice(0, 10);
+    const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+    const sInput = document.getElementById("adminInvStartDate");
+    const eInput = document.getElementById("adminInvEndDate");
+    if (sInput && !sInput.value) sInput.value = firstDay;
+    if (eInput && !eInput.value) eInput.value = today;
+
+    await this.loadInventory();
+  },
+
+  setInvDateRange(preset) {
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    let start = today;
+    if (preset === '7days') {
+      const d = new Date();
+      d.setDate(d.getDate() - 7);
+      start = d.toISOString().slice(0, 10);
+    } else if (preset === 'thisMonth') {
+      start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    }
+    const sEl = document.getElementById("adminInvStartDate");
+    const eEl = document.getElementById("adminInvEndDate");
+    if (sEl) sEl.value = start;
+    if (eEl) eEl.value = today;
+    this.loadInventoryReports();
+  },
+
+  async loadInventory() {
+    await this.loadInventorySummary();
+    await Promise.all([
+      this.loadInventoryReports(),
+      this.loadInventoryTransactions()
+    ]);
+  },
+
+  async loadInventorySummary() {
+    try {
+      const res = await window.api.get("/inventory/summary");
+      if (!res.success) return;
+      this.inventorySummary = res.summary;
+      this.inventoryItems = res.summary.items || [];
+      const isSimpleMode = res.summary.inventory_transactions_enabled === false;
+      this.isInventorySimpleMode = isSimpleMode;
+
+      const btnExport = document.getElementById("adminExportInventoryBtn");
+      const btnAdjust = document.getElementById("adminAdjustInventoryBtn");
+      const btnImport = document.getElementById("adminImportInventoryBtn");
+
+      if (btnExport) btnExport.style.display = isSimpleMode ? "none" : "";
+      if (btnAdjust) btnAdjust.style.display = isSimpleMode ? "none" : "";
+      if (btnImport) {
+        btnImport.innerHTML = isSimpleMode
+          ? '<i class="fa-solid fa-bolt"></i>Nhập thêm hàng'
+          : '<i class="fa-solid fa-arrow-down"></i>Nhập kho';
+      }
+
+      const metricsEl = document.getElementById("adminInventoryMetrics");
+      if (metricsEl) {
+        if (isSimpleMode && res.summary.monthly_imports) {
+          metricsEl.innerHTML = `
+            <div class="card"><div class="card-body"><span class="card-label">Tổng mặt hàng</span><strong class="card-value">${res.summary.totalItems} món</strong></div></div>
+            <div class="card"><div class="card-body"><span class="card-label">Tổng giá trị tồn kho</span><strong class="card-value">${this.money(res.summary.totalStockValue)}</strong></div></div>
+            <div class="card" style="border-left: 4px solid var(--success);"><div class="card-body"><span class="card-label">Đã nhập tháng ${res.summary.monthly_imports.month}</span><strong class="card-value" style="color:var(--success);">${res.summary.monthly_imports.totalQty} (lượng)</strong></div></div>
+            <div class="card" style="border-left: 4px solid var(--primary);"><div class="card-body"><span class="card-label">Tổng tiền nhập tháng ${res.summary.monthly_imports.month}</span><strong class="card-value" style="color:var(--primary);">${this.money(res.summary.monthly_imports.totalValue)}</strong></div></div>
+          `;
+        } else {
+          metricsEl.innerHTML = `
+            <div class="card"><div class="card-body"><span class="card-label">Tổng mặt hàng</span><strong class="card-value">${res.summary.totalItems} món</strong></div></div>
+            <div class="card"><div class="card-body"><span class="card-label">Tổng giá trị tồn kho</span><strong class="card-value">${this.money(res.summary.totalStockValue)}</strong></div></div>
+            <div class="card" style="border-left: 4px solid var(--warning);"><div class="card-body"><span class="card-label">Sắp hết định mức</span><strong class="card-value" style="color:var(--warning);">${res.summary.lowStockCount} món</strong></div></div>
+            <div class="card" style="border-left: 4px solid var(--danger);"><div class="card-body"><span class="card-label">Đã cạn kho</span><strong class="card-value" style="color:var(--danger);">${res.summary.outOfStockCount} món</strong></div></div>
+          `;
+        }
+      }
+
+      this.renderInventoryItems();
+    } catch (err) {
+      console.error("loadInventorySummary error:", err);
+      this.toast("Lỗi tải tổng hợp tồn kho", true);
+    }
+  },
+
+  renderInventoryItems() {
+    const query = (document.getElementById("adminInvSearch")?.value || "").trim().toLowerCase();
+    const tbody = document.getElementById("adminInventoryTableBody");
+    if (!tbody) return;
+
+    const filtered = (this.inventoryItems || []).filter((item) => {
+      if (!query) return true;
+      return (item.code || "").toLowerCase().includes(query) || (item.name || "").toLowerCase().includes(query) || (item.category || "").toLowerCase().includes(query);
+    });
+
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;" class="muted">Không có mặt hàng kho nào</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map((item) => {
+      const isOut = item.current_stock <= 0;
+      const isLow = !isOut && item.current_stock <= item.min_stock;
+      let statusBadge = `<span class="badge active">Đủ tồn</span>`;
+      if (isOut) {
+        statusBadge = `<span class="badge inactive">Cạn kho</span>`;
+      } else if (isLow) {
+        statusBadge = `<span class="badge warning" style="background:var(--warning-bg);color:var(--warning);border:1px solid var(--warning-border);">Sắp hết</span>`;
+      }
+
+      const totalVal = Math.round(item.current_stock * item.cost_price);
+      return `
+        <tr>
+          <td><strong>${this.esc(item.code)}</strong></td>
+          <td><strong>${this.esc(item.name)}</strong></td>
+          <td><span class="badge" style="background:var(--line-light);color:var(--ink-secondary);">${this.esc(item.category || "-")}</span></td>
+          <td>${this.esc(item.unit)}</td>
+          <td>${this.money(item.cost_price)}</td>
+          <td><strong style="color:${isOut ? 'var(--danger)' : (isLow ? 'var(--warning)' : 'inherit')};">${item.current_stock}</strong> <small class="muted">${this.esc(item.unit)}</small></td>
+          <td><small class="muted">${item.min_stock} ${this.esc(item.unit)}</small></td>
+          <td><strong>${this.money(totalVal)}</strong></td>
+          <td>${statusBadge}</td>
+          <td>
+            <div style="display:flex;gap:4px;">
+              ${this.isInventorySimpleMode ? `<button class="btn primary btn-sm" onclick="adminApp.openQuickImportItem(${item.id})"><i class="fa-solid fa-plus"></i> Nhập</button>` : ''}
+              <button class="btn secondary btn-sm" onclick="adminApp.openEditInventoryItem(${item.id})">Sửa</button>
+              <button class="btn secondary btn-sm" onclick="adminApp.deleteInventoryItem(${item.id})">${item.is_active ? 'Xóa' : 'Hiện'}</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  },
+
+  openQuickImportItem(id) {
+    const item = (this.inventoryItems || []).find((i) => i.id === id);
+    if (!item) return;
+
+    const html = `
+      <div style="margin-bottom:12px;padding:10px;background:var(--bg-light);border-radius:8px;border:1px solid var(--line);">
+        <strong style="font-size:15px;color:var(--ink);">${this.esc(item.name)}</strong> <span class="badge">Mã: ${this.esc(item.code)}</span>
+        <div style="margin-top:6px;font-size:13px;color:var(--muted);">
+          Tồn hiện tại: <strong>${item.current_stock} ${this.esc(item.unit)}</strong> | Giá vốn hiện tại: <strong>${this.money(item.cost_price)}</strong>
+        </div>
+      </div>
+    ` +
+      this.field("import_qty", `Số lượng nhập thêm (${this.esc(item.unit)})`, "number", 1, null, true, true) +
+      this.field("cost_price", "Đơn giá nhập lần này (VNĐ)", "number", item.cost_price || 0, null, true, true);
+
+    this.openModal("⚡ Nhập thêm hàng nhanh", html, async (data) => {
+      const addedQty = Number(data.import_qty || 0);
+      if (addedQty <= 0) {
+        this.toast("Số lượng nhập thêm phải lớn hơn 0", true);
+        return;
+      }
+      const unitCost = Number(data.cost_price || item.cost_price || 0);
+      await window.api.put(`/inventory/items/${id}`, {
+        import_qty: addedQty,
+        cost_price: unitCost
+      });
+      this.toast(`Đã nhập thêm ${addedQty} ${item.unit} cho ${item.name}`);
+      await this.loadInventory();
+    });
+  },
+
+  openEditInventoryItem(id) {
+    const item = id ? this.inventoryItems.find((i) => i.id === id) : null;
+    const catOptions = this.inventoryCategories.map((c) => ({ value: c, label: c }));
+    if (item?.category && !this.inventoryCategories.includes(item.category)) {
+      catOptions.unshift({ value: item.category, label: item.category });
+    }
+
+    const html =
+      this.field("code", "Mã mặt hàng (duy nhất)", "text", item?.code || "", null, true, true) +
+      this.field("name", "Tên mặt hàng / Nguyên vật liệu", "text", item?.name || "", null, true, true) +
+      this.field("category", "Nhóm phân loại", "select", item?.category || "Nguyên liệu", catOptions, true, true) +
+      this.field("unit", "Đơn vị tính (kg, g, lít, lon, bao...)", "text", item?.unit || "kg", null, true, true) +
+      this.field("cost_price", "Giá vốn / Giá nhập bình quân (VNĐ)", "number", item?.cost_price || 0, null, true, true) +
+      this.field("min_stock", "Định mức tồn tối thiểu", "number", item?.min_stock !== undefined ? item.min_stock : 5, null, true, true) +
+      (!id ? this.field("current_stock", "Số lượng tồn ban đầu", "number", 0, null, true, false)
+        : this.field("current_stock", "Số lượng tồn kho hiện tại (sửa trực tiếp)", "number", item?.current_stock !== undefined ? item.current_stock : 0, null, true, false) +
+        this.field("import_qty", "⚡ Hoặc cộng thêm lượng hàng mới nhập (+)", "number", 0, null, true, false)
+      );
+
+    this.openModal(id ? "Sửa thông tin mặt hàng kho" : "Thêm mặt hàng kho mới", html, async (data) => {
+      data.cost_price = Number(data.cost_price || 0);
+      data.min_stock = Number(data.min_stock || 0);
+      if (data.current_stock !== undefined) data.current_stock = Number(data.current_stock || 0);
+      if (data.import_qty !== undefined) data.import_qty = Number(data.import_qty || 0);
+
+      if (id) {
+        await window.api.put(`/inventory/items/${id}`, data);
+        this.toast("Cập nhật mặt hàng kho thành công");
+      } else {
+        await window.api.post("/inventory/items", data);
+        this.toast("Thêm mặt hàng kho thành công");
+      }
+      await this.loadInventory();
+    });
+  },
+
+  async deleteInventoryItem(id) {
+    const item = this.inventoryItems.find((i) => i.id === id);
+    if (!item) return;
+
+    if (item.is_active) {
+      if (!confirm(`Xác nhận xóa mặt hàng "${item.name}" (${item.code})?`)) return;
+      await window.api.del(`/inventory/items/${id}`);
+      this.toast("Đã xóa mặt hàng kho");
+    } else {
+      await window.api.put(`/inventory/items/${id}`, { is_active: true });
+      this.toast("Đã khôi phục mặt hàng kho");
+    }
+    await this.loadInventory();
+  },
+
+  openInventoryTransactionModal(type = 'IN') {
+    if (this.isInventorySimpleMode) {
+      this.openQuickImportItem(this.inventoryItems[0]?.id);
+      return;
+    }
+
+    const typeLabel = type === 'IN' ? 'Lập phiếu Nhập kho' : (type === 'OUT' ? 'Lập phiếu Xuất kho' : 'Lập phiếu Kiểm kê cân bằng');
+    const items = (this.inventoryItems || []).filter((i) => i.is_active);
+    if (!items.length) {
+      this.toast("Chưa có mặt hàng kho nào", true);
+      return;
+    }
+
+    const itemOptions = items.map((i) => ({
+      value: i.id,
+      label: `${i.code} - ${i.name} (Tồn hiện tại: ${i.current_stock} ${i.unit})`
+    }));
+
+    const firstItem = items[0];
+    const html =
+      this.field("item_id", "Chọn mặt hàng", "select", firstItem?.id, itemOptions, true, true) +
+      this.field("transaction_type", "Loại phiếu", "select", type, [
+        { value: "IN", label: "📥 Nhập kho (Tăng tồn)" },
+        { value: "OUT", label: "📤 Xuất kho (Giảm tồn)" },
+        { value: "ADJUST", label: "⚖ Cân bằng kiểm kê (Ghi nhận số thực tế)" }
+      ], true, true) +
+      (type === "ADJUST"
+        ? this.field("new_stock", "Số lượng tồn kiểm kê thực tế", "number", firstItem?.current_stock || 0, null, true, true)
+        : this.field("quantity", type === "IN" ? "Số lượng nhập" : "Số lượng xuất", "number", 1, null, true, true)
+      ) +
+      this.field("price", "Đơn giá (VNĐ)", "number", firstItem?.cost_price || 0, null, true, true) +
+      this.field("note", "Ghi chú / Lý do", "text", "", null, true, false);
+
+    this.openModal(typeLabel, html, async (data) => {
+      data.item_id = Number(data.item_id);
+      data.price = Number(data.price || 0);
+      if (data.transaction_type === "ADJUST") {
+        data.new_stock = Number(data.new_stock);
+      } else {
+        data.quantity = Number(data.quantity);
+      }
+
+      const res = await window.api.post("/inventory/transactions", data);
+      this.toast(res.message || "Lập phiếu kho thành công");
+      await this.loadInventory();
+    });
+  },
+
+  async loadInventoryReports() {
+    const startDate = document.getElementById("adminInvStartDate")?.value;
+    const endDate = document.getElementById("adminInvEndDate")?.value;
+    let url = "/inventory/reports";
+    if (startDate && endDate) url += `?startDate=${startDate}&endDate=${endDate}`;
+
+    try {
+      const res = await window.api.get(url);
+      if (!res.success) return;
+      const rep = res.report;
+      this.inventoryReports = rep;
+
+      const isSimple = (typeof rep.inventory_transactions_enabled === "boolean")
+        ? !rep.inventory_transactions_enabled
+        : !!this.isInventorySimpleMode;
+      const titleEl = document.getElementById("adminInvReportTitle");
+      const thead = document.getElementById("adminInvReportsTableHead");
+      const tfoot = document.getElementById("adminInvReportsTableFoot");
+      const sub = document.getElementById("adminInvReportSubtitle");
+
+      let grandQty = 0;
+      let grandTotal = 0;
+
+      (rep.itemsTurnover || []).forEach((item) => {
+        const price = Number(item.cost_price || 0);
+        const qty = Number(item.in_qty || 0);
+        grandQty += qty;
+        grandTotal += Math.round(price * qty);
+      });
+
+      if (isSimple) {
+        if (titleEl) titleEl.textContent = "Thống kê nhập hàng trong tháng (Giá tiền * Số lượng)";
+        if (sub) {
+          sub.textContent = `Khoảng thời gian: ${startDate} đến ${endDate} · Tổng lượng nhập: ${Math.round(grandQty * 100) / 100} · Tổng số tiền: ${this.money(grandTotal)}`;
+        }
+        if (thead) {
+          thead.innerHTML = `
+            <tr>
+              <th style="width:120px;">Mã</th>
+              <th>Tên mặt hàng</th>
+              <th style="width:90px;">ĐVT</th>
+              <th style="text-align:right;width:150px;">Giá tiền</th>
+              <th style="text-align:right;width:130px;">Số lượng</th>
+              <th style="text-align:right;width:240px;">Tổng số tiền = Giá tiền * Số lượng</th>
+            </tr>
+          `;
+        }
+      } else {
+        if (titleEl) titleEl.textContent = "Thống kê biến động kho theo mặt hàng";
+        if (sub && startDate && endDate) {
+          sub.textContent = `Khoảng thời gian: ${startDate} đến ${endDate} · Tổng nhập: ${this.money(rep.summary.totalImportValue)} · Tổng xuất: ${this.money(rep.summary.totalExportValue)}`;
+        }
+        if (thead) {
+          thead.innerHTML = `
+            <tr>
+              <th>Mã</th>
+              <th>Tên mặt hàng</th>
+              <th>ĐVT</th>
+              <th>Giá vốn</th>
+              <th>Tồn đầu kỳ</th>
+              <th style="color:var(--success)">Tổng nhập</th>
+              <th style="color:var(--danger)">Tổng xuất</th>
+              <th>Kiểm kê +/-</th>
+              <th>Tồn cuối kỳ</th>
+              <th>Giá trị tồn cuối</th>
+            </tr>
+          `;
+        }
+      }
+
+      const tbody = document.getElementById("adminInvReportsTableBody");
+      if (!tbody) return;
+
+      if (!rep.itemsTurnover || !rep.itemsTurnover.length) {
+        tbody.innerHTML = `<tr><td colspan="${isSimple ? 6 : 10}" style="text-align:center;padding:24px;" class="muted">Không có dữ liệu trong khoảng thời gian này</td></tr>`;
+        if (tfoot) tfoot.innerHTML = "";
+        return;
+      }
+
+      if (isSimple) {
+        tbody.innerHTML = rep.itemsTurnover.map((item) => {
+          const price = Number(item.cost_price || 0);
+          const qty = Number(item.in_qty || 0);
+          const total = Math.round(price * qty);
+          return `
+            <tr>
+              <td><strong>${this.esc(item.code)}</strong></td>
+              <td><strong>${this.esc(item.name)}</strong></td>
+              <td>${this.esc(item.unit)}</td>
+              <td style="text-align:right;">${this.money(price)}</td>
+              <td style="text-align:right;"><strong style="color:var(--success);font-size:14px;">${qty}</strong></td>
+              <td style="text-align:right;"><strong>${this.money(total)}</strong></td>
+            </tr>
+          `;
+        }).join("");
+
+        if (tfoot) {
+          tfoot.innerHTML = `
+            <tr style="background:var(--bg-light);font-weight:bold;border-top:2px solid var(--line);">
+              <td colspan="4" style="text-align:right;font-size:14px;">TỔNG CỘNG ĐÃ NHẬP:</td>
+              <td style="text-align:right;color:var(--success);font-size:15px;">${Math.round(grandQty * 100) / 100}</td>
+              <td style="text-align:right;color:var(--primary);font-size:15px;">${this.money(grandTotal)}</td>
+            </tr>
+          `;
+        }
+      } else {
+        tbody.innerHTML = rep.itemsTurnover.map((item) => `
+          <tr>
+            <td><strong>${this.esc(item.code)}</strong></td>
+            <td><strong>${this.esc(item.name)}</strong></td>
+            <td>${this.esc(item.unit)}</td>
+            <td>${this.money(item.cost_price)}</td>
+            <td><strong>${item.initial_stock}</strong></td>
+            <td style="color:var(--success);font-weight:600;">+${item.in_qty} <br><small class="muted">(${this.money(item.in_value)})</small></td>
+            <td style="color:var(--danger);font-weight:600;">-${item.out_qty} <br><small class="muted">(${this.money(item.out_value)})</small></td>
+            <td>${item.adjust_qty !== 0 ? (item.adjust_qty > 0 ? `+${item.adjust_qty}` : item.adjust_qty) : '-'}</td>
+            <td><strong style="font-size:14px;">${item.final_stock}</strong></td>
+            <td><strong>${this.money(item.final_value)}</strong></td>
+          </tr>
+        `).join("");
+
+        if (tfoot) tfoot.innerHTML = "";
+      }
+    } catch (err) {
+      console.error("loadInventoryReports error:", err);
+    }
+  },
+
+  async loadInventoryTransactions() {
+    try {
+      const res = await window.api.get("/inventory/transactions?limit=50");
+      const list = res.transactions || [];
+      const tbody = document.getElementById("adminInvTransactionsTableBody");
+      if (!tbody) return;
+
+      if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;" class="muted">Chưa có giao dịch kho nào</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map((t) => {
+        let typeBadge = `<span class="badge active">NHẬP KHO</span>`;
+        if (t.transaction_type === "OUT") {
+          typeBadge = `<span class="badge inactive">XUẤT KHO</span>`;
+        } else if (t.transaction_type === "ADJUST") {
+          typeBadge = `<span class="badge info">KIỂM KÊ</span>`;
+        }
+
+        const dateStr = t.created_at ? new Date(t.created_at).toLocaleString("vi-VN") : "-";
+        return `
+          <tr>
+            <td><small class="muted">${dateStr}</small></td>
+            <td><strong>${this.esc(t.transaction_code)}</strong></td>
+            <td>${typeBadge}</td>
+            <td><strong>${this.esc(t.item_name)}</strong> <small class="muted">(${this.esc(t.item_code)})</small></td>
+            <td><strong>${t.quantity}</strong> ${this.esc(t.item_unit || '')}</td>
+            <td>${this.money(t.price)}</td>
+            <td><strong>${this.money(t.total_amount)}</strong></td>
+            <td>${t.stock_before} ➔ <strong>${t.stock_after}</strong></td>
+            <td><small>${this.esc(t.user_name || "Hệ thống")}</small></td>
+            <td><small class="muted">${this.esc(t.note || "-")}</small></td>
+          </tr>
+        `;
+      }).join("");
+    } catch (err) {
+      console.error("loadInventoryTransactions error:", err);
+    }
+  }
 };
 window.adminApp = adminApp;
 document.addEventListener("DOMContentLoaded", () => adminApp.init());

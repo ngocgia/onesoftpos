@@ -425,6 +425,9 @@
             <button class="admin-nav-tab" data-target="adminStaff" id="tabAdminStaff">
               <i class="fa-solid fa-users"></i> Nhân viên
             </button>
+            <button class="admin-nav-tab" data-target="adminInventory" id="tabAdminInventory">
+              <i class="fa-solid fa-boxes-stacked"></i> Quản lý kho
+            </button>
           </div>
 
           <!-- ADMIN SUBVIEW 1: REPORTS -->
@@ -579,6 +582,235 @@
                 <tbody id="adminStaffTableBody"></tbody>
               </table>
             </div>
+          </div>
+
+          <!-- ADMIN SUBVIEW 6: INVENTORY (Rule 30: Quản lý kho, nguyên vật liệu & giao dịch) -->
+          <div id="adminInventory" class="admin-subview">
+            <div class="subview-header" style="flex-wrap:wrap; gap: 8px;">
+              <div>
+                <h3 style="margin:0;"><i class="fa-solid fa-boxes-stacked text-primary"></i> Quản lý kho & Nguyên vật liệu</h3>
+                <p class="text-muted" style="margin:2px 0 0 0; font-size:13px;">Theo dõi xuất - nhập - tồn, giá trị hàng hóa và cảnh báo thiếu hụt</p>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" class="btn-primary btn-sm" id="btnOpenAddInventoryItemModal"><i class="fa-solid fa-plus"></i> Thêm mặt hàng</button>
+                <button type="button" class="btn-secondary btn-sm" id="btnOpenImportInventoryModal"><i class="fa-solid fa-arrow-down"></i> Nhập kho</button>
+                <button type="button" class="btn-secondary btn-sm" id="btnOpenExportInventoryModal"><i class="fa-solid fa-arrow-up"></i> Xuất kho</button>
+                <button type="button" class="btn-secondary btn-sm" id="btnOpenAdjustInventoryModal"><i class="fa-solid fa-scale-balanced"></i> Kiểm kê cân bằng</button>
+              </div>
+            </div>
+
+            <!-- KPI Metric Cards -->
+            <div class="reports-summary-cards" style="margin-top:12px;">
+              <div class="report-card card-revenue">
+                <div class="card-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+                <div class="card-data">
+                  <span class="card-label">Tổng mặt hàng</span>
+                  <strong class="card-value" id="invMetricTotalItems">0 món</strong>
+                </div>
+              </div>
+              <div class="report-card card-orders">
+                <div class="card-icon"><i class="fa-solid fa-coins"></i></div>
+                <div class="card-data">
+                  <span class="card-label">Tổng giá trị tồn kho</span>
+                  <strong class="card-value" id="invMetricTotalValue">0đ</strong>
+                </div>
+              </div>
+              <div class="report-card" style="border-left: 4px solid var(--warning, #f59e0b);">
+                <div class="card-icon" style="color: var(--warning, #f59e0b);"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="card-data">
+                  <span class="card-label">Sắp hết định mức</span>
+                  <strong class="card-value" id="invMetricLowStock" style="color: var(--warning, #f59e0b);">0 món</strong>
+                </div>
+              </div>
+              <div class="report-card" style="border-left: 4px solid var(--danger, #ef4444);">
+                <div class="card-icon" style="color: var(--danger, #ef4444);"><i class="fa-solid fa-circle-xmark"></i></div>
+                <div class="card-data">
+                  <span class="card-label">Đã cạn kho</span>
+                  <strong class="card-value" id="invMetricOutOfStock" style="color: var(--danger, #ef4444);">0 món</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Inventory Segmented Nav Pills -->
+            <div style="display:flex;gap:8px;margin:16px 0 12px 0;border-bottom:1px solid var(--border-color, #e2e8f0);padding-bottom:8px;flex-wrap:wrap;">
+              <button type="button" class="btn-sm btn-primary inv-nav-pill active" data-pill="invPillSummary" id="btnInvPillSummary">
+                <i class="fa-solid fa-layer-group"></i> Tổng hợp tồn kho
+              </button>
+              <button type="button" class="btn-sm btn-secondary inv-nav-pill" data-pill="invPillItems" id="btnInvPillItems">
+                <i class="fa-solid fa-list-check"></i> Danh mục mặt hàng
+              </button>
+              <button type="button" class="btn-sm btn-secondary inv-nav-pill" data-pill="invPillReports" id="btnInvPillReports">
+                <i class="fa-solid fa-chart-pie"></i> Thống kê từ ngày đến ngày
+              </button>
+              <button type="button" class="btn-sm btn-secondary inv-nav-pill" data-pill="invPillTransactions" id="btnInvPillTransactions">
+                <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử giao dịch
+              </button>
+            </div>
+
+            <!-- TAB 1: TỔNG HỢP TỒN KHO -->
+            <div id="invPillSummary" class="inv-tab-content active">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
+                <div style="display:flex;gap:8px;flex:1;max-width:520px;">
+                  <input id="invSummarySearch" class="form-input" placeholder="🔍 Tìm theo mã hoặc tên nguyên liệu..." style="padding:6px 12px;font-size:13px;">
+                  <select id="invSummaryCategoryFilter" class="form-input" style="width:auto;padding:6px 12px;font-size:13px;">
+                    <option value="">Tất cả phân loại</option>
+                  </select>
+                </div>
+                <div style="display:flex;gap:8px;">
+                  <button type="button" class="btn-secondary btn-sm" id="btnInvRefreshSummary"><i class="fa-solid fa-rotate"></i> Làm mới</button>
+                </div>
+              </div>
+              <div class="admin-products-table-wrapper">
+                <table class="orders-table">
+                  <thead>
+                    <tr>
+                      <th>Mã</th>
+                      <th>Tên mặt hàng / Nguyên liệu</th>
+                      <th>Phân loại</th>
+                      <th>ĐVT</th>
+                      <th>Giá vốn</th>
+                      <th>Tồn hiện tại</th>
+                      <th>Định mức</th>
+                      <th>Tổng giá trị tồn</th>
+                      <th>Trạng thái</th>
+                      <th style="width:130px">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody id="invSummaryTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- TAB 2: DANH MỤC MẶT HÀNG (CRUD) -->
+            <div id="invPillItems" class="inv-tab-content" style="display:none;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
+                <input id="invItemsSearch" class="form-input" placeholder="🔍 Tìm kiếm mã, tên mặt hàng..." style="max-width:320px;padding:6px 12px;font-size:13px;">
+                <button type="button" class="btn-primary btn-sm" onclick="adminModule.openEditInventoryItem()"><i class="fa-solid fa-plus"></i> Thêm mặt hàng mới</button>
+              </div>
+              <div class="admin-products-table-wrapper">
+                <table class="orders-table">
+                  <thead>
+                    <tr>
+                      <th>Mã</th>
+                      <th>Tên mặt hàng</th>
+                      <th>Phân loại</th>
+                      <th>Đơn vị tính</th>
+                      <th>Giá vốn (đ)</th>
+                      <th>Tồn hiện tại</th>
+                      <th>Tồn tối thiểu</th>
+                      <th>Trạng thái</th>
+                      <th style="width:120px">Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody id="invItemsTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- TAB 3: BÁO CÁO THỐNG KÊ TỪ NGÀY ĐẾN NGÀY -->
+            <div id="invPillReports" class="inv-tab-content" style="display:none;">
+              <div style="background:var(--bg-card, #f8fafc);border:1px solid var(--border-color, #e2e8f0);border-radius:10px;padding:12px;margin-bottom:14px;">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <strong style="font-size:14px;"><i class="fa-solid fa-calendar-days text-primary"></i> Khoảng thời gian:</strong>
+                  <input type="date" id="invReportStartDate" class="form-input" style="width:auto;padding:6px 10px;font-size:13px;">
+                  <span>đến</span>
+                  <input type="date" id="invReportEndDate" class="form-input" style="width:auto;padding:6px 10px;font-size:13px;">
+                  <button type="button" class="btn-primary btn-sm" id="btnFilterInvReports"><i class="fa-solid fa-filter"></i> Lọc báo cáo</button>
+                  <div style="margin-left:auto;display:flex;gap:4px;">
+                    <button type="button" class="btn-secondary btn-sm" onclick="adminModule.setInvDateRange('today')">Hôm nay</button>
+                    <button type="button" class="btn-secondary btn-sm" onclick="adminModule.setInvDateRange('7days')">7 ngày</button>
+                    <button type="button" class="btn-secondary btn-sm" onclick="adminModule.setInvDateRange('thisMonth')">Tháng này</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Thống kê tổng số lượng & giá trị trong kỳ -->
+              <div class="reports-summary-cards" id="invRepCardsContainer" style="margin-bottom:14px;">
+                <div class="report-card" id="invRepCardImport" style="border-left: 4px solid var(--success, #10b981);">
+                  <div class="card-icon" style="color:var(--success, #10b981);"><i class="fa-solid fa-arrow-down"></i></div>
+                  <div class="card-data">
+                    <span class="card-label">Tổng giá trị nhập trong kỳ</span>
+                    <strong class="card-value" id="invRepTotalImport">0đ</strong>
+                    <small class="text-muted" id="invRepImportQty">0 lượt</small>
+                  </div>
+                </div>
+                <div class="report-card" id="invRepCardExport" style="border-left: 4px solid var(--primary, #ef4b25);">
+                  <div class="card-icon" style="color:var(--primary, #ef4b25);"><i class="fa-solid fa-arrow-up"></i></div>
+                  <div class="card-data">
+                    <span class="card-label">Tổng giá trị xuất trong kỳ</span>
+                    <strong class="card-value" id="invRepTotalExport">0đ</strong>
+                    <small class="text-muted" id="invRepExportQty">0 lượt</small>
+                  </div>
+                </div>
+                <div class="report-card" id="invRepCardNet" style="border-left: 4px solid var(--info, #3b82f6);">
+                  <div class="card-icon" style="color:var(--info, #3b82f6);"><i class="fa-solid fa-scale-balanced"></i></div>
+                  <div class="card-data">
+                    <span class="card-label">Biến động tồn kho ròng</span>
+                    <strong class="card-value" id="invRepNetValue">0đ</strong>
+                    <small class="text-muted" id="invRepNetQty">0</small>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel" style="margin-bottom:14px;">
+                <h4 id="invReportsTableTitle" style="margin:0 0 10px 0;"><i class="fa-solid fa-table-list text-primary"></i> Báo cáo Nhập - Xuất - Tồn theo mặt hàng</h4>
+                <div class="admin-products-table-wrapper">
+                  <table class="orders-table">
+                    <thead id="invReportsTableHead">
+                      <tr>
+                        <th>Mã</th>
+                        <th>Tên mặt hàng</th>
+                        <th>ĐVT</th>
+                        <th>Giá vốn</th>
+                        <th>Tồn đầu kỳ</th>
+                        <th style="color:var(--success, #10b981)">Tổng nhập</th>
+                        <th style="color:var(--primary, #ef4b25)">Tổng xuất</th>
+                        <th>Kiểm kê +/-</th>
+                        <th>Tồn cuối kỳ</th>
+                        <th>Giá trị tồn cuối</th>
+                      </tr>
+                    </thead>
+                    <tbody id="invReportsTableBody"></tbody>
+                    <tfoot id="invReportsTableFoot"></tfoot>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 4: LỊCH SỬ GIAO DỊCH KHO -->
+            <div id="invPillTransactions" class="inv-tab-content" style="display:none;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
+                <div style="display:flex;gap:8px;flex:1;max-width:520px;">
+                  <select id="invTransTypeFilter" class="form-input" style="width:auto;padding:6px 12px;font-size:13px;">
+                    <option value="">Tất cả loại phiếu</option>
+                    <option value="IN">Phiếu Nhập kho (IN)</option>
+                    <option value="OUT">Phiếu Xuất kho (OUT)</option>
+                    <option value="ADJUST">Kiểm kê cân bằng (ADJUST)</option>
+                  </select>
+                  <button type="button" class="btn-secondary btn-sm" id="btnRefreshInvTrans"><i class="fa-solid fa-rotate"></i> Tải lại</button>
+                </div>
+              </div>
+              <div class="admin-products-table-wrapper">
+                <table class="orders-table">
+                  <thead>
+                    <tr>
+                      <th>Thời gian</th>
+                      <th>Mã phiếu</th>
+                      <th>Loại</th>
+                      <th>Mặt hàng</th>
+                      <th>Số lượng</th>
+                      <th>Đơn giá</th>
+                      <th>Thành tiền</th>
+                      <th>Tồn trước ➔ sau</th>
+                      <th>Người lập</th>
+                      <th>Ghi chú</th>
+                    </tr>
+                  </thead>
+                  <tbody id="invTransactionsTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
           </div>
 
         </div>

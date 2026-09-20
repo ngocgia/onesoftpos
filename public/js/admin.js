@@ -192,11 +192,7 @@ window.adminModule = {
       if (btnAdjust) btnAdjust.style.display = isSimpleMode ? 'none' : '';
       if (btnTransPill) btnTransPill.style.display = isSimpleMode ? 'none' : '';
       if (btnSummaryPill) btnSummaryPill.style.display = isSimpleMode ? 'none' : '';
-      if (btnImport) {
-        btnImport.innerHTML = isSimpleMode 
-          ? '<i class="fa-solid fa-bolt"></i> Nhập thêm hàng' 
-          : '<i class="fa-solid fa-arrow-down"></i> Nhập kho';
-      }
+      if (btnImport) btnImport.style.display = isSimpleMode ? 'none' : '';
       if (btnReportsPill) {
         btnReportsPill.innerHTML = isSimpleMode 
           ? '<i class="fa-solid fa-chart-pie"></i> Thống kê nhập hàng trong tháng' 

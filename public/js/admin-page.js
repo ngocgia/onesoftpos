@@ -1746,11 +1746,7 @@ const adminApp = {
 
       if (btnExport) btnExport.style.display = isSimpleMode ? "none" : "";
       if (btnAdjust) btnAdjust.style.display = isSimpleMode ? "none" : "";
-      if (btnImport) {
-        btnImport.innerHTML = isSimpleMode
-          ? '<i class="fa-solid fa-bolt"></i>Nhập thêm hàng'
-          : '<i class="fa-solid fa-arrow-down"></i>Nhập kho';
-      }
+      if (btnImport) btnImport.style.display = isSimpleMode ? "none" : "";
 
       const metricsEl = document.getElementById("adminInventoryMetrics");
       if (metricsEl) {

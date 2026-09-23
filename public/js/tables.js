@@ -397,7 +397,9 @@ window.tablesModule = {
   },
 
   canCancelOrderItems() {
-    return ['STORE_MANAGER', 'CASHIER', 'KITCHEN'].includes(window.appState.user?.role);
+    const role = window.appState.user?.role;
+    return ['STORE_MANAGER', 'CASHIER'].includes(role)
+      || (role === 'KITCHEN' && window.appState.storeSettings?.allow_cancel_item !== false);
   },
 
   async loadActiveOrderDetails(table) {

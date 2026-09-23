@@ -175,7 +175,10 @@ window.appState = {
     }
     const defaultTabs = { reports: true, stores: true, storeTypes: true, products: true, tables: true, staff: true, inventory: true };
     const settings = adminTabs || defaultTabs;
-    const canManageStaff = ['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER'].includes(this.user?.role);
+    // Store staff APIs are intentionally scoped to STORE_MANAGER. Keep this
+    // operational tab available to that role even when an older admin_tabs
+    // value accidentally persisted staff=false.
+    const canManageStaff = this.user?.role === 'STORE_MANAGER';
     const canManageInventory = ['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER'].includes(this.user?.role);
     
     const mapping = {
@@ -184,7 +187,7 @@ window.appState = {
       tabAdminWorkflows: settings.storeTypes !== false,
       tabAdminProducts: settings.products !== false,
       tabAdminTables: settings.tables !== false && !this.features?.enableTakeawayWorkspace,
-      tabAdminStaff: settings.staff !== false && canManageStaff,
+      tabAdminStaff: canManageStaff,
       tabAdminInventory: settings.inventory !== false && canManageInventory && this.features?.enableInventory !== false
     };
     
@@ -231,6 +234,8 @@ window.appState = {
     } else if (this.features.enableDineIn && this.features.enableTable && this.roleFeatures.TABLES) {
       if (btnDineInTab) btnDineInTab.style.display = 'inline-flex';
       if (navItemTables) navItemTables.style.display = 'flex';
+      // Dine-in stores start new, empty orders in table-service mode.
+      if (!this.cart.items.length && !this.cart.existingOrderId) this.setOrderType('DINE_IN');
     } else {
       if (btnDineInTab) btnDineInTab.style.display = 'none';
       if (navItemTables) navItemTables.style.display = canManageTables ? 'flex' : 'none';

@@ -289,7 +289,7 @@ async function updateKdsItemStatus(req, res) {
                  o.order_code, o.order_type, o.customer_name, o.order_status, o.payment_status,
                  o.workflow_stage_index, o.workflow_snapshot,
                  t.code AS table_code, t.name AS table_name,
-                 ss.kds_completion_message
+                 ss.kds_completion_message, ss.allow_cancel_item
           FROM order_items oi
           JOIN orders o ON o.id = oi.order_id
           LEFT JOIN tables t ON t.id = o.table_id
@@ -304,6 +304,10 @@ async function updateKdsItemStatus(req, res) {
         }
 
         const item = itemResult.rows[0];
+        if (status === 'CANCELLED' && req.user?.role === 'KITCHEN' && item.allow_cancel_item === false) {
+          await client.query('ROLLBACK');
+          return res.status(403).json({ success: false, message: 'Quản trị viên đã tắt quyền hủy món của đầu bếp' });
+        }
         if (['COMPLETED', 'CANCELLED'].includes(item.order_status)) {
           await client.query('ROLLBACK');
           return res.status(409).json({ success: false, message: 'Đơn hàng đã kết thúc, không thể cập nhật KDS' });
@@ -421,6 +425,10 @@ async function updateKdsItemStatus(req, res) {
       const item = memoryStore.order_items.find(i => i.id === itemId);
       const order = item && memoryStore.orders.find(current => current.id === item.order_id && current.store_id === storeId);
       if (!item || !order) return res.status(404).json({ success: false, message: 'Không tìm thấy món trong cửa hàng này' });
+      const storeSettings = memoryStore.store_settings.find(current => current.store_id === storeId);
+      if (status === 'CANCELLED' && req.user?.role === 'KITCHEN' && storeSettings?.allow_cancel_item === false) {
+        return res.status(403).json({ success: false, message: 'Quản trị viên đã tắt quyền hủy món của đầu bếp' });
+      }
       if (['COMPLETED', 'CANCELLED'].includes(order.order_status)) {
         return res.status(409).json({ success: false, message: 'Đơn hàng đã kết thúc, không thể cập nhật KDS' });
       }

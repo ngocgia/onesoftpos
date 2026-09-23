@@ -103,11 +103,11 @@
             <!-- Order Type Switcher & Table Indicator -->
             <div class="order-context-bar">
               <div class="order-type-tabs" id="orderTypeTabs">
-                <button type="button" class="type-tab-btn active" data-type="TAKEAWAY">
-                  <i class="fa-solid fa-bag-shopping"></i> Mang đi
-                </button>
-                <button type="button" class="type-tab-btn" data-type="DINE_IN" id="btnDineInTab">
+                <button type="button" class="type-tab-btn active" data-type="DINE_IN" id="btnDineInTab">
                   <i class="fa-solid fa-utensils"></i> Tại chỗ
+                </button>
+                <button type="button" class="type-tab-btn" data-type="TAKEAWAY">
+                  <i class="fa-solid fa-bag-shopping"></i> Mang đi
                 </button>
               </div>
 
@@ -829,13 +829,13 @@
 
     <!-- BOTTOM NAVIGATION BAR (Mobile-First touch menu) -->
     <nav class="bottom-nav-bar">
-      <button class="nav-item active" data-view="viewPos" id="navItemPos">
-        <i class="fa-solid fa-cash-register"></i>
-        <span>Bán hàng</span>
-      </button>
       <button class="nav-item" data-view="viewTables" id="navItemTables">
         <i class="fa-solid fa-chair"></i>
         <span>Phòng bàn</span>
+      </button>
+      <button class="nav-item active" data-view="viewPos" id="navItemPos">
+        <i class="fa-solid fa-utensils"></i>
+        <span>Thực đơn</span>
       </button>
       <button class="nav-item" data-view="viewKds" id="navItemKds">
         <i class="fa-solid fa-kitchen-set"></i>
@@ -1319,17 +1319,17 @@
 
   <!-- SCRIPTS (Vanilla ES6 Modules) -->
   <script src="js/api.js"></script>
-  <script src="js/state.js?v=20260919-table-management"></script>
-  <script src="js/pos.js?v=20260918-toppings"></script>
-  <script src="js/tables.js?v=20260919-table-action-v2"></script>
-  <script src="js/kds.js?v=20260918-kds-audio-2"></script>
-  <script src="js/completed-items.js?v=20260918-completed-items"></script>
+  <script src="js/state.js?v=20260923-staff-tab-fix"></script>
+  <script src="js/pos.js?v=20260923-store-context-fix"></script>
+  <script src="js/tables.js?v=20260923-kitchen-cancel-setting"></script>
+  <script src="js/kds.js?v=20260923-kitchen-cancel-setting"></script>
+  <script src="js/completed-items.js?v=20260923-table-first"></script>
   <script src="js/orders.js?v=20260918-takeaway-history"></script>
   <script src="js/checkout.js?v=20260918-takeaway-history"></script>
   <script src="js/invoice.js?v=20260918-takeaway-actions"></script>
   <script src="js/shifts.js"></script>
-  <script src="js/admin.js?v=20260919-table-management"></script>
-  <script src="js/app.js?v=20260923-login-fix"></script>
+  <script src="js/admin.js?v=20260923-pos-store-fields"></script>
+  <script src="js/app.js?v=20260923-table-first"></script>
 </body>
 
 </html>

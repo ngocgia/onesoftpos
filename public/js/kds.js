@@ -81,7 +81,9 @@ window.kdsModule = {
   renderOrders() {
     const grid = document.getElementById('kdsOrdersGrid');
     if (!grid) return;
-    const canCancel = ['STORE_MANAGER', 'CASHIER', 'KITCHEN'].includes(window.appState.user?.role);
+    const role = window.appState.user?.role;
+    const canCancel = ['STORE_MANAGER', 'CASHIER'].includes(role)
+      || (role === 'KITCHEN' && window.appState.storeSettings?.allow_cancel_item !== false);
 
     if (this.orders.length === 0) {
       grid.innerHTML = `

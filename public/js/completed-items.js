@@ -28,7 +28,7 @@ window.completedItemsModule = {
     if (navItem) navItem.style.display = allowed ? 'flex' : 'none';
     if (!allowed && window.appNavigation?.currentView === 'viewCompletedItems') {
       const fallback = [
-        ['POS', 'viewPos'], ['TABLES', 'viewTables'], ['KDS', 'viewKds'], ['HISTORY', 'viewOrders']
+        ['TABLES', 'viewTables'], ['POS', 'viewPos'], ['KDS', 'viewKds'], ['HISTORY', 'viewOrders']
       ].find(([feature]) => window.appState.roleFeatures[feature] !== false)?.[1];
       if (fallback) window.appNavigation.switchView(fallback);
     }

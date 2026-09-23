@@ -142,7 +142,7 @@ async function initAuth() {
     await window.appNavigation.reloadCurrentStoreFeatures();
 
     const initialView = [
-      ['POS', 'viewPos'], ['TABLES', 'viewTables'], ['KDS', 'viewKds'], ['HISTORY', 'viewOrders'], ['ADMIN', 'viewAdmin']
+      ['TABLES', 'viewTables'], ['POS', 'viewPos'], ['KDS', 'viewKds'], ['HISTORY', 'viewOrders'], ['ADMIN', 'viewAdmin']
     ].find(([feature]) => window.appState.roleFeatures[feature] !== false)?.[1];
     if (initialView && window.appNavigation.currentView !== initialView) {
       window.appNavigation.switchView(initialView);
@@ -188,6 +188,14 @@ function populateStoreSelector() {
   // Set default currentStore in state
   const active = stores.find(s => s.id === currentStoreId) || stores[0];
   window.appState.currentStore = active;
+  if (active) {
+    // Keep API context synchronized when the saved store is empty, stale, or
+    // no longer assigned to this user.
+    window.api.setCurrentStoreId(active.id);
+    select.value = String(active.id);
+  } else {
+    window.api.setCurrentStoreId('');
+  }
 
   select.addEventListener('change', async (e) => {
     const newStoreId = parseInt(e.target.value, 10);
@@ -390,7 +398,7 @@ async function executeLogin(username, password) {
 
     // Open the first feature available to this role.
     const firstView = [
-      ['POS', 'viewPos'], ['TABLES', 'viewTables'], ['KDS', 'viewKds'], ['HISTORY', 'viewOrders'], ['ADMIN', 'viewAdmin']
+      ['TABLES', 'viewTables'], ['POS', 'viewPos'], ['KDS', 'viewKds'], ['HISTORY', 'viewOrders'], ['ADMIN', 'viewAdmin']
     ].find(([feature]) => window.appState.roleFeatures[feature] !== false)?.[1] || 'viewPos';
     window.appNavigation.switchView(firstView);
     if (window.posModule) window.posModule.loadCatalog();

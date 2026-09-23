@@ -17,7 +17,7 @@ const adminApp = {
   inventoryReports: null,
   inventoryCategories: ['Thịt & Hải sản', 'Gia vị & Bột', 'Dầu ăn & Bơ', 'Nông sản & Lương thực', 'Trà & Cà phê', 'Sữa & Kem', 'Topping & Hạt', 'Bao bì & Ly hộp', 'Khác'],
   featureLabels: {
-    SALE: "Bán hàng",
+    SALE: "Thực đơn",
     TAKEAWAY: "Mang đi",
     DINE_IN: "Tại chỗ",
     TABLE: "Phòng bàn",
@@ -27,14 +27,14 @@ const adminApp = {
     INVENTORY: "Kho",
   },
   roleFeatureLabels: {
-    POS: "Bán hàng POS",
+    POS: "Thực đơn POS",
     TABLES: "Phòng bàn",
     KDS: "Bếp KDS",
     ORDERS: "Đơn hàng",
     HISTORY: "Lịch sử",
     PAYMENT: "Thu tiền & thanh toán",
     ADMIN: "Quản trị cửa hàng",
-    SHIFT: "Quản lý ca",
+    SHIFT: "Quản lý Ca làm việc",
     DISCOUNT: "Áp dụng giảm giá",
     COMPLETED_ITEMS: "Món đã xong",
     INVENTORY: "Quản lý kho",
@@ -553,6 +553,19 @@ const adminApp = {
           false,
           true,
         ) +
+        this.field(
+          "allow_cancel_item",
+          "Cho phép đầu bếp hủy món",
+          "select",
+          String(settings.allow_cancel_item !== false),
+          [
+            { value: "true", label: "Bật - Đầu bếp được phép hủy món trên KDS" },
+            { value: "false", label: "Tắt - Chỉ thu ngân hoặc quản lý được hủy món" },
+          ],
+          false,
+          true,
+        ) +
+        `<p class="field full muted">Khi tắt, nút Hủy sẽ được ẩn với tài khoản Bếp và backend cũng từ chối yêu cầu hủy món của vai trò này.</p>` +
         `<p class="field full muted">Khi bật, màn bán hàng hỗ trợ nhiều đơn nháp và thông tin giao/nhận cho khách mang đi.</p>` +
         `<p class="field full muted">Biến: <strong>{mon}</strong>, <strong>{ban}</strong>, <strong>{ma_don}</strong>, <strong>{ten_khach_hang}</strong>. Với Takeaway, bàn tự được thay bằng tên khách.</p>` +
         this.field(
@@ -585,6 +598,7 @@ const adminApp = {
         if (id) {
           data.takeaway_workspace_enabled =
             data.takeaway_workspace_enabled === "true";
+          data.allow_cancel_item = data.allow_cancel_item === "true";
           data.inventory_transactions_enabled =
             data.inventory_transactions_enabled === "true";
           data.admin_tabs = {
@@ -941,7 +955,7 @@ const adminApp = {
       this.roleFeatureRoles
         .map(
           (group) =>
-            `<article class="card"><div class="card-head"><div><h3>${group.role}</h3><p>Cấu hình các chức năng được hiển thị cho nhóm này</p></div><span class="badge active">NHÓM QUYỀN</span></div><div class="feature-grid">${group.features.map((feature) => `<label class="feature"><span>${this.roleFeatureLabels[feature.feature_code] || feature.feature_code}</span><input type="checkbox" ${feature.enabled ? "checked" : ""} onchange="adminApp.toggleRoleFeature('${group.role}','${feature.feature_code}',this.checked,this)"></label>`).join("")}</div></article>`,
+            `<article class="card"><div class="card-head"><div><h3>${group.role}</h3><p>Bật/tắt quyền sử dụng chức năng cho nhóm này</p></div><span class="badge active">NHÓM QUYỀN</span></div><div class="feature-grid">${group.features.map((feature) => `<label class="feature"><span>${this.roleFeatureLabels[feature.feature_code] || feature.feature_code}</span><input type="checkbox" ${feature.enabled ? "checked" : ""} onchange="adminApp.toggleRoleFeature('${group.role}','${feature.feature_code}',this.checked,this)"></label>`).join("")}</div></article>`,
         )
         .join("");
   },

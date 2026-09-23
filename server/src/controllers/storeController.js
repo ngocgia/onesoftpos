@@ -439,7 +439,8 @@ async function updateStoreSettings(req, res) {
     takeaway_workspace_enabled,
     workflow_definition,
     admin_tabs,
-    inventory_transactions_enabled
+    inventory_transactions_enabled,
+    allow_cancel_item
   } = req.body;
 
   if (kds_completion_message !== undefined && !['SUPER_ADMIN', 'ADMIN'].includes(req.user?.role)) {
@@ -458,6 +459,9 @@ async function updateStoreSettings(req, res) {
   const normalizedInventoryTransactions = inventory_transactions_enabled === undefined
     ? undefined
     : (inventory_transactions_enabled === true || String(inventory_transactions_enabled).toLowerCase() === 'true');
+  const normalizedAllowCancelItem = allow_cancel_item === undefined
+    ? undefined
+    : (allow_cancel_item === true || String(allow_cancel_item).toLowerCase() === 'true');
 
   let normalizedWorkflow;
   if (workflow_definition !== undefined) {
@@ -507,8 +511,9 @@ async function updateStoreSettings(req, res) {
              workflow_definition = COALESCE($10::jsonb, workflow_definition),
              admin_tabs = CASE WHEN $11::boolean THEN $12::jsonb ELSE admin_tabs END,
              inventory_transactions_enabled = COALESCE($13, inventory_transactions_enabled),
+             allow_cancel_item = COALESCE($14, allow_cancel_item),
              updated_at = CURRENT_TIMESTAMP
-         WHERE store_id = $14`,
+         WHERE store_id = $15`,
         [
           receipt_header,
           receipt_footer,
@@ -523,6 +528,7 @@ async function updateStoreSettings(req, res) {
           parsedAdminTabs !== undefined,
           normalizedAdminTabs ? JSON.stringify(normalizedAdminTabs) : null,
           normalizedInventoryTransactions,
+          normalizedAllowCancelItem,
           storeId
         ]
       );
@@ -544,6 +550,7 @@ async function updateStoreSettings(req, res) {
       if (normalizedWorkflow !== undefined) settings.workflow_definition = normalizedWorkflow;
       if (normalizedAdminTabs !== undefined) settings.admin_tabs = normalizedAdminTabs;
       if (normalizedInventoryTransactions !== undefined) settings.inventory_transactions_enabled = normalizedInventoryTransactions;
+      if (normalizedAllowCancelItem !== undefined) settings.allow_cancel_item = normalizedAllowCancelItem;
     }
 
     res.json({ success: true, message: 'Đã lưu cấu hình cửa hàng' });

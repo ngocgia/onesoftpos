@@ -367,6 +367,11 @@ window.posModule = {
     if (loading) loading.style.display = 'block';
 
     try {
+      const activeStoreId = window.appState.currentStore?.id;
+      if (!activeStoreId) throw new Error('Tài khoản chưa được gán cửa hàng');
+      if (String(window.api.getCurrentStoreId()) !== String(activeStoreId)) {
+        window.api.setCurrentStoreId(activeStoreId);
+      }
       const [catRes, prodRes] = await Promise.all([
         window.api.get('/categories'),
         window.api.get('/products')

@@ -175,6 +175,7 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
           bank_account_number: { type: 'string', example: '090123456789' },
           bank_account_holder: { type: 'string', example: 'THICH GA POS CN1' },
           kds_enabled: { type: 'boolean', example: true },
+          allow_cancel_item: { type: 'boolean', example: true, description: 'Cho phép vai trò KITCHEN hủy món' },
           kds_completion_message: { type: 'string', example: 'Món ăn {mon}, bàn {ban} đã xong' },
           takeaway_workspace_enabled: { type: 'boolean', example: false },
           workflow_definition: {

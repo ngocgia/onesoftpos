@@ -5,6 +5,10 @@ const path = require('path');
 
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
+if (process.env.DB_CLIENT === 'mysql') {
+  module.exports = require('./mysqlDb');
+} else {
+
 // Correct bcrypt hash for the seeded demo password "123456". These legacy
 // hashes were shipped in older seed files but do not validate that password.
 const SEEDED_PASSWORD_HASH = '$2a$10$yDKokN0lYAcpyQIGv0szqeXEmrW3z2XjqjMvm6DqNnDjJiH.lcWG6';
@@ -445,3 +449,4 @@ module.exports = {
   isPostgresConnected: () => isConnected,
   memoryStore
 };
+}

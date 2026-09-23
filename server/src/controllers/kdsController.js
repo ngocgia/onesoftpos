@@ -334,17 +334,25 @@ async function updateKdsItemStatus(req, res) {
           WHERE id = $2
         `, [status, itemId, req.user.id]);
         if (status === 'CANCELLED' && item.item_status !== 'CANCELLED') {
-          await client.query(`
-            UPDATE orders o SET
-              subtotal = totals.subtotal,
-              discount_amount = LEAST(o.discount_amount, totals.subtotal),
-              total_amount = GREATEST(0, totals.subtotal - LEAST(o.discount_amount, totals.subtotal) + o.tax_amount)
-            FROM (
-              SELECT order_id, COALESCE(SUM(subtotal) FILTER (WHERE status <> 'CANCELLED'), 0) AS subtotal
-              FROM order_items WHERE order_id=$1 GROUP BY order_id
-            ) totals
-            WHERE o.id=totals.order_id
-          `, [item.order_id]);
+          if (process.env.DB_CLIENT === 'mysql') {
+            const totals = await client.query("SELECT COALESCE(SUM(CASE WHEN status <> 'CANCELLED' THEN subtotal ELSE 0 END),0) AS subtotal FROM order_items WHERE order_id=$1", [item.order_id]);
+            await client.query(`UPDATE orders SET subtotal=$1,
+              discount_amount=LEAST(discount_amount,$1),
+              total_amount=GREATEST(0,$1-LEAST(discount_amount,$1)+tax_amount)
+              WHERE id=$2`, [totals.rows[0].subtotal, item.order_id]);
+          } else {
+            await client.query(`
+              UPDATE orders o SET
+                subtotal = totals.subtotal,
+                discount_amount = LEAST(o.discount_amount, totals.subtotal),
+                total_amount = GREATEST(0, totals.subtotal - LEAST(o.discount_amount, totals.subtotal) + o.tax_amount)
+              FROM (
+                SELECT order_id, COALESCE(SUM(subtotal) FILTER (WHERE status <> 'CANCELLED'), 0) AS subtotal
+                FROM order_items WHERE order_id=$1 GROUP BY order_id
+              ) totals
+              WHERE o.id=totals.order_id
+            `, [item.order_id]);
+          }
         }
         const stateResult = await client.query('SELECT status FROM order_items WHERE order_id = $1', [item.order_id]);
         const statuses = stateResult.rows.map(row => row.status);

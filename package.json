@@ -1,11 +1,12 @@
 {
   "name": "thichgapos",
   "version": "1.0.0",
-  "description": "Food & Beverage Multi-Store POS System (HTML, CSS, JS, Node.js, PostgreSQL)",
+  "description": "Food & Beverage Multi-Store POS System (HTML, CSS, JS, Node.js, MySQL/PostgreSQL)",
   "scripts": {
     "start": "npm start --prefix server",
     "dev": "npm run dev --prefix server",
     "db:init": "npm run db:init --prefix server",
+    "db:export-mysql": "npm run db:export-mysql --prefix server",
     "install:all": "npm install --prefix server"
   }
 }

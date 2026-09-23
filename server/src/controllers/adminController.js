@@ -96,15 +96,17 @@ async function getUsers(req, res) {
   try {
     let users;
     if (isPostgresConnected()) {
+      const storesSql = process.env.DB_CLIENT === 'mysql'
+        ? "CASE WHEN COUNT(s.id)=0 THEN JSON_ARRAY() ELSE JSON_ARRAYAGG(JSON_OBJECT('id',s.id,'name',s.name)) END"
+        : "COALESCE(json_agg(json_build_object('id', s.id, 'name', s.name)) FILTER (WHERE s.id IS NOT NULL), '[]')";
       const result = await pool.query(`SELECT u.id, u.username, u.email, u.full_name, u.phone, u.role, u.status,
         u.completed_items_enabled AS completed_items_override,
         COALESCE(u.completed_items_enabled,
           (SELECT enabled FROM role_features rf WHERE rf.role=u.role AND rf.feature_code='COMPLETED_ITEMS'), TRUE) AS completed_items_enabled,
-        u.created_at, COALESCE(json_agg(json_build_object('id', s.id, 'name', s.name))
-        FILTER (WHERE s.id IS NOT NULL), '[]') AS stores
+        u.created_at, ${storesSql} AS stores
         FROM users u LEFT JOIN user_stores us ON us.user_id = u.id LEFT JOIN stores s ON s.id = us.store_id
         GROUP BY u.id ORDER BY u.id`);
-      users = result.rows;
+      users = result.rows.map(user => ({ ...user, stores: typeof user.stores === 'string' ? JSON.parse(user.stores) : user.stores }));
     } else {
       users = memoryStore.users.map(user => ({ ...publicUser(user),
         completed_items_override: user.completed_items_enabled,
@@ -175,15 +177,19 @@ async function updateUser(req, res) {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        const storeIdsSql = process.env.DB_CLIENT === 'mysql'
+          ? 'CASE WHEN COUNT(us.store_id)=0 THEN JSON_ARRAY() ELSE JSON_ARRAYAGG(us.store_id) END'
+          : "COALESCE(array_agg(us.store_id) FILTER (WHERE us.store_id IS NOT NULL), '{}')";
         const current = await client.query(
-          `SELECT u.role, COALESCE(array_agg(us.store_id) FILTER (WHERE us.store_id IS NOT NULL), '{}') AS store_ids
+          `SELECT u.role, ${storeIdsSql} AS store_ids
            FROM users u LEFT JOIN user_stores us ON us.user_id = u.id
            WHERE u.id = $1 GROUP BY u.id`,
           [id]
         );
         if (!current.rowCount) { const error = new Error('Không tìm thấy người dùng'); error.statusCode = 404; throw error; }
         const effectiveRole = role || current.rows[0].role;
-        const effectiveStoreIds = normalizedStoreIds || current.rows[0].store_ids.map(Number);
+        const currentStoreIds = current.rows[0].store_ids;
+        const effectiveStoreIds = normalizedStoreIds || (typeof currentStoreIds === 'string' ? JSON.parse(currentStoreIds) : currentStoreIds).map(Number);
         assertStoreManagerAssignment(effectiveRole, effectiveStoreIds);
         const result = await client.query(`UPDATE users SET full_name=COALESCE($1,full_name), email=COALESCE($2,email),
           phone=COALESCE($3,phone), role=COALESCE($4,role), status=COALESCE($5,status),

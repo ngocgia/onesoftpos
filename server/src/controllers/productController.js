@@ -22,11 +22,17 @@ async function replaceOptionProducts(client, optionId, productIds, storeId) {
   await assertProductsBelongToStore(client, productIds, storeId);
   await client.query('DELETE FROM product_option_products WHERE option_id=$1', [optionId]);
   if (productIds.length) {
-    await client.query(
-      `INSERT INTO product_option_products (option_id, product_id)
-       SELECT $1, unnest($2::int[])`,
-      [optionId, productIds]
-    );
+    if (process.env.DB_CLIENT === 'mysql') {
+      for (const productId of productIds) {
+        await client.query('INSERT INTO product_option_products (option_id, product_id) VALUES ($1,$2)', [optionId, productId]);
+      }
+    } else {
+      await client.query(
+        `INSERT INTO product_option_products (option_id, product_id)
+         SELECT $1, unnest($2::int[])`,
+        [optionId, productIds]
+      );
+    }
   }
 }
 
@@ -479,15 +485,17 @@ async function getToppings(req, res) {
   try {
     let toppings;
     if (isPostgresConnected()) {
+      const productIdsSql = process.env.DB_CLIENT === 'mysql'
+        ? 'CASE WHEN COUNT(pop.product_id)=0 THEN JSON_ARRAY() ELSE JSON_ARRAYAGG(pop.product_id) END'
+        : "COALESCE(array_agg(pop.product_id ORDER BY pop.product_id) FILTER (WHERE pop.product_id IS NOT NULL), '{}')";
       const result = await pool.query(`SELECT po.*,tg.name AS group_name,
-        COALESCE(array_agg(pop.product_id ORDER BY pop.product_id)
-          FILTER (WHERE pop.product_id IS NOT NULL), '{}') AS product_ids
+        ${productIdsSql} AS product_ids
         FROM product_options po
         LEFT JOIN topping_groups tg ON tg.id=po.group_id
         LEFT JOIN product_option_products pop ON pop.option_id=po.id
         WHERE po.store_id=$1
         GROUP BY po.id,tg.name,tg.sort_order ORDER BY tg.sort_order,po.id`, [storeId]);
-      toppings = result.rows.map(item => ({ ...item, product_ids: item.product_ids.map(Number) }));
+      toppings = result.rows.map(item => ({ ...item, product_ids: (typeof item.product_ids === 'string' ? JSON.parse(item.product_ids) : item.product_ids).map(Number) }));
     } else {
       toppings = memoryStore.product_options.filter(item => item.store_id === storeId).map(item => ({
         ...item,
@@ -744,8 +752,14 @@ async function updateProductToppings(req, res) {
         }
         await client.query('DELETE FROM product_option_products WHERE product_id=$1', [productId]);
         if (toppingIds.length) {
-          await client.query(`INSERT INTO product_option_products (option_id,product_id)
-            SELECT unnest($1::int[]),$2`, [toppingIds, productId]);
+          if (process.env.DB_CLIENT === 'mysql') {
+            for (const toppingId of toppingIds) {
+              await client.query('INSERT INTO product_option_products (option_id,product_id) VALUES ($1,$2)', [toppingId, productId]);
+            }
+          } else {
+            await client.query(`INSERT INTO product_option_products (option_id,product_id)
+              SELECT unnest($1::int[]),$2`, [toppingIds, productId]);
+          }
         }
         await client.query('COMMIT');
       } catch (error) {

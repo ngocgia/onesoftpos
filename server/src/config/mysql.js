@@ -18,9 +18,18 @@ function translate(sql, values = []) {
   if (returning) statement = statement.slice(0, returning.index);
   statement = statement.replace(/\bFOR UPDATE OF\s+\w+(?:\s*,\s*\w+)*/gi, 'FOR UPDATE');
   statement = statement.replace(/\bILIKE\b/gi, 'LIKE');
+  statement = statement.replace(/\b([\w.]+)\s+IS\s+NOT\s+DISTINCT\s+FROM\s+([^\s,)]+)/gi, '($1 <=> $2)');
+  statement = statement.replace(/\b([\w.]+)\s+IS\s+DISTINCT\s+FROM\s+([^\s,)]+)/gi, 'NOT ($1 <=> $2)');
+  // MySQL sorts NULL before non-NULL in ascending order and after them in
+  // descending order. Expand PostgreSQL's explicit NULL ordering where the
+  // defaults differ, and remove it where the defaults already match.
+  statement = statement.replace(/([\w.]+)\s+ASC\s+NULLS\s+LAST/gi, '$1 IS NULL, $1 ASC');
+  statement = statement.replace(/([\w.]+)\s+DESC\s+NULLS\s+FIRST/gi, '$1 IS NOT NULL, $1 DESC');
+  statement = statement.replace(/\s+NULLS\s+(?:FIRST|LAST)/gi, '');
   statement = statement.replace(/::(?:int|varchar|boolean|jsonb)(?:\[\])?/gi, '');
   statement = statement.replace(/COUNT\(([^)]*)\)::int/gi, 'COUNT($1)');
   statement = statement.replace(/CURRENT_DATE\s*-\s*INTERVAL\s*'(\d+) days'/gi, 'CURRENT_DATE - INTERVAL $1 DAY');
+  statement = statement.replace(/date_trunc\(\s*'month'\s*,\s*CURRENT_DATE\s*\)/gi, "DATE_FORMAT(CURRENT_DATE, '%Y-%m-01')");
   if (/\bON CONFLICT\s*(?:\([^)]*\))?\s*DO NOTHING/i.test(statement)) {
     statement = statement.replace(/\bON CONFLICT\s*(?:\([^)]*\))?\s*DO NOTHING/gi, '');
     statement = statement.replace(/^INSERT\s+INTO/i, 'INSERT IGNORE INTO');
@@ -46,6 +55,13 @@ function translate(sql, values = []) {
     return '?';
   });
   return { statement, params, returning: returning?.[1]?.trim() };
+}
+
+function normalizeError(error) {
+  if (error?.code === 'ER_DUP_ENTRY') error.code = '23505';
+  if (error?.code === 'ER_NO_REFERENCED_ROW_2' || error?.code === 'ER_ROW_IS_REFERENCED_2') error.code = '23503';
+  if (error?.code === 'ER_BAD_NULL_ERROR') error.code = '23502';
+  return error;
 }
 
 function normalizeRows(rows, fields = []) {
@@ -80,7 +96,13 @@ async function run(connection, sql, values) {
       previousFields = fields;
     }
   }
-  const [result, fields] = await connection.query(statement, params);
+  let result;
+  let fields;
+  try {
+    [result, fields] = await connection.query(statement, params);
+  } catch (error) {
+    throw normalizeError(error);
+  }
   if (Array.isArray(result)) return { rows: normalizeRows(result, fields), rowCount: result.length };
   let rows = [];
   let returnedFields = [];
@@ -109,4 +131,4 @@ const pool = {
   end: () => mysqlPool.end(),
 };
 
-module.exports = { pool, mysqlPool, translate, run };
+module.exports = { pool, mysqlPool, translate, run, normalizeError };

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { translate, run, mysqlPool } = require('../src/config/mysql');
+const { translate, run, mysqlPool, normalizeError } = require('../src/config/mysql');
 const { statements } = require('../src/db/mysqlSchema');
 const { seedStatements } = require('../src/db/initMysql');
 
@@ -42,6 +42,27 @@ test('returns matched UPDATE rows even when values are unchanged', async () => {
 test('converts date intervals and case insensitive search', () => {
   const query = translate("SELECT * FROM orders WHERE created_at >= CURRENT_DATE - INTERVAL '7 days' AND name ILIKE $1", ['A%']);
   assert.equal(query.statement, 'SELECT * FROM orders WHERE created_at >= CURRENT_DATE - INTERVAL 7 DAY AND name LIKE ?');
+});
+
+test('converts PostgreSQL date, null ordering, and distinct comparisons', () => {
+  assert.equal(
+    translate("SELECT * FROM orders WHERE created_at >= date_trunc('month', CURRENT_DATE)").statement,
+    "SELECT * FROM orders WHERE created_at >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01')"
+  );
+  assert.equal(
+    translate("SELECT * FROM orders WHERE payment_status IS DISTINCT FROM 'PAID' ORDER BY prepared_at DESC NULLS LAST").statement,
+    "SELECT * FROM orders WHERE NOT (payment_status <=> 'PAID') ORDER BY prepared_at DESC"
+  );
+  assert.equal(
+    translate('SELECT * FROM orders ORDER BY prepared_at ASC NULLS LAST').statement,
+    'SELECT * FROM orders ORDER BY prepared_at IS NULL, prepared_at ASC'
+  );
+});
+
+test('normalizes common MySQL constraint errors for existing controllers', () => {
+  assert.equal(normalizeError({ code: 'ER_DUP_ENTRY' }).code, '23505');
+  assert.equal(normalizeError({ code: 'ER_ROW_IS_REFERENCED_2' }).code, '23503');
+  assert.equal(normalizeError({ code: 'ER_BAD_NULL_ERROR' }).code, '23502');
 });
 
 test('generates a MySQL schema and clean seed for the fresh database', () => {

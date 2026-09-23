@@ -34,26 +34,62 @@ function assertStoreManagerAssignment(role, storeIds) {
   }
 }
 
+function parseDateOnly(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return null;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+  return date;
+}
+
+function dateOnly(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function nextDate(value) {
+  const date = parseDateOnly(value);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return dateOnly(date);
+}
+
+async function dashboardQuery(label, sql, params, fallbackRows) {
+  try {
+    return await pool.query(sql, params);
+  } catch (error) {
+    // One unavailable statistic must not take down the entire admin page.
+    // Keep the detailed database error in server logs for diagnosis.
+    console.error(`admin dashboard query error [${label}]:`, error);
+    return { rows: fallbackRows, rowCount: fallbackRows.length };
+  }
+}
+
 async function dashboard(req, res) {
   try {
     const { startDate, endDate } = req.query;
     if (isPostgresConnected()) {
-      let dateFilter = "created_at >= CURRENT_DATE";
-      let storeDateFilter = "";
+      const today = dateOnly(new Date());
+      let rangeStart = today;
+      let rangeEnd = nextDate(today);
       if (startDate && endDate) {
-        dateFilter = `created_at >= '${startDate} 00:00:00' AND created_at <= '${endDate} 23:59:59'`;
-        storeDateFilter = `AND o.created_at >= '${startDate} 00:00:00' AND o.created_at <= '${endDate} 23:59:59'`;
+        if (!parseDateOnly(startDate) || !parseDateOnly(endDate) || startDate > endDate) {
+          return res.status(400).json({ success: false, message: 'Khoảng ngày không hợp lệ' });
+        }
+        rangeStart = startDate;
+        rangeEnd = nextDate(endDate);
       }
+      const rangeParams = [`${rangeStart} 00:00:00`, `${rangeEnd} 00:00:00`];
+      const monthStart = `${today.slice(0, 7)}-01 00:00:00`;
 
       const [stores, users, summary, month, topStores] = await Promise.all([
-        pool.query("SELECT COUNT(*)::int AS count FROM stores WHERE status = 'ACTIVE'"),
-        pool.query("SELECT COUNT(*)::int AS count FROM users WHERE status = 'ACTIVE'"),
-        pool.query(`SELECT COUNT(*)::int AS orders, COALESCE(SUM(total_amount), 0) AS revenue FROM orders WHERE payment_status = 'PAID' AND ${dateFilter}`),
-        pool.query("SELECT COALESCE(SUM(total_amount), 0) AS revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= date_trunc('month', CURRENT_DATE)"),
-        pool.query(`SELECT s.id, s.name, COUNT(o.id)::int AS order_count,
+        dashboardQuery('active stores', "SELECT COUNT(*)::int AS count FROM stores WHERE status = 'ACTIVE'", [], [{ count: 0 }]),
+        dashboardQuery('active users', "SELECT COUNT(*)::int AS count FROM users WHERE status = 'ACTIVE'", [], [{ count: 0 }]),
+        dashboardQuery('range summary', "SELECT COUNT(*)::int AS orders, COALESCE(SUM(total_amount), 0) AS revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= $1 AND created_at < $2", rangeParams, [{ orders: 0, revenue: 0 }]),
+        dashboardQuery('month revenue', "SELECT COALESCE(SUM(total_amount), 0) AS revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= $1", [monthStart], [{ revenue: 0 }]),
+        dashboardQuery('store ranking', `SELECT s.id, s.name, COUNT(o.id)::int AS order_count,
                     COALESCE(SUM(o.total_amount), 0) AS revenue
-                    FROM stores s LEFT JOIN orders o ON o.store_id = s.id AND o.payment_status = 'PAID' ${storeDateFilter}
-                    GROUP BY s.id, s.name ORDER BY revenue DESC`)
+                    FROM stores s LEFT JOIN orders o ON o.store_id = s.id AND o.payment_status = 'PAID'
+                      AND o.created_at >= $1 AND o.created_at < $2
+                    GROUP BY s.id, s.name ORDER BY revenue DESC`, rangeParams, [])
       ]);
       return res.json({ success: true, activeStores: stores.rows[0].count, activeUsers: users.rows[0].count,
         todayOrders: summary.rows[0].orders, todayRevenue: Number(summary.rows[0].revenue),

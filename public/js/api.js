@@ -45,7 +45,10 @@ async function apiRequest(endpoint, options = {}) {
 
   try {
     const response = await fetch(`${API_BASE}${endpoint}`, config);
-    const data = await response.json();
+    const contentType = response.headers.get('content-type') || '';
+    const data = contentType.includes('application/json')
+      ? await response.json()
+      : { message: await response.text() };
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -54,7 +57,10 @@ async function apiRequest(endpoint, options = {}) {
           window.showLoginModal();
         }
       }
-      throw new Error(data.message || 'Đã có lỗi xảy ra');
+      const error = new Error(data.message || `Yêu cầu thất bại (${response.status})`);
+      error.status = response.status;
+      error.endpoint = endpoint;
+      throw error;
     }
 
     return data;

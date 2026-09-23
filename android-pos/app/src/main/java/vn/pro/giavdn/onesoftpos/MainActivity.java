@@ -1,4 +1,4 @@
-package vn.pro.giavdn.thichgapos;
+package vn.pro.giavdn.onesoftpos;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -28,8 +28,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public final class MainActivity extends Activity {
-    private static final String HOST = "thichgapos.giavdn.pro.vn";
+    private static final String HOST = "onesoft.one";
     private static final String POS_URL = "https://" + HOST + "/?mode=pos";
+    private static final String CLEAR_ADMIN_SESSION_SCRIPT = "(function(){"
+            + "localStorage.removeItem('thichgapos_token');"
+            + "localStorage.removeItem('thichgapos_store_id');"
+            + "sessionStorage.clear();"
+            + "})()";
     private static final String APP_BRIDGE_SCRIPT = "(function(){"
             + "window.print=function(){var paper=(window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_paper_size)||'80mm';"
             + "window.location.href='tgpos://print?paper='+encodeURIComponent(paper)}"
@@ -66,7 +71,7 @@ public final class MainActivity extends Activity {
         errorView.setGravity(Gravity.CENTER);
         errorView.setPadding(32, 32, 32, 32);
         TextView message = new TextView(this);
-        message.setText("Không tải được Thích Gà POS. Hãy kiểm tra kết nối mạng.");
+        message.setText("Không tải được Onesoft POS. Hãy kiểm tra kết nối mạng.");
         message.setTextColor(Color.DKGRAY);
         message.setTextSize(17);
         message.setGravity(Gravity.CENTER);
@@ -102,8 +107,8 @@ public final class MainActivity extends Activity {
                     return true;
                 }
                 if (isAppHost(uri)) {
-                    if (isStandaloneAdminPath(uri)) {
-                        view.loadUrl(POS_URL);
+                    if (isAdminPath(uri)) {
+                        returnToPosLogin(view);
                         return true;
                     }
                     return false;
@@ -122,8 +127,8 @@ public final class MainActivity extends Activity {
             }
             @Override public void onPageFinished(WebView view, String url) {
                 Uri uri = Uri.parse(url);
-                if (isStandaloneAdminPath(uri)) {
-                    view.loadUrl(POS_URL);
+                if (isAdminPath(uri)) {
+                    returnToPosLogin(view);
                     return;
                 }
                 if (loadFailed || !isAppHost(uri) || !url.equals(view.getUrl())) return;
@@ -149,10 +154,20 @@ public final class MainActivity extends Activity {
     private boolean isAppHost(Uri uri) {
         return "https".equals(uri.getScheme()) && HOST.equalsIgnoreCase(uri.getHost());
     }
-    private boolean isStandaloneAdminPath(Uri uri) {
+    private boolean isAdminPath(Uri uri) {
         String path = uri.getPath();
         return isAppHost(uri) && path != null && (path.equals("/admin")
                 || path.equals("/admin.html") || path.startsWith("/admin/"));
+    }
+    private void returnToPosLogin(WebView view) {
+        view.stopLoading();
+        view.evaluateJavascript(CLEAR_ADMIN_SESSION_SCRIPT, ignored -> {
+            view.clearHistory();
+            view.loadUrl(POS_URL);
+            Toast.makeText(MainActivity.this,
+                    "Ứng dụng chỉ dành cho nhân viên POS, không hỗ trợ tài khoản quản trị.",
+                    Toast.LENGTH_LONG).show();
+        });
     }
     private void printReceipt(String paperSize) {
         PrintManager printer = (PrintManager) getSystemService(PRINT_SERVICE);
@@ -165,11 +180,11 @@ public final class MainActivity extends Activity {
                 .setMediaSize(media)
                 .setColorMode(PrintAttributes.COLOR_MODE_MONOCHROME)
                 .build();
-        printer.print("Thích Gà POS - Hóa đơn", webView.createPrintDocumentAdapter("Hóa đơn Thích Gà POS"), options);
+        printer.print("Onesoft POS - Hóa đơn", webView.createPrintDocumentAdapter("Hóa đơn Onesoft POS"), options);
     }
     @Override public void onBackPressed() {
         if (webView.canGoBack()) webView.goBack();
-        else new AlertDialog.Builder(this).setMessage("Thoát Thích Gà POS?")
+        else new AlertDialog.Builder(this).setMessage("Thoát Onesoft POS?")
                 .setNegativeButton("Ở lại", null).setPositiveButton("Thoát", (dialog, which) -> finish()).show();
     }
     @Override protected void onSaveInstanceState(Bundle outState) {

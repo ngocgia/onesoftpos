@@ -12,11 +12,19 @@
 
 ## Mở và tạo APK
 
-1. Cài Android Studio, Android SDK Platform 35 và JDK 17.
+1. Cài Android Studio, Android SDK Platform 36 và JDK 17.
 2. Mở thư mục `android-pos` bằng Android Studio và chờ Gradle đồng bộ.
 3. Chạy trên Android 7.0 (API 24) trở lên hoặc chọn **Build > Build APK(s)**.
 
 Từ terminal có Android SDK: `gradlew.bat assembleDebug` trên Windows, hoặc `sh ./gradlew assembleDebug` trên macOS/Linux. APK đầu ra là `app/build/outputs/apk/debug/app-debug.apk`. Bản debug đã kiểm tra được chép thành `ThichGaPOS-POS-debug.apk` ở thư mục này.
+
+## Phát hành lên Google Play
+
+Bản release dùng upload key được cấu hình riêng trong `keystore.properties`. File thuộc tính và thư mục `keystore/` đã bị loại khỏi Git vì chứa bí mật. Phải sao lưu cả `keystore/upload-key.jks`, alias và mật khẩu ở nơi an toàn; các lần cập nhật sau phải dùng lại cùng upload key.
+
+Tạo Android App Bundle để tải lên Play Console bằng `gradlew.bat bundleRelease` trên Windows hoặc `./gradlew bundleRelease` trên macOS/Linux. File đầu ra là `app/build/outputs/bundle/release/app-release.aab`.
+
+Ứng dụng nhắm đến Android API 36 theo yêu cầu hiện tại của Google Play. Bản release đang để `minifyEnabled false`, vì vậy không tạo tệp ánh xạ R8/ProGuard; cảnh báo thiếu tệp gỡ rối trên Play Console có thể bỏ qua và không chặn phát hành.
 
 ## Kiểm tra
 

@@ -1283,7 +1283,7 @@
     </div>
   </div>
 
-  <!-- MODAL 8: LOGIN (Quick switch user) -->
+  <!-- MODAL 8: LOGIN -->
   <div class="modal-overlay" id="loginModal" style="display: none;">
     <div class="modal-dialog">
       <div class="modal-header">
@@ -1293,25 +1293,14 @@
       <div class="modal-body">
         <div class="form-group">
           <label>Tên đăng nhập / Email:</label>
-          <input type="text" id="loginUsername" class="form-input" value="cashier"
-            placeholder="admin, cashier, kitchen...">
+          <input type="text" id="loginUsername" class="form-input" autocomplete="username"
+            placeholder="Tên đăng nhập hoặc email">
         </div>
         <div class="form-group">
           <label>Mật khẩu:</label>
-          <input type="password" id="loginPassword" class="form-input" value="123456" placeholder="Mật khẩu">
+          <input type="password" id="loginPassword" class="form-input" autocomplete="current-password" placeholder="Mật khẩu">
         </div>
         <button type="button" class="btn-primary btn-block mt-3" id="btnSubmitLogin">Đăng Nhập</button>
-
-        <div class="quick-login-divider">
-          <span>Hoặc chọn tài khoản mẫu để test nhanh:</span>
-        </div>
-        <div class="quick-login-grid">
-          <button type="button" class="btn-quick-login" data-user="admin">Admin (Toàn quyền)</button>
-          <button type="button" class="btn-quick-login" data-user="manager">Quản lý cửa hàng</button>
-          <button type="button" class="btn-quick-login" data-user="order">Nhân viên Order</button>
-          <button type="button" class="btn-quick-login" data-user="cashier">Thu ngân (POS)</button>
-          <button type="button" class="btn-quick-login" data-user="kitchen">Đầu bếp (KDS)</button>
-        </div>
       </div>
     </div>
   </div>
@@ -1331,7 +1320,7 @@
   <script src="js/invoice.js?v=20260918-takeaway-actions"></script>
   <script src="js/shifts.js"></script>
   <script src="js/admin.js?v=20260919-table-management"></script>
-  <script src="js/app.js?v=20260918-completed-items"></script>
+  <script src="js/app.js?v=20260923-login-fix"></script>
 </body>
 
 </html>

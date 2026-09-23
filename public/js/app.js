@@ -112,32 +112,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   bindGlobalEvents();
 
-  // Auto login or check existing token
-  await initAuth();
-
-  await initializeAvailableModules();
+  // Only initialize POS modules after a valid session is available.
+  if (await initAuth()) await initializeAvailableModules();
 });
 
 // Authentication Initialization
 async function initAuth() {
-  let token = window.api.getToken();
-
-  if (!token) {
-    // Perform auto-login with default cashier for seamless testing
-    try {
-      const loginRes = await window.api.post('/auth/login', { username: 'cashier', password: '123456' });
-      token = loginRes.token;
-      window.api.setToken(token);
-      window.appState.user = loginRes.user;
-      window.appState.stores = loginRes.stores;
-      
-      const defaultStoreId = loginRes.defaultStore ? loginRes.defaultStore.id : (loginRes.stores[0]?.id || 1);
-      window.api.setCurrentStoreId(defaultStoreId);
-    } catch (err) {
-      console.warn('Auto login failed:', err);
-      showLoginModal();
-      return;
-    }
+  if (!window.api.getToken()) {
+    showLoginModal();
+    return false;
   }
 
   // Fetch current user and stores
@@ -149,7 +132,7 @@ async function initAuth() {
 
     if (['SUPER_ADMIN', 'ADMIN'].includes(meRes.user.role) && new URLSearchParams(window.location.search).get('mode') !== 'pos') {
       window.location.replace('/admin.html');
-      return;
+      return false;
     }
 
     updateUserProfileUI();
@@ -164,9 +147,12 @@ async function initAuth() {
     if (initialView && window.appNavigation.currentView !== initialView) {
       window.appNavigation.switchView(initialView);
     }
+    return true;
   } catch (err) {
     console.error('Auth verification failed:', err);
+    window.api.removeToken();
     showLoginModal();
+    return false;
   }
 }
 
@@ -264,7 +250,8 @@ function bindGlobalEvents() {
     btnLogout.addEventListener('click', () => {
       if (confirm('Bạn có muốn đăng xuất khỏi hệ thống?')) {
         window.api.removeToken();
-        showLoginModal();
+        window.api.setCurrentStoreId('');
+        window.location.replace('/');
       }
     });
   }
@@ -345,6 +332,7 @@ function bindGlobalEvents() {
 
   if (btnCloseLogin) {
     btnCloseLogin.addEventListener('click', () => {
+      if (!window.api.getToken()) return;
       document.getElementById('loginModal').style.display = 'none';
     });
   }
@@ -356,25 +344,29 @@ function bindGlobalEvents() {
       await executeLogin(u, p);
     });
   }
-
-  document.querySelectorAll('.btn-quick-login').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const userType = btn.getAttribute('data-user');
-      await executeLogin(userType, '123456');
+  for (const id of ['loginUsername', 'loginPassword']) {
+    document.getElementById(id)?.addEventListener('keydown', event => {
+      if (event.key === 'Enter') btnSubmitLogin?.click();
     });
-  });
+  }
 }
 
 function showLoginModal() {
   const modal = document.getElementById('loginModal');
   if (modal) modal.style.display = 'flex';
+  const close = document.getElementById('btnCloseLoginModal');
+  if (close) close.style.display = window.api.getToken() ? '' : 'none';
 }
 
 window.showLoginModal = showLoginModal;
 
 async function executeLogin(username, password) {
   try {
+    if (!username || !password) throw new Error('Vui lòng nhập tên đăng nhập và mật khẩu');
     const res = await window.api.post('/auth/login', { username, password });
+    if (!['SUPER_ADMIN', 'ADMIN'].includes(res.user.role) && !res.stores?.length) {
+      throw new Error('Tài khoản chưa được gán cửa hàng. Vui lòng liên hệ quản trị viên');
+    }
     window.api.setToken(res.token);
     window.appState.user = res.user;
     window.appState.stores = res.stores || [];
@@ -384,7 +376,7 @@ async function executeLogin(username, password) {
       return;
     }
 
-    const defaultStoreId = res.defaultStore ? res.defaultStore.id : (res.stores[0]?.id || 1);
+    const defaultStoreId = res.defaultStore ? res.defaultStore.id : res.stores[0].id;
     window.api.setCurrentStoreId(defaultStoreId);
     window.appState.applyRoleFeatures(res.roleFeatures);
 

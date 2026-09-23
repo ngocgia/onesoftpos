@@ -776,6 +776,9 @@ const adminApp = {
       this.roles.map((role) => `<option>${role}</option>`).join("");
     this.renderUsers();
   },
+  async prepareUsers() {
+    await this.loadUsers();
+  },
   renderUsers() {
     const q = document.getElementById("userSearch").value.toLowerCase(),
       role = document.getElementById("roleFilter").value;

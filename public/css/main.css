@@ -1596,6 +1596,42 @@ button:active {
   display: block;
 }
 
+.report-revenue-header {
+  margin-bottom: 16px;
+}
+
+.report-revenue-header h3 {
+  margin: 0 0 12px;
+}
+
+.report-date-filter {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 220px)) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.report-date-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.report-date-field .form-input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+}
+
+.report-filter-button {
+  min-height: 42px;
+  white-space: nowrap;
+}
+
 .btn-print-draft {
   flex: 1;
   min-width: 132px;
@@ -3398,6 +3434,15 @@ textarea.form-input {
     min-height: 44px;
   }
 
+  .report-revenue-header {
+    display: block;
+  }
+
+  .report-date-filter {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+    width: 100%;
+  }
+
   .feature-grid,
   .permissions-grid {
     grid-template-columns: 1fr;
@@ -3448,10 +3493,29 @@ textarea.form-input {
   }
 }
 
+@media (max-width: 520px) {
+  .report-date-filter {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .report-filter-button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
 @media (max-width: 374px) {
   .products-grid,
   .reports-summary-cards {
     grid-template-columns: 1fr;
+  }
+
+  .report-date-filter {
+    grid-template-columns: 1fr;
+  }
+
+  .report-filter-button {
+    grid-column: auto;
   }
 
   .avatar {

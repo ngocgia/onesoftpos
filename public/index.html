@@ -16,7 +16,7 @@
     rel="stylesheet">
   <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/main.css?v=20260923-toast-center">
+  <link rel="stylesheet" href="css/main.css?v=20260923-report-date-filter">
 </head>
 
 <body class="theme-light">
@@ -432,12 +432,21 @@
 
           <!-- ADMIN SUBVIEW 1: REPORTS -->
           <div id="adminReports" class="admin-subview active">
-            <div class="subview-header" style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-              <h3 style="margin: 0; flex: 1;">Báo cáo doanh thu</h3>
-              <input type="date" id="posReportStartDate" class="form-input" style="width: auto; padding: 4px 8px;">
-              <span>-</span>
-              <input type="date" id="posReportEndDate" class="form-input" style="width: auto; padding: 4px 8px;">
-              <button class="btn-primary btn-sm" id="btnFilterPosReports">Lọc</button>
+            <div class="subview-header report-revenue-header">
+              <h3>Báo cáo doanh thu</h3>
+              <div class="report-date-filter">
+                <label class="report-date-field" for="posReportStartDate">
+                  <span>Từ ngày</span>
+                  <input type="date" id="posReportStartDate" class="form-input">
+                </label>
+                <label class="report-date-field" for="posReportEndDate">
+                  <span>Đến ngày</span>
+                  <input type="date" id="posReportEndDate" class="form-input">
+                </label>
+                <button type="button" class="btn-primary btn-sm report-filter-button" id="btnFilterPosReports">
+                  <i class="fa-solid fa-filter"></i> Lọc
+                </button>
+              </div>
             </div>
             <div class="reports-summary-cards">
               <div class="report-card card-revenue">

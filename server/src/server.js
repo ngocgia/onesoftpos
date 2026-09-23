@@ -41,8 +41,13 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(publicPath, 'index.html'));
 });
 
-// Start server
-const server = app.listen(PORT, async () => {
+// Start server after the configured database is ready.
+async function start() {
+  const connected = await testConnection();
+  if (process.env.DB_CLIENT === 'mysql' && !connected) {
+    throw new Error('MySQL is unavailable. Run npm run db:init after configuring server/.env.');
+  }
+  const server = app.listen(PORT, () => {
   console.log(`====================================================`);
   console.log(`🚀 ThichGaPOS Server running on http://localhost:${PORT}`);
   console.log(`📱 Frontend Mobile-First UI: http://localhost:${PORT}`);
@@ -51,11 +56,9 @@ const server = app.listen(PORT, async () => {
   console.log(`⚡ API Health Check: http://localhost:${PORT}/api/health`);
   console.log(`====================================================`);
   
-  // Test PostgreSQL connection
-  await testConnection();
-});
+  });
 
-server.on('error', (err) => {
+  server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
     console.error(`❌ Cổng ${PORT} hiện đang bị chiếm dụng bởi một tiến trình khác.`);
     console.error(`💡 Gợi ý: Hãy giải phóng cổng ${PORT} hoặc thay đổi PORT trong file server/.env.`);
@@ -63,4 +66,7 @@ server.on('error', (err) => {
     console.error('❌ Server error:', err.message);
   }
   process.exit(1);
-});
+  });
+}
+
+start().catch(error => { console.error(error.message); process.exitCode = 1; });

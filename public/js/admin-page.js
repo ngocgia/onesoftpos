@@ -209,15 +209,26 @@ const adminApp = {
   },
   async init() {
     if (!window.api.getToken()) {
-      location.href = "/";
+      location.replace("/");
       return;
     }
+    let me;
     try {
-      const me = await window.api.get("/auth/me");
+      me = await window.api.get("/auth/me");
+    } catch (e) {
+      this.toast(e.message, true);
+      if (e.status === 401 || e.status === 403) {
+        window.api.removeToken();
+        setTimeout(() => location.replace("/"), 900);
+      }
+      return;
+    }
+
+    try {
       this.me = me.user;
       if (!["SUPER_ADMIN", "ADMIN"].includes(this.me.role)) {
         this.toast("Trang này chỉ dành cho ADMIN hoặc SUPER_ADMIN", true);
-        setTimeout(() => (location.href = "/"), 900);
+        setTimeout(() => location.replace("/"), 900);
         return;
       }
       this.stores = me.stores || [];
@@ -234,10 +245,15 @@ const adminApp = {
         .join("")
         .toUpperCase();
       this.bind();
-      await Promise.all([this.loadStoreTypes(), this.loadDashboard()]);
+      const initialLoads = await Promise.allSettled([
+        this.loadStoreTypes(),
+        this.loadDashboard(),
+      ]);
+      const failed = initialLoads.find((result) => result.status === "rejected");
+      if (failed) this.toast(failed.reason?.message || "Không thể tải đầy đủ dữ liệu quản trị", true);
     } catch (e) {
+      console.error("Admin initialization error:", e);
       this.toast(e.message, true);
-      setTimeout(() => (location.href = "/"), 900);
     }
   },
   bind() {
@@ -265,7 +281,13 @@ const adminApp = {
       .forEach(
         (btn) => (btn.onclick = () => this.showPage(btn.dataset.refresh, true)),
       );
-    document.getElementById("btnFilterAdminReports").onclick = () => this.loadDashboard();
+    document.getElementById("btnFilterAdminReports").onclick = async () => {
+      try {
+        await this.loadDashboard();
+      } catch (error) {
+        this.toast(error.message, true);
+      }
+    };
     document.getElementById("addStoreBtn").onclick = () => this.editStore();
     document.getElementById("addStoreTypeBtn").onclick = () =>
       this.editStoreType();

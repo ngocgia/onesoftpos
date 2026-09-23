@@ -3,6 +3,10 @@ const { pool, isPostgresConnected, memoryStore } = require('../config/db');
 async function getSummary(req, res) {
   const storeId = req.storeId || parseInt(req.query.store_id, 10);
   const range = req.query.range || 'today'; // today, 7days, 30days
+  const { startDate, endDate } = req.query;
+  if ((startDate || endDate) && (!/^\d{4}-\d{2}-\d{2}$/.test(startDate || '') || !/^\d{4}-\d{2}-\d{2}$/.test(endDate || ''))) {
+    return res.status(400).json({ success: false, message: 'Ngày bắt đầu hoặc kết thúc không hợp lệ' });
+  }
 
   try {
     let revenue = 0;
@@ -12,7 +16,6 @@ async function getSummary(req, res) {
 
     if (isPostgresConnected()) {
       let dateFilter = "created_at >= CURRENT_DATE";
-      const { startDate, endDate } = req.query;
       if (startDate && endDate) {
         dateFilter = `created_at >= '${startDate} 00:00:00' AND created_at <= '${endDate} 23:59:59'`;
       } else if (range === '7days') {
@@ -55,7 +58,6 @@ async function getSummary(req, res) {
       );
       topProducts = topRes.rows;
     } else {
-      const { startDate, endDate } = req.query;
       const todayDate = new Date().toISOString().slice(0, 10);
       let paidOrders = memoryStore.orders.filter(o => o.store_id === storeId && o.payment_status === 'PAID');
       let storePayments = memoryStore.payments.filter(p => p.store_id === storeId && p.status === 'SUCCESS');

@@ -34,26 +34,62 @@ function assertStoreManagerAssignment(role, storeIds) {
   }
 }
 
+function parseDateOnly(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return null;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+  return date;
+}
+
+function dateOnly(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function nextDate(value) {
+  const date = parseDateOnly(value);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return dateOnly(date);
+}
+
+async function dashboardQuery(label, sql, params, fallbackRows) {
+  try {
+    return await pool.query(sql, params);
+  } catch (error) {
+    // One unavailable statistic must not take down the entire admin page.
+    // Keep the detailed database error in server logs for diagnosis.
+    console.error(`admin dashboard query error [${label}]:`, error);
+    return { rows: fallbackRows, rowCount: fallbackRows.length };
+  }
+}
+
 async function dashboard(req, res) {
   try {
     const { startDate, endDate } = req.query;
     if (isPostgresConnected()) {
-      let dateFilter = "created_at >= CURRENT_DATE";
-      let storeDateFilter = "";
+      const today = dateOnly(new Date());
+      let rangeStart = today;
+      let rangeEnd = nextDate(today);
       if (startDate && endDate) {
-        dateFilter = `created_at >= '${startDate} 00:00:00' AND created_at <= '${endDate} 23:59:59'`;
-        storeDateFilter = `AND o.created_at >= '${startDate} 00:00:00' AND o.created_at <= '${endDate} 23:59:59'`;
+        if (!parseDateOnly(startDate) || !parseDateOnly(endDate) || startDate > endDate) {
+          return res.status(400).json({ success: false, message: 'Khoảng ngày không hợp lệ' });
+        }
+        rangeStart = startDate;
+        rangeEnd = nextDate(endDate);
       }
+      const rangeParams = [`${rangeStart} 00:00:00`, `${rangeEnd} 00:00:00`];
+      const monthStart = `${today.slice(0, 7)}-01 00:00:00`;
 
       const [stores, users, summary, month, topStores] = await Promise.all([
-        pool.query("SELECT COUNT(*)::int AS count FROM stores WHERE status = 'ACTIVE'"),
-        pool.query("SELECT COUNT(*)::int AS count FROM users WHERE status = 'ACTIVE'"),
-        pool.query(`SELECT COUNT(*)::int AS orders, COALESCE(SUM(total_amount), 0) AS revenue FROM orders WHERE payment_status = 'PAID' AND ${dateFilter}`),
-        pool.query("SELECT COALESCE(SUM(total_amount), 0) AS revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= date_trunc('month', CURRENT_DATE)"),
-        pool.query(`SELECT s.id, s.name, COUNT(o.id)::int AS order_count,
+        dashboardQuery('active stores', "SELECT COUNT(*)::int AS count FROM stores WHERE status = 'ACTIVE'", [], [{ count: 0 }]),
+        dashboardQuery('active users', "SELECT COUNT(*)::int AS count FROM users WHERE status = 'ACTIVE'", [], [{ count: 0 }]),
+        dashboardQuery('range summary', "SELECT COUNT(*)::int AS orders, COALESCE(SUM(total_amount), 0) AS revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= $1 AND created_at < $2", rangeParams, [{ orders: 0, revenue: 0 }]),
+        dashboardQuery('month revenue', "SELECT COALESCE(SUM(total_amount), 0) AS revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= $1", [monthStart], [{ revenue: 0 }]),
+        dashboardQuery('store ranking', `SELECT s.id, s.name, COUNT(o.id)::int AS order_count,
                     COALESCE(SUM(o.total_amount), 0) AS revenue
-                    FROM stores s LEFT JOIN orders o ON o.store_id = s.id AND o.payment_status = 'PAID' ${storeDateFilter}
-                    GROUP BY s.id, s.name ORDER BY revenue DESC`)
+                    FROM stores s LEFT JOIN orders o ON o.store_id = s.id AND o.payment_status = 'PAID'
+                      AND o.created_at >= $1 AND o.created_at < $2
+                    GROUP BY s.id, s.name ORDER BY revenue DESC`, rangeParams, [])
       ]);
       return res.json({ success: true, activeStores: stores.rows[0].count, activeUsers: users.rows[0].count,
         todayOrders: summary.rows[0].orders, todayRevenue: Number(summary.rows[0].revenue),
@@ -96,15 +132,17 @@ async function getUsers(req, res) {
   try {
     let users;
     if (isPostgresConnected()) {
+      const storesSql = process.env.DB_CLIENT === 'mysql'
+        ? "CASE WHEN COUNT(s.id)=0 THEN JSON_ARRAY() ELSE JSON_ARRAYAGG(JSON_OBJECT('id',s.id,'name',s.name)) END"
+        : "COALESCE(json_agg(json_build_object('id', s.id, 'name', s.name)) FILTER (WHERE s.id IS NOT NULL), '[]')";
       const result = await pool.query(`SELECT u.id, u.username, u.email, u.full_name, u.phone, u.role, u.status,
         u.completed_items_enabled AS completed_items_override,
         COALESCE(u.completed_items_enabled,
           (SELECT enabled FROM role_features rf WHERE rf.role=u.role AND rf.feature_code='COMPLETED_ITEMS'), TRUE) AS completed_items_enabled,
-        u.created_at, COALESCE(json_agg(json_build_object('id', s.id, 'name', s.name))
-        FILTER (WHERE s.id IS NOT NULL), '[]') AS stores
+        u.created_at, ${storesSql} AS stores
         FROM users u LEFT JOIN user_stores us ON us.user_id = u.id LEFT JOIN stores s ON s.id = us.store_id
         GROUP BY u.id ORDER BY u.id`);
-      users = result.rows;
+      users = result.rows.map(user => ({ ...user, stores: typeof user.stores === 'string' ? JSON.parse(user.stores) : user.stores }));
     } else {
       users = memoryStore.users.map(user => ({ ...publicUser(user),
         completed_items_override: user.completed_items_enabled,
@@ -175,15 +213,19 @@ async function updateUser(req, res) {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        const storeIdsSql = process.env.DB_CLIENT === 'mysql'
+          ? 'CASE WHEN COUNT(us.store_id)=0 THEN JSON_ARRAY() ELSE JSON_ARRAYAGG(us.store_id) END'
+          : "COALESCE(array_agg(us.store_id) FILTER (WHERE us.store_id IS NOT NULL), '{}')";
         const current = await client.query(
-          `SELECT u.role, COALESCE(array_agg(us.store_id) FILTER (WHERE us.store_id IS NOT NULL), '{}') AS store_ids
+          `SELECT u.role, ${storeIdsSql} AS store_ids
            FROM users u LEFT JOIN user_stores us ON us.user_id = u.id
            WHERE u.id = $1 GROUP BY u.id`,
           [id]
         );
         if (!current.rowCount) { const error = new Error('Không tìm thấy người dùng'); error.statusCode = 404; throw error; }
         const effectiveRole = role || current.rows[0].role;
-        const effectiveStoreIds = normalizedStoreIds || current.rows[0].store_ids.map(Number);
+        const currentStoreIds = current.rows[0].store_ids;
+        const effectiveStoreIds = normalizedStoreIds || (typeof currentStoreIds === 'string' ? JSON.parse(currentStoreIds) : currentStoreIds).map(Number);
         assertStoreManagerAssignment(effectiveRole, effectiveStoreIds);
         const result = await client.query(`UPDATE users SET full_name=COALESCE($1,full_name), email=COALESCE($2,email),
           phone=COALESCE($3,phone), role=COALESCE($4,role), status=COALESCE($5,status),

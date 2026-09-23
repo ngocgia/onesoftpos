@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "db:init": "node src/db/initDb.js"
+    "db:init": "node src/db/init.js",
+    "db:export-mysql": "node src/db/exportMysql.js",
+    "test": "node --test"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -14,6 +16,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
     "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.24.4",
     "pg": "^8.13.0",
     "swagger-ui-express": "^5.0.1"
   },

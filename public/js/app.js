@@ -56,6 +56,7 @@ window.appNavigation = {
       window.appState.currentStore = res.store;
       window.appState.storeSettings = res.settings;
       window.appState.storeType = res.storeType;
+      await window.menuPersistence.loadStore().catch(error => window.api.showToast(error.message, 'error'));
       window.appState.applyStoreFeatures(res.features);
       window.appState.applyOrderWorkflow();
 
@@ -140,8 +141,9 @@ async function initAuth() {
       return false;
     }
 
+    await window.menuPersistence.loadHeader().catch(error => window.api.showToast(error.message, 'error'));
     updateUserProfileUI();
-    initializeCurrentStore();
+    await initializeCurrentStore();
 
     // Load active store features
     await window.appNavigation.reloadCurrentStoreFeatures();
@@ -175,9 +177,13 @@ function updateUserProfileUI() {
   }
 }
 
-function initializeCurrentStore() {
+async function initializeCurrentStore() {
   const stores = window.appState.stores || [];
-  const currentStoreId = Number(window.api.getCurrentStoreId());
+  let currentStoreId = Number(window.api.getCurrentStoreId());
+  try {
+    const saved = await window.api.get('/auth/preferences/current_store');
+    if (saved.settings) currentStoreId = saved.settings.store_id;
+  } catch (error) { window.api.showToast(error.message, 'error'); }
   const active = stores.find(store => Number(store.id) === currentStoreId) || stores[0] || null;
   window.appState.currentStore = active;
   // Restore a valid store context without a header selector.
@@ -363,8 +369,9 @@ async function executeLogin(username, password) {
     window.api.setCurrentStoreId(defaultStoreId);
     window.appState.applyRoleFeatures(res.roleFeatures);
 
+    await window.menuPersistence.loadHeader().catch(error => window.api.showToast(error.message, 'error'));
     updateUserProfileUI();
-    initializeCurrentStore();
+    await initializeCurrentStore();
     await window.appNavigation.reloadCurrentStoreFeatures();
     await initializeAvailableModules({ refreshInitialized: true });
 

@@ -8,4 +8,17 @@
 
 Chỉ dùng một trong hai cách khởi tạo: Import qua phpMyAdmin hoặc `npm run db:init`. `npm run db:export-mysql` tạo lại tệp SQL nhập từ schema và seed trong repo.
 
+## Cập nhật menu Nhiều hơn trên hosting đang có dữ liệu
+
+Kiểm tra biến môi trường của backend có `DB_CLIENT=mysql`. Điền các biến `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE` bằng thông tin hosting; không dùng cấu hình PostgreSQL của máy phát triển.
+
+Chọn một trong hai cách bổ sung bảng cấu hình:
+
+- Trong phpMyAdmin, chọn đúng database hiện tại rồi Import `src/db/migrations/20261009-menu-preferences.mysql.sql`.
+- Hoặc chạy `npm run db:migrate-menu-mysql` trong thư mục `server` trên hosting.
+
+Migration chỉ tạo bảng `menu_preferences` nếu chưa tồn tại, không xóa bảng và không chèn dữ liệu mẫu. Bảng dùng InnoDB và utf8mb4 để lưu tiếng Việt/emoji. Không nhập lại `mysql-import.sql` vào database đang sử dụng: tệp đó dành cho database trống.
+
+Sau khi tải mã nguồn mới và chạy migration, khởi động lại ứng dụng Node.js trên hosting, rồi tải lại POS. Backend cũng tự tạo bảng này khi khởi động nếu tài khoản database có quyền CREATE TABLE.
+
 Dữ liệu mẫu có tài khoản `admin` với mật khẩu tạm `123456`. Hãy đổi mật khẩu ngay khi đưa ứng dụng lên Internet, đồng thời đặt `JWT_SECRET` thành một chuỗi ngẫu nhiên dài. Không đưa tệp `.env` lên kho mã nguồn.

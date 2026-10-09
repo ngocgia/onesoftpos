@@ -420,3 +420,13 @@ CREATE TABLE IF NOT EXISTS inventory_transactions (
 CREATE INDEX IF NOT EXISTS idx_inventory_items_store ON inventory_items(store_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_inventory_trans_store_created ON inventory_transactions(store_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_inventory_trans_item ON inventory_transactions(item_id);
+
+-- Persistent POS menu configuration and personal preferences
+CREATE TABLE IF NOT EXISTS menu_preferences (
+    owner_type VARCHAR(10) NOT NULL,
+    owner_id INTEGER NOT NULL,
+    section VARCHAR(32) NOT NULL,
+    payload TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (owner_type, owner_id, section)
+);

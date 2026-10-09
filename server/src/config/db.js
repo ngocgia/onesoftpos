@@ -391,7 +391,12 @@ async function testConnection() {
     await client.query('CREATE INDEX IF NOT EXISTS idx_inventory_trans_item ON inventory_transactions(item_id)');
 
     const itemCountRes = await client.query('SELECT COUNT(*) as count FROM inventory_items');
-    if (parseInt(itemCountRes.rows[0].count, 10) === 0) {
+    // Demo inventory must never be inserted into deleted or unrelated stores.
+    const demoStores = await client.query('SELECT id,code FROM stores');
+    const demoUsers = await client.query('SELECT id,username FROM users');
+    const canSeedDemoInventory = memoryStore.stores.every(sample => demoStores.rows.some(store => store.id === sample.id && store.code === sample.code))
+      && memoryStore.inventory_transactions.every(sample => demoUsers.rows.some(user => user.id === sample.user_id && user.username === memoryStore.users.find(item => item.id === sample.user_id)?.username));
+    if (parseInt(itemCountRes.rows[0].count, 10) === 0 && canSeedDemoInventory) {
       for (const item of memoryStore.inventory_items) {
         await client.query(
           `INSERT INTO inventory_items (id, store_id, code, name, category, unit, cost_price, current_stock, min_stock, is_active)

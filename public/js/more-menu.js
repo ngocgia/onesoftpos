@@ -185,7 +185,7 @@ window.moreMenuModule = {
 
   // 1. Cài đặt máy in
   openPrinterModal() {
-    const saved = JSON.parse(localStorage.getItem('pos_printer_settings') || 'null') || this.defaultPrinterSettings;
+    const saved = window.menuPersistence.read('printer', this.defaultPrinterSettings);
     const modal = document.getElementById('printerSettingsModal');
     if (!modal) return;
 
@@ -199,7 +199,7 @@ window.moreMenuModule = {
     modal.style.display = 'flex';
   },
 
-  savePrinterSettings() {
+  async savePrinterSettings() {
     const settings = {
       paperSize: document.getElementById('printerPaperSize').value,
       connectionType: document.getElementById('printerConnectionType').value,
@@ -208,7 +208,7 @@ window.moreMenuModule = {
       autoCutPaper: document.getElementById('printerAutoCut').checked,
       printKitchenSeparate: document.getElementById('printerKitchenSeparate').checked
     };
-    localStorage.setItem('pos_printer_settings', JSON.stringify(settings));
+    await window.menuPersistence.save('printer', settings);
     document.getElementById('printerSettingsModal').style.display = 'none';
     window.api?.showToast('Đã lưu cấu hình máy in thành công', 'success');
   },
@@ -282,11 +282,6 @@ window.moreMenuModule = {
     modal.style.display = 'flex';
   },
 
-  saveWorkflowSettings() {
-    const settingsModal = document.getElementById('workflowSettingsModal');
-    if (settingsModal) settingsModal.style.display = 'none';
-    window.api?.showToast('Đã lưu cấu hình quy trình bán hàng', 'success');
-  },
 
   goToAdvancedWorkflow() {
     document.getElementById('workflowSettingsModal').style.display = 'none';
@@ -300,14 +295,10 @@ window.moreMenuModule = {
     modal.style.display = 'flex';
   },
 
-  saveShippingSettings() {
-    document.getElementById('shippingPartnersModal').style.display = 'none';
-    window.api?.showToast('Đã cập nhật cấu hình đối tác vận chuyển', 'success');
-  },
 
   // 4. Định dạng số
   openNumberFormatModal() {
-    const saved = JSON.parse(localStorage.getItem('pos_number_format') || 'null') || this.defaultNumberSettings;
+    const saved = window.menuPersistence.read('number', this.defaultNumberSettings);
     const modal = document.getElementById('numberFormatModal');
     if (!modal) return;
 
@@ -330,14 +321,14 @@ window.moreMenuModule = {
     if (el) el.textContent = preview;
   },
 
-  saveNumberFormat() {
+  async saveNumberFormat() {
     const settings = {
       currencySymbol: document.getElementById('fmtCurrencySymbol').value,
       symbolPosition: document.getElementById('fmtSymbolPosition').value,
       thousandSeparator: document.getElementById('fmtThousandSep').value,
       rounding: document.getElementById('fmtRounding').value
     };
-    localStorage.setItem('pos_number_format', JSON.stringify(settings));
+    await window.menuPersistence.save('number', settings);
     document.getElementById('numberFormatModal').style.display = 'none';
     window.api?.showToast('Đã lưu định dạng số hiển thị', 'success');
   },
@@ -349,17 +340,7 @@ window.moreMenuModule = {
     modal.style.display = 'flex';
   },
 
-  testEInvoiceConnection() {
-    window.api?.showToast('Đang kiểm tra kết nối với hệ thống HĐĐT...', 'info');
-    setTimeout(() => {
-      window.api?.showToast('Kết nối thành công tới nhà cung cấp HĐĐT!', 'success');
-    }, 800);
-  },
 
-  saveEInvoiceSettings() {
-    document.getElementById('einvoiceSettingsModal').style.display = 'none';
-    window.api?.showToast('Đã lưu cấu hình Hóa đơn điện tử', 'success');
-  },
 
   // 6. Website cửa hàng & QR
   openWebsiteModal() {
@@ -400,22 +381,18 @@ window.moreMenuModule = {
     modal.style.display = 'flex';
   },
 
-  saveLoyaltySettings() {
-    document.getElementById('loyaltySettingsModal').style.display = 'none';
-    window.api?.showToast('Đã lưu cấu hình tích điểm và khuyến mãi', 'success');
-  },
 
   // 8. Loa thông báo (Audio Beep & SpeechSynthesis)
   openSpeakerModal() {
-    const saved = JSON.parse(localStorage.getItem('pos_speaker_settings') || 'null') || this.defaultSpeakerSettings;
+    const saved = window.menuPersistence.read('speaker', this.defaultSpeakerSettings);
     const modal = document.getElementById('speakerSettingsModal');
     if (!modal) return;
 
     document.getElementById('spkNewOrder').checked = !!saved.enableNewOrderSound;
     document.getElementById('spkKitchenDone').checked = !!saved.enableKitchenDoneSound;
     document.getElementById('spkVietQR').checked = !!saved.enableVietQRSpeech;
-    document.getElementById('spkVolume').value = saved.volume || 85;
-    document.getElementById('spkVolumeLabel').textContent = `${saved.volume || 85}%`;
+    document.getElementById('spkVolume').value = saved.volume ?? 85;
+    document.getElementById('spkVolumeLabel').textContent = `${saved.volume ?? 85}%`;
 
     modal.style.display = 'flex';
   },
@@ -469,14 +446,14 @@ window.moreMenuModule = {
     }
   },
 
-  saveSpeakerSettings() {
+  async saveSpeakerSettings() {
     const settings = {
       enableNewOrderSound: document.getElementById('spkNewOrder').checked,
       enableKitchenDoneSound: document.getElementById('spkKitchenDone').checked,
       enableVietQRSpeech: document.getElementById('spkVietQR').checked,
       volume: parseInt(document.getElementById('spkVolume').value, 10)
     };
-    localStorage.setItem('pos_speaker_settings', JSON.stringify(settings));
+    await window.menuPersistence.save('speaker', settings);
     document.getElementById('speakerSettingsModal').style.display = 'none';
     window.api?.showToast('Đã lưu cài đặt loa thông báo', 'success');
   },
@@ -536,6 +513,7 @@ window.moreMenuModule = {
       const targetStore = (window.appState?.stores || []).find(store => Number(store.id) === Number(storeId));
       if (!targetStore) throw new Error('Cửa hàng không nằm trong danh sách được phép truy cập');
       if (Number(window.appState.currentStore?.id) === Number(storeId)) return;
+      await window.api.put('/auth/preferences/current_store', { store_id: Number(targetStore.id) });
       window.api.setCurrentStoreId(targetStore.id);
       window.api?.showToast('Đang chuyển đổi cửa hàng...', 'info');
       document.getElementById('storeListModal').style.display = 'none';
@@ -556,7 +534,7 @@ window.moreMenuModule = {
     modal.style.display = 'flex';
   },
 
-  handleChangePassword() {
+  async handleChangePassword() {
     const oldP = document.getElementById('inputOldPassword').value;
     const newP = document.getElementById('inputNewPassword').value;
     const confirmP = document.getElementById('inputConfirmPassword').value;
@@ -574,6 +552,7 @@ window.moreMenuModule = {
       return;
     }
 
+    await window.api.put('/auth/password', { old_password: oldP, new_password: newP });
     document.getElementById('changePasswordModal').style.display = 'none';
     window.api?.showToast('Đổi mật khẩu thành công. Vui lòng ghi nhớ mật khẩu mới!', 'success');
   },
@@ -606,10 +585,6 @@ window.moreMenuModule = {
     modal.style.display = 'flex';
   },
 
-  handleConfirmDeleteAccount() {
-    document.getElementById('deleteAccountModal').style.display = 'none';
-    window.api?.showToast('Yêu cầu xóa tài khoản đã được gửi tới Quản trị viên hệ thống.', 'info');
-  },
 
   // 14. Đăng xuất
   handleLogout() {

@@ -8,6 +8,7 @@
     "dev": "node --watch src/server.js",
     "db:init": "node src/db/init.js",
     "db:export-mysql": "node src/db/exportMysql.js",
+    "db:migrate-menu-mysql": "node src/db/migrateMenuMysql.js",
     "test": "node --test"
   },
   "dependencies": {

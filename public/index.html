@@ -1653,40 +1653,40 @@
             <span class="setting-switch-title">AhaMove</span>
             <span class="setting-switch-desc">Giao hàng tức thì xe máy / xe tải</span>
           </div>
-          <input type="checkbox" checked>
+          <input type="checkbox" id="shipAhamove" checked>
         </div>
         <div class="setting-switch-row">
           <div class="setting-switch-label">
             <span class="setting-switch-title">GrabExpress</span>
             <span class="setting-switch-desc">Dịch vụ giao hàng siêu tốc mạng lưới Grab</span>
           </div>
-          <input type="checkbox" checked>
+          <input type="checkbox" id="shipGrab" checked>
         </div>
         <div class="setting-switch-row">
           <div class="setting-switch-label">
             <span class="setting-switch-title">BeDelivery</span>
             <span class="setting-switch-desc">Giao nhận thức ăn & hàng hóa Be Group</span>
           </div>
-          <input type="checkbox" checked>
+          <input type="checkbox" id="shipBe" checked>
         </div>
         <div class="setting-switch-row">
           <div class="setting-switch-label">
             <span class="setting-switch-title">Giao Hàng Tiết Kiệm (GHTK)</span>
             <span class="setting-switch-desc">Đơn giao trong ngày & liên quận</span>
           </div>
-          <input type="checkbox">
+          <input type="checkbox" id="shipGhtk">
         </div>
         <div class="setting-switch-row">
           <div class="setting-switch-label">
             <span class="setting-switch-title">Shipper riêng của cửa hàng</span>
             <span class="setting-switch-desc">Đội ngũ nhân viên tự đi giao cho khách</span>
           </div>
-          <input type="checkbox" checked>
+          <input type="checkbox" id="shipOwn" checked>
         </div>
 
         <div class="form-group" style="margin-top:14px">
           <label>Phí ship mặc định khi giao hàng:</label>
-          <input type="text" class="form-input" value="15.000đ" placeholder="Ví dụ: 15.000đ">
+          <input type="number" id="shipFee" class="form-input" value="15000" min="0" placeholder="15000">
         </div>
       </div>
       <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
@@ -1759,7 +1759,7 @@
         
         <div class="form-group">
           <label>Nhà cung cấp dịch vụ HĐĐT:</label>
-          <select class="form-input">
+          <select id="eiProvider" class="form-input">
             <option value="vnpt">VNPT Invoice (Tập đoàn VNPT)</option>
             <option value="viettel">Viettel S-Invoice (Tập đoàn Viettel)</option>
             <option value="misa">MISA meInvoice (Công ty MISA)</option>
@@ -1768,22 +1768,22 @@
         </div>
         <div class="form-group">
           <label>Mã số thuế doanh nghiệp (MST):</label>
-          <input type="text" class="form-input" placeholder="0312345678" value="0312345678">
+          <input type="text" id="eiTaxCode" class="form-input" placeholder="0312345678" value="0312345678">
         </div>
         <div class="form-group">
           <label>Ký hiệu mẫu số hóa đơn (Mẫu số):</label>
-          <input type="text" class="form-input" placeholder="1/001" value="1/001">
+          <input type="text" id="eiTemplate" class="form-input" placeholder="1/001" value="1/001">
         </div>
         <div class="form-group">
           <label>Ký hiệu hóa đơn (Ký hiệu):</label>
-          <input type="text" class="form-input" placeholder="1C26TAA" value="1C26TAA">
+          <input type="text" id="eiSeries" class="form-input" placeholder="1C26TAA" value="1C26TAA">
         </div>
         <div class="setting-switch-row">
           <div class="setting-switch-label">
             <span class="setting-switch-title">Tự động phát hành HĐĐT sau khi thanh toán</span>
             <span class="setting-switch-desc">Hệ thống tự động đồng bộ gửi hóa đơn điện tử</span>
           </div>
-          <input type="checkbox" checked>
+          <input type="checkbox" id="eiAutoIssue" checked>
         </div>
       </div>
       <div class="modal-footer" style="display:flex;gap:8px;justify-content:space-between;padding:12px 18px;border-top:1px solid var(--border-color)">
@@ -1823,11 +1823,12 @@
             <span class="setting-switch-title">Cho phép khách tự đặt món qua QR</span>
             <span class="setting-switch-desc">Đơn đặt sẽ chuyển thẳng vào màn hình thu ngân</span>
           </div>
-          <input type="checkbox" checked>
+          <input type="checkbox" id="websiteAllowOrdering" checked>
         </div>
       </div>
       <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
         <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
+        <button type="button" class="btn-primary" onclick="moreMenuModule.saveWebsiteSettings()">Lưu cài đặt</button>
         <button type="button" class="btn-primary" onclick="window.open(document.getElementById('storeWebsiteUrl').value, '_blank')"><i class="fa-solid fa-arrow-up-right-from-square"></i> Mở xem thử</button>
       </div>
     </div>
@@ -1846,14 +1847,14 @@
             <span class="setting-switch-title">Bật chương trình tích điểm thành viên</span>
             <span class="setting-switch-desc">Tự động tích lũy điểm thưởng theo số điện thoại khách hàng</span>
           </div>
-          <input type="checkbox" checked>
+          <input type="checkbox" id="loyaltyEnabled" checked>
         </div>
 
         <div class="form-group" style="margin-top:12px">
           <label>Tỷ lệ tích lũy điểm thưởng:</label>
           <div style="display:flex;align-items:center;gap:8px">
             <span>Mỗi</span>
-            <input type="number" class="form-input" style="width:110px" value="10000">
+            <input type="number" id="loyaltyEarnAmount" class="form-input" style="width:110px" value="10000">
             <span>VNĐ = <strong>1 điểm</strong></span>
           </div>
         </div>
@@ -1862,7 +1863,7 @@
           <label>Quy đổi điểm khi thanh toán:</label>
           <div style="display:flex;align-items:center;gap:8px">
             <span><strong>1 điểm</strong> = Giảm</span>
-            <input type="number" class="form-input" style="width:110px" value="1000">
+            <input type="number" id="loyaltyRedeemAmount" class="form-input" style="width:110px" value="1000">
             <span>VNĐ</span>
           </div>
         </div>
@@ -1872,7 +1873,7 @@
             <span class="setting-switch-title">Cho phép áp dụng chung với Voucher giảm giá</span>
             <span class="setting-switch-desc">Khách có thể vừa trừ điểm vừa dùng mã giảm giá</span>
           </div>
-          <input type="checkbox" checked>
+          <input type="checkbox" id="loyaltyCombineVoucher" checked>
         </div>
       </div>
       <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
@@ -2144,12 +2145,13 @@
         <div style="padding:14px;background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius-md);margin-bottom:14px">
           <strong class="text-danger"><i class="fa-solid fa-circle-exclamation"></i> CẢNH BÁO QUAN TRỌNG:</strong>
           <p style="font-size:13px;color:#991b1b;margin:6px 0 0 0">
-            Hành động này sẽ vô hiệu hóa tài khoản và thu hồi vĩnh viễn quyền truy cập vào hệ thống Thích Gà POS. Mọi dữ liệu phân quyền sẽ bị gỡ bỏ.
+            Yêu cầu được lưu để quản trị viên xem xét. Tài khoản vẫn hoạt động cho đến khi yêu cầu được xử lý.
           </p>
         </div>
         <div class="form-group">
           <label>Lý do yêu cầu xóa tài khoản (tùy chọn):</label>
-          <textarea class="form-input" rows="3" placeholder="Ví dụ: Nghỉ việc, chuyển vị trí công tác..."></textarea>
+          <p id="deleteAccountRequestStatus" class="text-muted"></p>
+          <textarea id="deleteAccountReason" class="form-input" rows="3" placeholder="Ví dụ: Nghỉ việc, chuyển vị trí công tác..."></textarea>
         </div>
       </div>
       <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
@@ -2169,16 +2171,17 @@
   <script src="js/state.js?v=20261009-history-in-more"></script>
   <script src="js/pos.js?v=20260923-store-context-fix"></script>
   <script src="js/tables.js?v=20260923-kitchen-cancel-setting"></script>
-  <script src="js/kds.js?v=20260923-kitchen-cancel-setting"></script>
+  <script src="js/kds.js?v=20261009-database"></script>
   <script src="js/completed-items.js?v=20260923-table-first"></script>
   <script src="js/orders.js?v=20261009-history-in-more"></script>
   <script src="js/checkout.js?v=20260918-takeaway-history"></script>
   <script src="js/invoice.js?v=20260918-takeaway-actions"></script>
   <script src="js/shifts.js"></script>
   <script src="js/admin.js?v=20260923-pos-store-fields"></script>
-  <script src="js/more-menu.js?v=20261009-history-back"></script>
-  <script src="js/header-customizer.js?v=20261009-v1"></script>
-  <script src="js/app.js?v=20261009-history-in-more"></script>
+  <script src="js/more-menu.js?v=20261009-database"></script>
+  <script src="js/menu-persistence.js?v=20261009-database"></script>
+  <script src="js/header-customizer.js?v=20261009-database"></script>
+  <script src="js/app.js?v=20261009-database"></script>
 </body>
 
 </html>

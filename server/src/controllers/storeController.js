@@ -117,6 +117,16 @@ async function getStoreDetails(req, res) {
       features.enableTakeawayWorkspace = settings.takeaway_workspace_enabled;
     }
     settings.inventory_transactions_enabled = settings.inventory_transactions_enabled !== false;
+    if (isPostgresConnected()) {
+      const result = await pool.query("SELECT payload FROM menu_preferences WHERE owner_type='store' AND owner_id=$1 AND section='workflow'", [storeId]);
+      if (result.rows[0]) {
+        const channels = JSON.parse(result.rows[0].payload);
+        Object.assign(features, channels);
+        features.enableTable = channels.enableDineIn && features.enableTable;
+        features.enableTakeawayWorkspace = channels.enableTakeaway && !channels.enableDineIn;
+      }
+    }
+
 
     res.json({
       success: true,

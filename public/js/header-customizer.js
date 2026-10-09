@@ -70,29 +70,9 @@ window.headerCustomizer = {
   selectedTheme: null,
 
   init() {
-    this.currentSettings = this.loadSettings();
+    this.currentSettings = { ...this.defaultSettings };
     this.applySettings(this.currentSettings);
     this.bindEvents();
-  },
-
-  loadSettings() {
-    try {
-      const saved = localStorage.getItem('pos_header_customization');
-      if (saved) {
-        return { ...this.defaultSettings, ...JSON.parse(saved) };
-      }
-    } catch (e) {
-      console.warn('Lỗi đọc header customization:', e);
-    }
-    return { ...this.defaultSettings };
-  },
-
-  saveSettingsToStorage(settings) {
-    try {
-      localStorage.setItem('pos_header_customization', JSON.stringify(settings));
-    } catch (e) {
-      console.warn('Lỗi lưu header customization:', e);
-    }
   },
 
   // Áp dụng các thiết lập vào DOM Header và Modal
@@ -315,7 +295,14 @@ window.headerCustomizer = {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const base64Src = e.target.result;
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement('canvas');
+        const scale = Math.min(1, 256 / Math.max(image.width, image.height));
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+        const base64Src = canvas.toDataURL('image/jpeg', 0.75);
       this.selectedAvatar = {
         type: 'upload',
         src: base64Src
@@ -324,6 +311,9 @@ window.headerCustomizer = {
       document.querySelectorAll('.avatar-preset-card').forEach(c => c.classList.remove('selected'));
       this.updateModalAvatarPreview(base64Src, false);
       window.api?.showToast('Đã tải ảnh lên. Hãy bấm "Lưu thay đổi"', 'info');
+      };
+      image.onerror = () => window.api.showToast("Không đọc được ảnh", "error");
+      image.src = e.target.result;
     };
     reader.readAsDataURL(file);
   },
@@ -342,7 +332,7 @@ window.headerCustomizer = {
     });
   },
 
-  save() {
+  async save() {
     const wishesInput = document.getElementById('inputCustomWishes');
     const wishesText = wishesInput?.value?.trim() || this.defaultSettings.wishesText;
     const showDecor = document.getElementById('chkShowDecor')?.checked ?? true;
@@ -355,8 +345,9 @@ window.headerCustomizer = {
       showDecor: showDecor
     };
 
+    try { await window.api.put('/auth/preferences/header', newSettings); }
+    catch (error) { window.api.showToast(error.message, 'error'); return; }
     this.currentSettings = newSettings;
-    this.saveSettingsToStorage(newSettings);
     this.applySettings(newSettings);
 
     const modal = document.getElementById('accountInfoModal');
@@ -365,10 +356,11 @@ window.headerCustomizer = {
     window.api?.showToast('Đã lưu thông tin và giao diện Header thành công!', 'success');
   },
 
-  resetDefaults() {
+  async resetDefaults() {
     if (confirm('Khôi phục Header về giao diện mặc định ban đầu?')) {
+      try { await window.api.put('/auth/preferences/header', this.defaultSettings); }
+      catch (error) { window.api.showToast(error.message, 'error'); return; }
       this.currentSettings = { ...this.defaultSettings };
-      this.saveSettingsToStorage(this.currentSettings);
       this.applySettings(this.currentSettings);
       this.populateInputs();
       window.api?.showToast('Đã khôi phục Header về mặc định', 'info');

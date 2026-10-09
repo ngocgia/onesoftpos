@@ -15,10 +15,17 @@ const reportController = require('../controllers/reportController');
 const adminController = require('../controllers/adminController');
 const storeStaffController = require('../controllers/storeStaffController');
 const inventoryController = require('../controllers/inventoryController');
+const menuPreferences = require('../controllers/menuPreferencesController');
 
 // 1. Auth routes
 router.post('/auth/login', authController.login);
 router.get('/auth/me', authenticateToken, authController.getMe);
+router.put('/auth/password', authenticateToken, menuPreferences.changePassword);
+router.get('/auth/preferences/:section', authenticateToken, menuPreferences.get);
+router.put('/auth/preferences/:section', authenticateToken, menuPreferences.put);
+router.get('/store/menu-settings', authenticateToken, requireStoreContext(), menuPreferences.getStoreSettings);
+router.get('/store/menu-settings/:section', authenticateToken, requireStoreContext(), menuPreferences.get);
+router.put('/store/menu-settings/:section', authenticateToken, requireStoreContext(), requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), audit('UPDATE_SETTINGS', 'MENU'), menuPreferences.put);
 
 // 2. Store & Store Types routes
 router.get('/stores', authenticateToken, storeController.getStores);

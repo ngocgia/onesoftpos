@@ -63,6 +63,15 @@ async function createOrder(req, res) {
         WHERE s.id=$1`, [storeId]);
       workflowDefinition = workflowResult.rows[0]?.workflow_definition;
       takeawayWorkspaceEnabled = !!workflowResult.rows[0]?.takeaway_workspace_enabled;
+      const channelResult = await pool.query("SELECT payload FROM menu_preferences WHERE owner_type='store' AND owner_id=$1 AND section='workflow'", [storeId]);
+      if (channelResult.rows[0]) {
+        const channels = JSON.parse(channelResult.rows[0].payload);
+        if ((order_type === 'DINE_IN' && !channels.enableDineIn) || (order_type === 'TAKEAWAY' && !channels.enableTakeaway)
+          || (fulfillment_type === 'SHIP_DELIVERY' && !channels.enableDelivery)) {
+          return res.status(400).json({ success: false, message: 'Kênh bán này đang tắt tại cửa hàng' });
+        }
+        takeawayWorkspaceEnabled = channels.enableTakeaway && !channels.enableDineIn;
+      }
     } else {
       const settings = memoryStore.store_settings.find(item => item.store_id === storeId);
       workflowDefinition = settings?.workflow_definition;

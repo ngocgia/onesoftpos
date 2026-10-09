@@ -383,6 +383,15 @@ CREATE TABLE IF NOT EXISTS inventory_transactions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS menu_preferences (
+    owner_type VARCHAR(10) NOT NULL,
+    owner_id INTEGER NOT NULL,
+    section VARCHAR(32) NOT NULL,
+    payload TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (owner_type, owner_id, section)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT INTO store_types (id, code, name, description, is_active) VALUES
 (1, 'TAKEAWAY', 'Chỉ bán mang đi', 'Mô hình Kiot, Takeaway chuyên biệt, không có quản lý bàn', TRUE),
 (2, 'DINE_IN_TAKEAWAY', 'Tại chỗ & Mang đi', 'Mô hình Nhà hàng/Quán ăn vừa phục vụ tại bàn vừa bán mang về', TRUE);

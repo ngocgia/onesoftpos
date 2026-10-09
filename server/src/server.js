@@ -44,6 +44,7 @@ app.get('*', (req, res) => {
 // Start server after the configured database is ready.
 async function start() {
   const connected = await testConnection();
+  if (connected) await require('./db/menuPreferences').ensureMenuPreferences(require('./config/db').pool);
   if (process.env.DB_CLIENT === 'mysql' && !connected) {
     throw new Error('MySQL is unavailable. Run npm run db:init after configuring server/.env.');
   }

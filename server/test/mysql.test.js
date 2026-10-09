@@ -68,7 +68,8 @@ test('normalizes common MySQL constraint errors for existing controllers', () =>
 test('generates a MySQL schema and clean seed for the fresh database', () => {
   const schema = statements();
   const seed = seedStatements();
-  assert.equal(schema.length, 25);
+  assert.equal(schema.length, 26);
+  assert.ok(schema.some(sql => sql.includes("CREATE TABLE IF NOT EXISTS menu_preferences")));
   assert.ok(seed.length > 10);
   assert.ok(schema.every(sql => !/SERIAL|JSONB|TIMESTAMP WITH TIME ZONE|::jsonb/.test(sql)));
   assert.ok(seed.every(sql => /^INSERT INTO/.test(sql) && !/ON CONFLICT|setval|::jsonb/.test(sql)));

@@ -381,24 +381,18 @@ button:active {
   color: #ffffff;
 }
 
-.header-store-select {
+.header-store-name {
   color: #ffffff;
   border: none;
   background: transparent;
   font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
-  outline: none;
   max-width: 130px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.header-store-select option {
-  color: #0f172a;
-  background: #ffffff;
-}
 
 .pulse-dot {
   width: 8px;

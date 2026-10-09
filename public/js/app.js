@@ -140,7 +140,7 @@ async function initAuth() {
     }
 
     updateUserProfileUI();
-    populateStoreSelector();
+    initializeCurrentStore();
 
     // Load active store features
     await window.appNavigation.reloadCurrentStoreFeatures();
@@ -174,46 +174,18 @@ function updateUserProfileUI() {
   }
 }
 
-function populateStoreSelector() {
-  const select = document.getElementById('storeSelector');
-  if (!select) return;
-
+function initializeCurrentStore() {
   const stores = window.appState.stores || [];
-  const currentStoreId = parseInt(window.api.getCurrentStoreId(), 10);
-
-  select.innerHTML = stores.map(s => `
-    <option value="${s.id}" ${s.id === currentStoreId ? 'selected' : ''}>
-      ${s.name} (${s.store_type_name || ''})
-    </option>
-  `).join('');
-
-  // Set default currentStore in state
-  const active = stores.find(s => s.id === currentStoreId) || stores[0];
+  const currentStoreId = Number(window.api.getCurrentStoreId());
+  const active = stores.find(store => Number(store.id) === currentStoreId) || stores[0] || null;
   window.appState.currentStore = active;
-  if (active) {
-    // Keep API context synchronized when the saved store is empty, stale, or
-    // no longer assigned to this user.
-    window.api.setCurrentStoreId(active.id);
-    select.value = String(active.id);
-  } else {
-    window.api.setCurrentStoreId('');
+  // Restore a valid store context without a header selector.
+  window.api.setCurrentStoreId(active ? active.id : '');
+  const label = document.getElementById('headerCurrentStoreName');
+  if (label) {
+    label.textContent = active?.name || 'Chưa chọn cửa hàng';
+    label.title = label.textContent;
   }
-
-  select.addEventListener('change', async (e) => {
-    const newStoreId = parseInt(e.target.value, 10);
-    window.api.setCurrentStoreId(newStoreId);
-    const newStore = stores.find(s => s.id === newStoreId);
-    window.appState.currentStore = newStore;
-
-    // Reset table selection and cart
-    window.appState.resetTakeawayDrafts();
-    window.appState.setSelectedTable(null);
-
-    // Reload features and notify all modules
-    await window.appNavigation.reloadCurrentStoreFeatures();
-    window.appState.notify('store_changed', newStore);
-    window.api.showToast(`Đã chuyển sang: ${newStore.name}`, 'info');
-  });
 }
 
 // Theme (Dark / Light Mode)
@@ -391,7 +363,7 @@ async function executeLogin(username, password) {
     window.appState.applyRoleFeatures(res.roleFeatures);
 
     updateUserProfileUI();
-    populateStoreSelector();
+    initializeCurrentStore();
     await window.appNavigation.reloadCurrentStoreFeatures();
     await initializeAvailableModules({ refreshInitialized: true });
 

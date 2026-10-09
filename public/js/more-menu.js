@@ -541,6 +541,7 @@ window.moreMenuModule = {
     try {
       const res = await window.api.get('/stores');
       const stores = res.stores || [];
+      window.appState.stores = stores;
       const currentStoreId = String(window.appState?.currentStore?.id || '');
 
       if (!stores.length) {
@@ -579,12 +580,13 @@ window.moreMenuModule = {
 
   async switchCurrentStore(storeId) {
     try {
-      window.api.setCurrentStoreId(storeId);
+      const targetStore = (window.appState?.stores || []).find(store => Number(store.id) === Number(storeId));
+      if (!targetStore) throw new Error('Cửa hàng không nằm trong danh sách được phép truy cập');
+      if (Number(window.appState.currentStore?.id) === Number(storeId)) return;
+      window.api.setCurrentStoreId(targetStore.id);
       window.api?.showToast('Đang chuyển đổi cửa hàng...', 'info');
       document.getElementById('storeListModal').style.display = 'none';
-      if (window.appNavigation?.reloadCurrentStoreFeatures) {
-        await window.appNavigation.reloadCurrentStoreFeatures();
-      }
+      // Restart cart, permissions and modules in the new store context.
       window.location.reload();
     } catch (e) {
       window.api?.showToast('Không thể chuyển cửa hàng: ' + e.message, 'error');

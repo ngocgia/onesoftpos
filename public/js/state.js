@@ -196,6 +196,11 @@ window.appState = {
       if (el) el.style.display = isVisible ? '' : 'none';
     });
 
+    const hub = document.getElementById('moreMenuHub');
+    if (hub && hub.style.display !== 'none') {
+      return;
+    }
+
     const activeAdminTab = document.querySelector('.admin-nav-tab.active');
     if (activeAdminTab && activeAdminTab.style.display === 'none') {
       const firstVisibleTab = Array.from(document.querySelectorAll('.admin-nav-tab')).find(tab => tab.style.display !== 'none');

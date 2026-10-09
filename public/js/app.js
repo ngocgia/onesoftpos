@@ -35,9 +35,13 @@ window.appNavigation = {
       window.completedItemsModule.loadCompletedItems();
     } else if (viewId === 'viewOrders' && window.ordersModule) {
       window.ordersModule.loadOrders();
-    } else if (viewId === 'viewAdmin' && window.adminModule) {
-      window.appState.applyAdminTabsConfig();
-      window.adminModule.loadReports();
+    } else if (viewId === 'viewAdmin') {
+      if (window.moreMenuModule) {
+        window.moreMenuModule.showHub();
+      } else if (window.adminModule) {
+        window.appState.applyAdminTabsConfig();
+        window.adminModule.loadReports();
+      }
     }
   },
 
@@ -161,14 +165,12 @@ function updateUserProfileUI() {
   if (!user) return;
 
   const userName = document.getElementById('userName');
-  const userRole = document.getElementById('userRole');
   const userAvatar = document.getElementById('userAvatar');
 
-  if (userName) userName.textContent = user.full_name || user.username;
-  if (userRole) userRole.textContent = user.role;
+  if (userName) userName.textContent = user.full_name || user.username || 'Thảo ni';
   if (userAvatar) {
-    const initials = (user.full_name || user.username).split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-    userAvatar.textContent = initials || 'TG';
+    const initials = (user.full_name || user.username || 'TN').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    userAvatar.textContent = initials || 'TN';
   }
 }
 

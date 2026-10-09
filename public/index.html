@@ -23,46 +23,47 @@
   <!-- APP CONTAINER -->
   <div id="app" class="app-container">
 
-    <!-- TOP HEADER -->
-    <header class="top-header">
-      <div class="header-left">
-        <div class="brand-logo">
-          <span class="logo-icon">🍗</span>
-          <div class="brand-info">
-            <h1 class="brand-name">
+    <!-- TOP HEADER BANNER (Giao diện Chào mừng theo thiết kế) -->
+    <header class="top-header header-banner-welcome">
+      <!-- Background Decorative Sky & Moon & Lanterns -->
+      <div class="header-banner-decor" aria-hidden="true">
+        <div class="decor-stars"></div>
+        <div class="decor-moon"></div>
+        <div class="decor-lantern lantern-1"></div>
+        <div class="decor-lantern lantern-2"></div>
+        <div class="decor-lantern lantern-3"></div>
+      </div>
 
-            </h1>
-            <div class="store-selector-wrapper">
-              <i class="fa-solid fa-store text-muted"></i>
-              <select id="storeSelector" class="store-select-header" title="Chọn cửa hàng làm việc"></select>
-            </div>
-          </div>
+      <!-- Cụm chào mừng bên trái theo hình (click để mở thông tin tài khoản & tùy chỉnh) -->
+      <div class="header-welcome-left" id="headerProfileTrigger" style="cursor:pointer" title="Xem thông tin tài khoản & tùy chỉnh giao diện">
+        <div class="header-avatar-wrapper">
+          <img src="images/staff-avatar.jpg" alt="Nhân viên" class="header-avatar-img" id="headerAvatarImg" onerror="this.style.display='none';document.getElementById('userAvatar').style.display='flex'">
+          <div class="avatar fallback-avatar" id="userAvatar" style="display:none">TN</div>
+        </div>
+        <div class="header-welcome-text">
+          <h2 class="header-greeting">Chào <span id="userName">Thảo ni</span></h2>
+          <p class="header-wishes" id="headerWishesText">Chúc bạn làm việc hiệu quả!</p>
         </div>
       </div>
 
-      <div class="header-right">
+      <!-- Cụm tiện ích bên phải (bỏ thông tin tài khoản & đăng xuất trùng lặp) -->
+      <div class="header-welcome-right">
         <!-- Shift status badge -->
-        <button id="btnShiftStatus" class="btn-shift-pill" title="Quản lý ca làm việc">
+        <button id="btnShiftStatus" class="btn-shift-pill header-shift-pill" title="Quản lý ca làm việc">
           <span class="pulse-dot"></span>
           <span id="shiftBadgeText">Ca mở: 1.000.000đ</span>
         </button>
 
+        <!-- Store Selector dropdown -->
+        <div class="header-store-pill" title="Cửa hàng đang chọn">
+          <i class="fa-solid fa-store"></i>
+          <select id="storeSelector" class="store-select-header header-store-select" title="Chọn cửa hàng làm việc"></select>
+        </div>
+
         <!-- Theme toggle -->
-        <button id="btnThemeToggle" class="icon-btn" title="Đổi giao diện Sáng/Tối">
+        <button id="btnThemeToggle" class="icon-btn header-glass-btn" title="Đổi giao diện Sáng/Tối">
           <i class="fa-solid fa-moon"></i>
         </button>
-
-        <!-- User profile button -->
-        <div class="user-profile" id="userProfileBtn">
-          <div class="avatar" id="userAvatar">TN</div>
-          <div class="user-meta desktop-only">
-            <span class="user-name" id="userName">Thu Ngân</span>
-            <span class="user-role badge-role" id="userRole">CASHIER</span>
-          </div>
-          <button id="btnLogout" class="btn-logout" title="Đăng xuất">
-            <i class="fa-solid fa-arrow-right-from-bracket"></i>
-          </button>
-        </div>
       </div>
     </header>
 
@@ -402,11 +403,220 @@
         </div>
       </section>
 
-      <!-- VIEW 5: ADMIN & MANAGEMENT (Rule 4, 5, 7, 8, 35, 46) -->
+      <!-- VIEW 5: MORE MENU & ADMINISTRATION (Menu Nhiều hơn) -->
       <section id="viewAdmin" class="app-view">
         <div class="admin-view-container">
-          <!-- Admin Tabs -->
-          <div class="admin-tabs-nav">
+
+          <!-- MORE MENU HUB (Giao diện chuẩn theo thiết kế "Nhiều hơn") -->
+          <div id="moreMenuHub" class="more-menu-hub">
+            <!-- Header thông tin nhanh cửa hàng & tài khoản -->
+            <div class="more-menu-header-card">
+              <div class="more-menu-user-info">
+                <div class="more-user-avatar" id="moreUserAvatar">AD</div>
+                <div class="more-user-details">
+                  <div class="more-user-name" id="moreUserName">Quản trị viên</div>
+                  <div class="more-store-name" id="moreStoreName"><i class="fa-solid fa-store"></i> Chi nhánh chính</div>
+                </div>
+              </div>
+              <span class="badge-role" id="moreUserRoleBadge">SUPER_ADMIN</span>
+            </div>
+
+            <!-- Lối tắt quản lý kinh doanh nhanh (Báo cáo, Thực đơn, Kho, Phòng bàn, Nhân viên) -->
+            <div class="more-quick-management" id="moreQuickManagement">
+              <div class="more-quick-title">Quản trị kinh doanh</div>
+              <div class="more-quick-grid">
+                <button type="button" class="more-quick-btn" data-target-subview="adminReports">
+                  <i class="fa-solid fa-chart-line text-primary"></i>
+                  <span>Doanh thu</span>
+                </button>
+                <button type="button" class="more-quick-btn" data-target-subview="adminProducts">
+                  <i class="fa-solid fa-burger text-warning"></i>
+                  <span>Thực đơn</span>
+                </button>
+                <button type="button" class="more-quick-btn" data-target-subview="adminTables" id="btnQuickTables">
+                  <i class="fa-solid fa-chair text-info"></i>
+                  <span>Phòng bàn</span>
+                </button>
+                <button type="button" class="more-quick-btn" data-target-subview="adminInventory" id="btnQuickInventory">
+                  <i class="fa-solid fa-boxes-stacked text-success"></i>
+                  <span>Kho hàng</span>
+                </button>
+                <button type="button" class="more-quick-btn" data-target-subview="adminStaff" id="btnQuickStaff">
+                  <i class="fa-solid fa-users text-secondary"></i>
+                  <span>Nhân viên</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- NHÓM 1: CỬA HÀNG (9 Chức năng chuẩn theo ảnh) -->
+            <div class="more-menu-group">
+              <h2 class="more-menu-group-title">Cửa hàng</h2>
+              <div class="more-menu-card">
+
+                <div class="more-menu-item" id="menuItemPrinter">
+                  <div class="more-item-left">
+                    <span class="more-item-icon icon-printer">
+                      <i class="fa-solid fa-print"></i>
+                    </span>
+                    <span class="more-item-label">Cài đặt máy in</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right more-item-arrow"></i>
+                </div>
+
+                <div class="more-menu-item" id="menuItemWorkflow">
+                  <div class="more-item-left">
+                    <span class="more-item-icon icon-workflow">
+                      <i class="fa-solid fa-receipt"></i>
+                    </span>
+                    <span class="more-item-label">Quy trình bán hàng</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right more-item-arrow"></i>
+                </div>
+
+                <div class="more-menu-item" id="menuItemShipping">
+                  <div class="more-item-left">
+                    <span class="more-item-icon icon-shipping">
+                      <i class="fa-solid fa-truck-fast"></i>
+                    </span>
+                    <span class="more-item-label">Đối tác vận chuyển</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right more-item-arrow"></i>
+                </div>
+
+                <div class="more-menu-item" id="menuItemNumberFormat">
+                  <div class="more-item-left">
+                    <span class="more-item-icon icon-calculator">
+                      <i class="fa-solid fa-calculator"></i>
+                    </span>
+                    <span class="more-item-label">Định dạng số</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right more-item-arrow"></i>
+                </div>
+
+                <div class="more-menu-item" id="menuItemEInvoice">
+                  <div class="more-item-left">
+                    <span class="more-item-icon icon-einvoice">
+                      <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </span>
+                    <span class="more-item-label">Hóa đơn điện tử</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right more-item-arrow"></i>
+                </div>
+
+                <div class="more-menu-item" id="menuItemWebsite">
+                  <div class="more-item-left">
+                    <span class="more-item-icon icon-website">
+                      <i class="fa-solid fa-globe"></i>
+                    </span>
+                    <span class="more-item-label">Website cửa hàng</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right more-item-arrow"></i>
+                </div>
+
+                <div class="more-menu-item" id="menuItemLoyalty">
+                  <div class="more-item-left">
+                    <span class="more-item-icon icon-loyalty">
+                      <i class="fa-regular fa-star"></i>
+                    </span>
+                    <span class="more-item-label">Tích điểm và khuyến mãi</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right more-item-arrow"></i>
+                </div>
+
+                <div class="more-menu-item" id="menuItemSpeaker">
+                  <div class="more-item-left">
+                    <span class="more-item-icon icon-speaker">
+                      <i class="fa-regular fa-bell"></i>
+                    </span>
+                    <span class="more-item-label">Loa thông báo</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right more-item-arrow"></i>
+                </div>
+
+                <div class="more-menu-item" id="menuItemHistory">
+                  <div class="more-item-left">
+                    <span class="more-item-icon icon-history">
+                      <i class="fa-solid fa-clock-rotate-left"></i>
+                    </span>
+                    <span class="more-item-label">Lịch sử thao tác</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right more-item-arrow"></i>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- NHÓM 2: TÀI KHOẢN (5 Chức năng chuẩn theo ảnh) -->
+            <div class="more-menu-group">
+              <h2 class="more-menu-group-title">Tài khoản</h2>
+              <div class="more-menu-card">
+
+                <div class="more-menu-item" id="menuItemStores">
+                  <div class="more-item-left">
+                    <span class="more-item-icon icon-store-list">
+                      <i class="fa-solid fa-store"></i>
+                    </span>
+                    <span class="more-item-label">Danh sách cửa hàng</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right more-item-arrow"></i>
+                </div>
+
+                <div class="more-menu-item" id="menuItemPassword">
+                  <div class="more-item-left">
+                    <span class="more-item-icon icon-password">
+                      <i class="fa-solid fa-lock"></i>
+                    </span>
+                    <span class="more-item-label">Đổi mật khẩu</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right more-item-arrow"></i>
+                </div>
+
+                <div class="more-menu-item" id="menuItemAccount">
+                  <div class="more-item-left">
+                    <span class="more-item-icon icon-account">
+                      <i class="fa-regular fa-user"></i>
+                    </span>
+                    <span class="more-item-label">Thông tin tài khoản</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right more-item-arrow"></i>
+                </div>
+
+                <div class="more-menu-item" id="menuItemDeleteAccount">
+                  <div class="more-item-left">
+                    <span class="more-item-icon icon-delete-account">
+                      <i class="fa-regular fa-trash-can"></i>
+                    </span>
+                    <span class="more-item-label">Xóa tài khoản</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right more-item-arrow"></i>
+                </div>
+
+                <div class="more-menu-item item-logout" id="menuItemLogout">
+                  <div class="more-item-left">
+                    <span class="more-item-icon icon-logout">
+                      <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    </span>
+                    <span class="more-item-label text-danger">Đăng xuất</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right more-item-arrow"></i>
+                </div>
+
+              </div>
+            </div>
+
+          </div><!-- END MORE MENU HUB -->
+
+          <!-- Thanh điều hướng quay lại Hub từ Subview chi tiết -->
+          <div id="subviewBackHeader" class="subview-back-header" style="display:none;">
+            <button type="button" class="btn-back-hub" id="btnBackToMoreHub">
+              <i class="fa-solid fa-arrow-left"></i>
+              <span>Quay lại Nhiều hơn</span>
+            </button>
+            <h4 id="subviewActiveTitle">Quản trị</h4>
+          </div>
+
+          <!-- Admin Tabs (Ẩn mặc định, hiển thị khi vào xem subview chuyên sâu) -->
+          <div class="admin-tabs-nav" style="display:none;">
             <button class="admin-nav-tab active" data-target="adminReports" id="tabAdminReports">
               <i class="fa-solid fa-chart-line"></i> Báo cáo doanh thu
             </button>
@@ -431,7 +641,7 @@
           </div>
 
           <!-- ADMIN SUBVIEW 1: REPORTS -->
-          <div id="adminReports" class="admin-subview active">
+          <div id="adminReports" class="admin-subview">
             <div class="subview-header report-revenue-header">
               <h3>Báo cáo doanh thu</h3>
               <div class="report-date-filter">
@@ -850,8 +1060,8 @@
         <span>Đơn hàng</span>
       </button>
       <button class="nav-item" data-view="viewAdmin" id="navItemAdmin">
-        <i class="fa-solid fa-gear"></i>
-        <span>Quản trị</span>
+        <i class="fa-solid fa-bars"></i>
+        <span>Nhiều hơn</span>
       </button>
     </nav>
 
@@ -1314,6 +1524,676 @@
     </div>
   </div>
 
+  <!-- ==================== CÁC MODAL CHO MENU NHIỀU HƠN ==================== -->
+
+  <!-- MODAL: CÀI ĐẶT MÁY IN -->
+  <div class="modal-overlay" id="printerSettingsModal" style="display:none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-print text-primary"></i> Cài đặt máy in hóa đơn</h3>
+        <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Khổ giấy in hóa đơn:</label>
+          <select id="printerPaperSize" class="form-input">
+            <option value="K80">K80 (80mm - Khổ thông dụng tiêu chuẩn)</option>
+            <option value="K58">K58 (58mm - Khổ mini nhỏ gọn)</option>
+            <option value="A4">A4 / A5 (Khổ in văn phòng)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cổng kết nối máy in:</label>
+          <select id="printerConnectionType" class="form-input">
+            <option value="browser">Trình duyệt (Web Print / Hộp thoại in Windows)</option>
+            <option value="lan">Mạng LAN / Wi-Fi (Máy in qua địa chỉ IP)</option>
+            <option value="bluetooth">Máy in không dây Bluetooth</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Địa chỉ IP máy in LAN (nếu dùng mạng LAN):</label>
+          <input type="text" id="printerIpAddress" class="form-input" placeholder="192.168.1.200" value="192.168.1.200">
+        </div>
+        
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">Tự động in hóa đơn khi thanh toán</span>
+            <span class="setting-switch-desc">Tự động gửi lệnh in ngay khi đơn hàng hoàn tất</span>
+          </div>
+          <input type="checkbox" id="printerAutoPrint" checked>
+        </div>
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">Tự động cắt giấy</span>
+            <span class="setting-switch-desc">Áp dụng cho máy in K80 hỗ trợ dao cắt tự động</span>
+          </div>
+          <input type="checkbox" id="printerAutoCut" checked>
+        </div>
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">In tách phiếu chế biến cho Bếp KDS</span>
+            <span class="setting-switch-desc">In phiếu riêng cho bộ phận chế biến bếp/pha chế</span>
+          </div>
+          <input type="checkbox" id="printerKitchenSeparate" checked>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;gap:8px;justify-content:space-between;padding:12px 18px;border-top:1px solid var(--border-color)">
+        <button type="button" class="btn-secondary" onclick="moreMenuModule.testPrintBill()"><i class="fa-solid fa-file-invoice"></i> In thử hóa đơn mẫu</button>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
+          <button type="button" class="btn-primary" onclick="moreMenuModule.savePrinterSettings()">Lưu cài đặt</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: QUY TRÌNH BÁN HÀNG -->
+  <div class="modal-overlay" id="workflowSettingsModal" style="display:none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-receipt text-success"></i> Quy trình bán hàng</h3>
+        <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted" style="margin-bottom:12px;font-size:13px">Cấu hình các hình thức phục vụ và phương thức vận hành cho cửa hàng hiện tại.</p>
+        
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">Phục vụ tại chỗ (Dine-in)</span>
+            <span class="setting-switch-desc">Khách ngồi tại bàn, quản lý sơ đồ phòng & bàn</span>
+          </div>
+          <input type="checkbox" id="wfDineIn" checked>
+        </div>
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">Bán mang đi (Takeaway)</span>
+            <span class="setting-switch-desc">Khách mua mang về, hỗ trợ nhiều giỏ hàng chờ</span>
+          </div>
+          <input type="checkbox" id="wfTakeaway" checked>
+        </div>
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">Đơn hàng giao hàng (Delivery)</span>
+            <span class="setting-switch-desc">Bán hàng giao tận nơi qua tài xế</span>
+          </div>
+          <input type="checkbox" id="wfDelivery" checked>
+        </div>
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">Màn hình điều phối bếp (KDS)</span>
+            <span class="setting-switch-desc">Đơn được chuyển ngay cho bếp nhận và chế biến</span>
+          </div>
+          <input type="checkbox" id="wfKds" checked>
+        </div>
+
+        <div style="margin-top:16px;padding:12px;background:var(--bg-muted);border-radius:var(--radius-md)">
+          <div style="font-weight:700;margin-bottom:4px"><i class="fa-solid fa-user-shield"></i> Cấu hình quyền theo vai trò</div>
+          <p class="text-muted" style="font-size:12px;margin:0 0 8px 0">Phân quyền chi tiết cho Thu ngân, Phục vụ, Đầu bếp...</p>
+          <button type="button" class="btn-secondary btn-sm" onclick="moreMenuModule.goToAdvancedWorkflow()"><i class="fa-solid fa-sliders"></i> Mở phân quyền nâng cao</button>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+        <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
+        <button type="button" class="btn-primary" onclick="moreMenuModule.saveWorkflowSettings()">Lưu cấu hình</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ĐỐI TÁC VẬN CHUYỂN -->
+  <div class="modal-overlay" id="shippingPartnersModal" style="display:none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-truck-fast text-info"></i> Đối tác vận chuyển</h3>
+        <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted" style="font-size:13px;margin-bottom:12px">Tích hợp các hãng giao nhận hàng giao siêu tốc cho đơn mang về & giao hàng.</p>
+        
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">AhaMove</span>
+            <span class="setting-switch-desc">Giao hàng tức thì xe máy / xe tải</span>
+          </div>
+          <input type="checkbox" checked>
+        </div>
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">GrabExpress</span>
+            <span class="setting-switch-desc">Dịch vụ giao hàng siêu tốc mạng lưới Grab</span>
+          </div>
+          <input type="checkbox" checked>
+        </div>
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">BeDelivery</span>
+            <span class="setting-switch-desc">Giao nhận thức ăn & hàng hóa Be Group</span>
+          </div>
+          <input type="checkbox" checked>
+        </div>
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">Giao Hàng Tiết Kiệm (GHTK)</span>
+            <span class="setting-switch-desc">Đơn giao trong ngày & liên quận</span>
+          </div>
+          <input type="checkbox">
+        </div>
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">Shipper riêng của cửa hàng</span>
+            <span class="setting-switch-desc">Đội ngũ nhân viên tự đi giao cho khách</span>
+          </div>
+          <input type="checkbox" checked>
+        </div>
+
+        <div class="form-group" style="margin-top:14px">
+          <label>Phí ship mặc định khi giao hàng:</label>
+          <input type="text" class="form-input" value="15.000đ" placeholder="Ví dụ: 15.000đ">
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+        <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
+        <button type="button" class="btn-primary" onclick="moreMenuModule.saveShippingSettings()">Lưu cài đặt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ĐỊNH DẠNG SỐ -->
+  <div class="modal-overlay" id="numberFormatModal" style="display:none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-calculator text-primary"></i> Cài đặt định dạng số</h3>
+        <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Ký hiệu tiền tệ:</label>
+          <select id="fmtCurrencySymbol" class="form-input" onchange="moreMenuModule.updateNumberPreview()">
+            <option value="₫">₫ (Ký hiệu Đồng)</option>
+            <option value="VNĐ">VNĐ (Việt Nam Đồng)</option>
+            <option value="$">$ (Đô la Mỹ)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Vị trí ký hiệu tiền tệ:</label>
+          <select id="fmtSymbolPosition" class="form-input" onchange="moreMenuModule.updateNumberPreview()">
+            <option value="after">Sau số tiền (Ví dụ: 150.000 ₫)</option>
+            <option value="before">Trước số tiền (Ví dụ: ₫ 150.000)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Dấu phân cách hàng nghìn:</label>
+          <select id="fmtThousandSep" class="form-input" onchange="moreMenuModule.updateNumberPreview()">
+            <option value=".">Dấu chấm (.) - Chuẩn Việt Nam</option>
+            <option value=",">Dấu phẩy (,) - Chuẩn Quốc tế</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Làm tròn số tiền khi tính toán:</label>
+          <select id="fmtRounding" class="form-input">
+            <option value="none">Không làm tròn (Chính xác từng đồng)</option>
+            <option value="100">Làm tròn đến 100đ gần nhất</option>
+            <option value="1000">Làm tròn đến 1.000đ gần nhất</option>
+          </select>
+        </div>
+
+        <div style="background:var(--bg-muted);padding:14px;border-radius:var(--radius-md);text-align:center;margin-top:12px">
+          <span class="text-muted" style="font-size:12px">Xem trước số tiền hiển thị:</span>
+          <div style="font-size:22px;font-weight:800;color:var(--primary);margin-top:4px" id="fmtPreviewText">150.000 ₫</div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+        <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
+        <button type="button" class="btn-primary" onclick="moreMenuModule.saveNumberFormat()">Lưu định dạng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: HÓA ĐƠN ĐIỆN TỬ -->
+  <div class="modal-overlay" id="einvoiceSettingsModal" style="display:none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-file-invoice-dollar text-primary"></i> Hóa đơn điện tử</h3>
+        <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted" style="font-size:13px;margin-bottom:12px">Kết nối với cổng phát hành Hóa đơn điện tử (HĐĐT) chuẩn theo quy định Tổng cục Thuế.</p>
+        
+        <div class="form-group">
+          <label>Nhà cung cấp dịch vụ HĐĐT:</label>
+          <select class="form-input">
+            <option value="vnpt">VNPT Invoice (Tập đoàn VNPT)</option>
+            <option value="viettel">Viettel S-Invoice (Tập đoàn Viettel)</option>
+            <option value="misa">MISA meInvoice (Công ty MISA)</option>
+            <option value="bkav">BKAV eHoadon (Tập đoàn BKAV)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Mã số thuế doanh nghiệp (MST):</label>
+          <input type="text" class="form-input" placeholder="0312345678" value="0312345678">
+        </div>
+        <div class="form-group">
+          <label>Ký hiệu mẫu số hóa đơn (Mẫu số):</label>
+          <input type="text" class="form-input" placeholder="1/001" value="1/001">
+        </div>
+        <div class="form-group">
+          <label>Ký hiệu hóa đơn (Ký hiệu):</label>
+          <input type="text" class="form-input" placeholder="1C26TAA" value="1C26TAA">
+        </div>
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">Tự động phát hành HĐĐT sau khi thanh toán</span>
+            <span class="setting-switch-desc">Hệ thống tự động đồng bộ gửi hóa đơn điện tử</span>
+          </div>
+          <input type="checkbox" checked>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;gap:8px;justify-content:space-between;padding:12px 18px;border-top:1px solid var(--border-color)">
+        <button type="button" class="btn-secondary" onclick="moreMenuModule.testEInvoiceConnection()"><i class="fa-solid fa-network-wired"></i> Kiểm tra kết nối</button>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
+          <button type="button" class="btn-primary" onclick="moreMenuModule.saveEInvoiceSettings()">Lưu cấu hình</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: WEBSITE CỬA HÀNG & QR -->
+  <div class="modal-overlay" id="storeWebsiteModal" style="display:none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-globe text-warning"></i> Website cửa hàng & QR Menu</h3>
+        <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
+      </div>
+      <div class="modal-body text-center">
+        <p class="text-muted" style="font-size:13px;margin-bottom:14px">Khách hàng quét mã QR để xem thực đơn trực tuyến và tự gọi món tại bàn.</p>
+        
+        <div style="display:inline-block;padding:12px;background:#fff;border-radius:16px;box-shadow:0 4px 16px rgba(0,0,0,0.08);margin-bottom:14px">
+          <img id="storeWebsiteQrImage" src="" alt="QR Menu" style="width:190px;height:190px;display:block;border-radius:8px">
+        </div>
+
+        <div class="form-group" style="text-align:left">
+          <label>Đường dẫn trang thực đơn online:</label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="storeWebsiteUrl" class="form-input" readonly>
+            <button type="button" class="btn-secondary" onclick="moreMenuModule.copyWebsiteUrl()"><i class="fa-solid fa-copy"></i> Chép</button>
+          </div>
+        </div>
+
+        <div class="setting-switch-row" style="text-align:left">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">Cho phép khách tự đặt món qua QR</span>
+            <span class="setting-switch-desc">Đơn đặt sẽ chuyển thẳng vào màn hình thu ngân</span>
+          </div>
+          <input type="checkbox" checked>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+        <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
+        <button type="button" class="btn-primary" onclick="window.open(document.getElementById('storeWebsiteUrl').value, '_blank')"><i class="fa-solid fa-arrow-up-right-from-square"></i> Mở xem thử</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: TÍCH ĐIỂM VÀ KHUYẾN MÃI -->
+  <div class="modal-overlay" id="loyaltySettingsModal" style="display:none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-star text-warning"></i> Tích điểm và khuyến mãi</h3>
+        <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">Bật chương trình tích điểm thành viên</span>
+            <span class="setting-switch-desc">Tự động tích lũy điểm thưởng theo số điện thoại khách hàng</span>
+          </div>
+          <input type="checkbox" checked>
+        </div>
+
+        <div class="form-group" style="margin-top:12px">
+          <label>Tỷ lệ tích lũy điểm thưởng:</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span>Mỗi</span>
+            <input type="number" class="form-input" style="width:110px" value="10000">
+            <span>VNĐ = <strong>1 điểm</strong></span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Quy đổi điểm khi thanh toán:</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span><strong>1 điểm</strong> = Giảm</span>
+            <input type="number" class="form-input" style="width:110px" value="1000">
+            <span>VNĐ</span>
+          </div>
+        </div>
+
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">Cho phép áp dụng chung với Voucher giảm giá</span>
+            <span class="setting-switch-desc">Khách có thể vừa trừ điểm vừa dùng mã giảm giá</span>
+          </div>
+          <input type="checkbox" checked>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+        <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
+        <button type="button" class="btn-primary" onclick="moreMenuModule.saveLoyaltySettings()">Lưu cài đặt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: LOA THÔNG BÁO -->
+  <div class="modal-overlay" id="speakerSettingsModal" style="display:none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-bell text-primary"></i> Loa thông báo âm thanh</h3>
+        <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted" style="font-size:13px;margin-bottom:12px">Cài đặt chuông và giọng đọc âm thanh cho thu ngân và quầy phục vụ.</p>
+        
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">Chuông báo khi có đơn hàng mới</span>
+            <span class="setting-switch-desc">Phát âm thanh thông báo khi có đơn tại bàn / mang đi mới</span>
+          </div>
+          <input type="checkbox" id="spkNewOrder" checked>
+        </div>
+
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">Chuông báo khi Bếp hoàn thành món</span>
+            <span class="setting-switch-desc">Thông báo cho nhân viên phục vụ mang món cho khách</span>
+          </div>
+          <input type="checkbox" id="spkKitchenDone" checked>
+        </div>
+
+        <div class="setting-switch-row">
+          <div class="setting-switch-label">
+            <span class="setting-switch-title">Giọng đọc AI xác nhận chuyển khoản VietQR</span>
+            <span class="setting-switch-desc">Tự động phát giọng đọc: "Đã nhận thành công ... đồng"</span>
+          </div>
+          <input type="checkbox" id="spkVietQR" checked>
+        </div>
+
+        <div class="form-group" style="margin-top:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <label style="margin:0">Âm lượng thông báo:</label>
+            <strong id="spkVolumeLabel" class="text-primary">85%</strong>
+          </div>
+          <input type="range" id="spkVolume" min="10" max="100" value="85" style="width:100%" oninput="document.getElementById('spkVolumeLabel').textContent=this.value+'%'">
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button type="button" class="btn-secondary btn-sm" style="flex:1" onclick="moreMenuModule.testOrderSound()"><i class="fa-solid fa-volume-high"></i> Thử chuông</button>
+          <button type="button" class="btn-secondary btn-sm" style="flex:1" onclick="moreMenuModule.testSpeechVietQR()"><i class="fa-solid fa-comment-dots"></i> Thử giọng nói AI</button>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+        <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
+        <button type="button" class="btn-primary" onclick="moreMenuModule.saveSpeakerSettings()">Lưu cài đặt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: LỊCH SỬ THAO TÁC (AUDIT LOGS) -->
+  <div class="modal-overlay" id="historyAuditModal" style="display:none;">
+    <div class="modal-dialog" style="max-width:680px">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-clock-rotate-left text-success"></i> Lịch sử thao tác hệ thống</h3>
+        <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
+      </div>
+      <div class="modal-body scrollable" style="max-height:460px">
+        <div class="admin-products-table-wrapper">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Thời gian</th>
+                <th>Người thực hiện</th>
+                <th>Hành động</th>
+                <th>Chi tiết</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="historyAuditTbody">
+              <!-- Loaded via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+        <button type="button" class="btn-secondary" onclick="moreMenuModule.openHistoryModal()"><i class="fa-solid fa-rotate"></i> Tải lại</button>
+        <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DANH SÁCH CỬA HÀNG -->
+  <div class="modal-overlay" id="storeListModal" style="display:none;">
+    <div class="modal-dialog" style="max-width:540px">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-store text-success"></i> Danh sách cửa hàng hệ thống</h3>
+        <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
+      </div>
+      <div class="modal-body scrollable" style="max-height:450px" id="storeListContainer">
+        <!-- Loaded via JS -->
+      </div>
+      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+        <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ĐỔI MẬT KHẨU -->
+  <div class="modal-overlay" id="changePasswordModal" style="display:none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-lock text-success"></i> Đổi mật khẩu tài khoản</h3>
+        <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Mật khẩu hiện tại:</label>
+          <input type="password" id="inputOldPassword" class="form-input" placeholder="Nhập mật khẩu đang dùng">
+        </div>
+        <div class="form-group">
+          <label>Mật khẩu mới (tối thiểu 6 ký tự):</label>
+          <input type="password" id="inputNewPassword" class="form-input" placeholder="Nhập mật khẩu mới">
+        </div>
+        <div class="form-group">
+          <label>Xác nhận lại mật khẩu mới:</label>
+          <input type="password" id="inputConfirmPassword" class="form-input" placeholder="Nhập lại mật khẩu mới">
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+        <button type="button" class="btn-secondary btn-close-more-modal">Hủy</button>
+        <button type="button" class="btn-primary" onclick="moreMenuModule.handleChangePassword()">Đổi mật khẩu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: THÔNG TIN TÀI KHOẢN & TÙY CHỈNH HEADER -->
+  <div class="modal-overlay" id="accountInfoModal" style="display:none;">
+    <div class="modal-dialog" style="max-width:580px;">
+      <div class="modal-header" style="border-bottom:none;padding-bottom:8px;">
+        <h3><i class="fa-solid fa-id-badge text-primary"></i> Thông tin tài khoản</h3>
+        <button type="button" class="btn-close-modal btn-close-more-modal" onclick="document.getElementById('accountInfoModal').style.display='none'">&times;</button>
+      </div>
+
+      <!-- TABS NAVIGATION -->
+      <div class="account-tabs-nav">
+        <button type="button" class="account-tab-btn active" id="tabBtnAccountGeneral" onclick="headerCustomizer.switchAccountTab('general')">
+          <i class="fa-solid fa-user"></i> Thông tin tài khoản
+        </button>
+        <button type="button" class="account-tab-btn" id="tabBtnAccountHeader" onclick="headerCustomizer.switchAccountTab('header')">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Giao diện & Banner Header
+        </button>
+      </div>
+
+      <!-- TAB 1: THÔNG TIN TÀI KHOẢN -->
+      <div class="account-tab-pane active" id="tabPaneAccountGeneral">
+        <div class="modal-body scrollable" style="max-height:68vh;padding:18px 22px 22px 22px;">
+          <!-- Profile Card -->
+          <div class="account-profile-header-card">
+            <div class="account-avatar-wrapper">
+              <img src="images/staff-avatar.jpg" alt="Avatar" id="accProfileAvatarImg" class="acc-profile-avatar-img">
+              <div id="accProfileAvatarFallback" class="acc-profile-avatar-fallback" style="display:none">AD</div>
+              <button type="button" class="avatar-change-badge" title="Đổi ảnh đại diện / phông nền" onclick="headerCustomizer.switchAccountTab('header')">
+                <i class="fa-solid fa-camera"></i>
+              </button>
+            </div>
+            <div class="account-profile-header-info">
+              <h4 style="margin:0 0 4px 0;font-size:17px;font-weight:700" id="accFullName">Quản trị viên</h4>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap">
+                <span class="badge-role" id="accRole">SUPER_ADMIN</span>
+                <span class="badge-role" style="background:#e6f8f0;color:#059669"><i class="fa-solid fa-circle-check"></i> Đang hoạt động</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Banner Customize CTA -->
+          <div class="account-customize-callout" onclick="headerCustomizer.switchAccountTab('header')" style="cursor:pointer">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div class="callout-icon-box"><i class="fa-solid fa-palette"></i></div>
+              <div>
+                <strong style="color:var(--text-main);font-size:13px">Tùy chỉnh giao diện Header</strong>
+                <p class="text-muted" style="margin:2px 0 0 0;font-size:12px">Đổi ảnh đại diện, câu chúc và phông nền Header</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-muted"></i>
+          </div>
+
+          <!-- Account Details Grid -->
+          <div class="account-details-grid">
+            <div class="account-detail-row">
+              <span class="text-muted"><i class="fa-solid fa-user-tag"></i> Tên đăng nhập:</span>
+              <strong id="accUsername">admin</strong>
+            </div>
+            <div class="account-detail-row">
+              <span class="text-muted"><i class="fa-solid fa-envelope"></i> Email liên hệ:</span>
+              <span id="accEmail">admin@thichgapos.com</span>
+            </div>
+            <div class="account-detail-row">
+              <span class="text-muted"><i class="fa-solid fa-phone"></i> Số điện thoại:</span>
+              <span id="accPhone">0900000001</span>
+            </div>
+            <div class="account-detail-row">
+              <span class="text-muted"><i class="fa-solid fa-shop"></i> Chi nhánh phụ trách:</span>
+              <span id="accStore">Chi nhánh chính</span>
+            </div>
+            <div class="account-detail-row">
+              <span class="text-muted"><i class="fa-solid fa-clock-rotate-left"></i> Trạng thái hệ thống:</span>
+              <span class="badge-role" style="background:#e6f8f0;color:#059669">Hoạt động bình thường</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: TÙY CHỈNH GIAO DIỆN & BANNER HEADER -->
+      <div class="account-tab-pane" id="tabPaneAccountHeader">
+        <div class="modal-body scrollable" style="max-height:68vh;padding:18px 22px;">
+          
+          <!-- PHẦN 1: CÂU LỜI CHÚC -->
+          <div class="customizer-section">
+            <div class="customizer-section-title">
+              <i class="fa-solid fa-comment-dots text-primary"></i>
+              <span>Câu lời chúc hiển thị trên Banner</span>
+            </div>
+            <div class="form-group" style="margin-bottom:8px">
+              <input type="text" id="inputCustomWishes" class="form-input" placeholder="Nhập câu lời chúc..." maxlength="80">
+            </div>
+            <span class="text-muted" style="font-size:12px">Gợi ý câu chúc nhanh:</span>
+            <div class="wishes-suggestions-grid" id="wishesSuggestionsContainer">
+              <!-- Render qua JS -->
+            </div>
+          </div>
+
+          <!-- PHẦN 2: HÌNH ẢNH ĐẠI DIỆN (AVATAR) -->
+          <div class="customizer-section">
+            <div class="customizer-section-title">
+              <i class="fa-solid fa-user-circle text-success"></i>
+              <span>Ảnh đại diện (Avatar)</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:18px;margin-bottom:12px">
+              <div class="modal-avatar-preview-box" id="modalAvatarPreview">
+                <!-- Render preview qua JS -->
+              </div>
+              <div style="flex:1">
+                <label class="btn-secondary btn-sm" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+                  <i class="fa-solid fa-upload"></i> Tải ảnh từ thiết bị
+                  <input type="file" id="inputUploadAvatar" accept="image/*" style="display:none">
+                </label>
+                <p class="text-muted" style="font-size:12px;margin:4px 0 0 0">Hỗ trợ PNG, JPG, WEBP (dưới 3MB)</p>
+              </div>
+            </div>
+
+            <span class="text-muted" style="font-size:12px">Hoặc chọn ảnh đại diện có sẵn:</span>
+            <div class="avatar-presets-grid" id="avatarPresetsGrid">
+              <!-- Render qua JS -->
+            </div>
+          </div>
+
+          <!-- PHẦN 3: PHÔNG NỀN HEADER (BACKGROUND THEME) -->
+          <div class="customizer-section">
+            <div class="customizer-section-title">
+              <i class="fa-solid fa-wand-magic-sparkles text-warning"></i>
+              <span>Phông nền & Chủ đề Banner</span>
+            </div>
+            <div class="theme-presets-list" id="themesPresetsGrid">
+              <!-- Render qua JS -->
+            </div>
+
+            <div class="setting-switch-row" style="margin-top:12px">
+              <div class="setting-switch-label">
+                <span class="setting-switch-title">Hiệu ứng họa tiết lung linh</span>
+                <span class="setting-switch-desc">Hiển thị vầng trăng rằm, đèn lồng bay hoặc ánh sao lấp lánh</span>
+              </div>
+              <input type="checkbox" id="chkShowDecor" checked>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer" style="display:flex;gap:8px;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border-color)">
+          <button type="button" class="btn-secondary" onclick="headerCustomizer.resetDefaults()"><i class="fa-solid fa-rotate-left"></i> Mặc định</button>
+          <div style="display:flex;gap:8px">
+            <button type="button" class="btn-secondary" onclick="document.getElementById('accountInfoModal').style.display='none'">Hủy</button>
+            <button type="button" class="btn-primary" onclick="headerCustomizer.save()"><i class="fa-solid fa-check"></i> Lưu thay đổi</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL: XÓA TÀI KHOẢN -->
+  <div class="modal-overlay" id="deleteAccountModal" style="display:none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="text-danger"><i class="fa-solid fa-triangle-exclamation"></i> Yêu cầu xóa tài khoản</h3>
+        <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="padding:14px;background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius-md);margin-bottom:14px">
+          <strong class="text-danger"><i class="fa-solid fa-circle-exclamation"></i> CẢNH BÁO QUAN TRỌNG:</strong>
+          <p style="font-size:13px;color:#991b1b;margin:6px 0 0 0">
+            Hành động này sẽ vô hiệu hóa tài khoản và thu hồi vĩnh viễn quyền truy cập vào hệ thống Thích Gà POS. Mọi dữ liệu phân quyền sẽ bị gỡ bỏ.
+          </p>
+        </div>
+        <div class="form-group">
+          <label>Lý do yêu cầu xóa tài khoản (tùy chọn):</label>
+          <textarea class="form-input" rows="3" placeholder="Ví dụ: Nghỉ việc, chuyển vị trí công tác..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+        <button type="button" class="btn-secondary btn-close-more-modal">Hủy bỏ</button>
+        <button type="button" class="btn-primary" style="background:#ef4444;border-color:#ef4444" onclick="moreMenuModule.handleConfirmDeleteAccount()">Xác nhận gửi yêu cầu</button>
+      </div>
+    </div>
+  </div>
+
+
+
   <!-- TOAST NOTIFICATION CONTAINER -->
   <div id="toastContainer" class="toast-container"></div>
 
@@ -1329,7 +2209,10 @@
   <script src="js/invoice.js?v=20260918-takeaway-actions"></script>
   <script src="js/shifts.js"></script>
   <script src="js/admin.js?v=20260923-pos-store-fields"></script>
+  <script src="js/more-menu.js?v=20261009-v1"></script>
+  <script src="js/header-customizer.js?v=20261009-v1"></script>
   <script src="js/app.js?v=20260923-table-first"></script>
 </body>
 
 </html>
+

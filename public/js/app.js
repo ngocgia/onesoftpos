@@ -10,7 +10,8 @@ window.appNavigation = {
     }
     const featureByView = { viewPos: 'POS', viewTables: 'TABLES', viewKds: 'KDS', viewOrders: 'HISTORY', viewAdmin: 'ADMIN' };
     const requiredFeature = featureByView[viewId];
-    if (requiredFeature && window.appState.roleFeatures[requiredFeature] === false) {
+    const canOpenHistoryHub = viewId === 'viewAdmin' && window.appState.roleFeatures.HISTORY !== false;
+    if (requiredFeature && window.appState.roleFeatures[requiredFeature] === false && !canOpenHistoryHub) {
       window.api.showToast('Nhóm người dùng của bạn không được cấp chức năng này', 'error');
       return;
     }
@@ -23,7 +24,7 @@ window.appNavigation = {
 
     // Toggle active bottom nav button
     document.querySelectorAll('.bottom-nav-bar .nav-item').forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('data-view') === viewId);
+      btn.classList.toggle('active', btn.getAttribute('data-view') === (viewId === 'viewOrders' ? 'viewAdmin' : viewId));
     });
 
     // View specific activations

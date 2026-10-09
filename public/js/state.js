@@ -142,7 +142,7 @@ window.appState = {
       navItemPos: 'POS',
       navItemTables: 'TABLES',
       navItemKds: 'KDS',
-      navItemOrders: 'HISTORY',
+      menuItemOrderHistory: 'HISTORY',
       navItemAdmin: 'ADMIN',
       btnShiftStatus: 'SHIFT',
       btnOpenDiscountModal: 'DISCOUNT'
@@ -150,7 +150,9 @@ window.appState = {
     Object.entries(visibility).forEach(([id, code]) => {
       const element = document.getElementById(id);
       if (element) {
-        let isVisible = this.roleFeatures[code];
+        let isVisible = id === 'navItemAdmin'
+          ? this.roleFeatures.ADMIN || this.roleFeatures.HISTORY
+          : this.roleFeatures[code];
         // Override for TABLES if takeaway workspace is enabled
         if (id === 'navItemTables' && this.features?.enableTakeawayWorkspace) {
           isVisible = false;

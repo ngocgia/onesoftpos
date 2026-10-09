@@ -367,6 +367,9 @@
       <!-- VIEW 4: ORDERS HISTORY (Rule 25) -->
       <section id="viewOrders" class="app-view">
         <div class="orders-view-container">
+          <button type="button" class="btn-secondary btn-sm" id="btnHistoryBackToMore" style="margin-bottom:16px">
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Quay lại Nhiều hơn
+          </button>
           <div class="view-header">
             <div class="header-info">
               <h2>Lịch sử đơn hàng</h2>
@@ -533,15 +536,15 @@
                   <i class="fa-solid fa-chevron-right more-item-arrow"></i>
                 </div>
 
-                <div class="more-menu-item" id="menuItemHistory">
-                  <div class="more-item-left">
-                    <span class="more-item-icon icon-history">
-                      <i class="fa-solid fa-clock-rotate-left"></i>
-                    </span>
-                    <span class="more-item-label">Lịch sử thao tác</span>
-                  </div>
+                <button type="button" class="more-menu-item" id="menuItemOrderHistory" style="width:100%;text-align:left;background:transparent;border:0;font:inherit;color:inherit">
+                  <span class="more-item-left">
+                    <span class="more-item-icon icon-account"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                    <span class="more-item-label">Lịch sử</span>
+                  </span>
                   <i class="fa-solid fa-chevron-right more-item-arrow"></i>
-                </div>
+                </button>
+
+
 
               </div>
             </div>
@@ -1054,10 +1057,6 @@
       <button class="nav-item" data-view="viewCompletedItems" id="navItemCompletedItems" style="display:none">
         <i class="fa-solid fa-bell-concierge"></i>
         <span>Món đã xong</span>
-      </button>
-      <button class="nav-item" data-view="viewOrders" id="navItemOrders">
-        <i class="fa-solid fa-clock-rotate-left"></i>
-        <span>Đơn hàng</span>
       </button>
       <button class="nav-item" data-view="viewAdmin" id="navItemAdmin">
         <i class="fa-solid fa-bars"></i>
@@ -1937,38 +1936,6 @@
     </div>
   </div>
 
-  <!-- MODAL: LỊCH SỬ THAO TÁC (AUDIT LOGS) -->
-  <div class="modal-overlay" id="historyAuditModal" style="display:none;">
-    <div class="modal-dialog" style="max-width:680px">
-      <div class="modal-header">
-        <h3><i class="fa-solid fa-clock-rotate-left text-success"></i> Lịch sử thao tác hệ thống</h3>
-        <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
-      </div>
-      <div class="modal-body scrollable" style="max-height:460px">
-        <div class="admin-products-table-wrapper">
-          <table class="orders-table">
-            <thead>
-              <tr>
-                <th>Thời gian</th>
-                <th>Người thực hiện</th>
-                <th>Hành động</th>
-                <th>Chi tiết</th>
-                <th>Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody id="historyAuditTbody">
-              <!-- Loaded via JS -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
-        <button type="button" class="btn-secondary" onclick="moreMenuModule.openHistoryModal()"><i class="fa-solid fa-rotate"></i> Tải lại</button>
-        <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
-      </div>
-    </div>
-  </div>
-
   <!-- MODAL: DANH SÁCH CỬA HÀNG -->
   <div class="modal-overlay" id="storeListModal" style="display:none;">
     <div class="modal-dialog" style="max-width:540px">
@@ -2199,19 +2166,19 @@
 
   <!-- SCRIPTS (Vanilla ES6 Modules) -->
   <script src="js/api.js"></script>
-  <script src="js/state.js?v=20260923-staff-tab-fix"></script>
+  <script src="js/state.js?v=20261009-history-in-more"></script>
   <script src="js/pos.js?v=20260923-store-context-fix"></script>
   <script src="js/tables.js?v=20260923-kitchen-cancel-setting"></script>
   <script src="js/kds.js?v=20260923-kitchen-cancel-setting"></script>
   <script src="js/completed-items.js?v=20260923-table-first"></script>
-  <script src="js/orders.js?v=20260918-takeaway-history"></script>
+  <script src="js/orders.js?v=20261009-history-in-more"></script>
   <script src="js/checkout.js?v=20260918-takeaway-history"></script>
   <script src="js/invoice.js?v=20260918-takeaway-actions"></script>
   <script src="js/shifts.js"></script>
   <script src="js/admin.js?v=20260923-pos-store-fields"></script>
-  <script src="js/more-menu.js?v=20261009-store-list-only"></script>
+  <script src="js/more-menu.js?v=20261009-history-back"></script>
   <script src="js/header-customizer.js?v=20261009-v1"></script>
-  <script src="js/app.js?v=20261009-store-list-only"></script>
+  <script src="js/app.js?v=20261009-history-in-more"></script>
 </body>
 
 </html>

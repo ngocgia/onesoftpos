@@ -153,7 +153,7 @@ window.moreMenuModule = {
       });
     });
 
-    // 3. NHÓM CỬA HÀNG (9 chức năng như hình 1)
+    // 3. NHÓM CỬA HÀNG (9 chức năng)
     document.getElementById('menuItemPrinter')?.addEventListener('click', () => this.openPrinterModal());
     document.getElementById('menuItemWorkflow')?.addEventListener('click', () => this.openWorkflowModal());
     document.getElementById('menuItemShipping')?.addEventListener('click', () => this.openShippingModal());
@@ -161,8 +161,9 @@ window.moreMenuModule = {
     document.getElementById('menuItemEInvoice')?.addEventListener('click', () => this.openEInvoiceModal());
     document.getElementById('menuItemWebsite')?.addEventListener('click', () => this.openWebsiteModal());
     document.getElementById('menuItemLoyalty')?.addEventListener('click', () => this.openLoyaltyModal());
+    document.getElementById('btnHistoryBackToMore')?.addEventListener('click', () => window.appNavigation.switchView('viewAdmin'));
+    document.getElementById('menuItemOrderHistory')?.addEventListener('click', () => window.appNavigation.switchView('viewOrders'));
     document.getElementById('menuItemSpeaker')?.addEventListener('click', () => this.openSpeakerModal());
-    document.getElementById('menuItemHistory')?.addEventListener('click', () => this.openHistoryModal());
 
     // 4. NHÓM TÀI KHOẢN (5 chức năng như hình 2)
     document.getElementById('menuItemStores')?.addEventListener('click', () => this.openStoreListModal());
@@ -478,54 +479,6 @@ window.moreMenuModule = {
     localStorage.setItem('pos_speaker_settings', JSON.stringify(settings));
     document.getElementById('speakerSettingsModal').style.display = 'none';
     window.api?.showToast('Đã lưu cài đặt loa thông báo', 'success');
-  },
-
-  // 9. Lịch sử thao tác (Audit log)
-  async openHistoryModal() {
-    const modal = document.getElementById('historyAuditModal');
-    if (!modal) return;
-    modal.style.display = 'flex';
-
-    const tbody = document.getElementById('historyAuditTbody');
-    if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding:20px"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải nhật ký thao tác...</td></tr>';
-
-    try {
-      // Thử gọi API audit logs nếu có quyền, nếu không hiển thị nhật ký đơn hàng và thao tác
-      let logs = [];
-      try {
-        const res = await window.api.get('/admin/audit-logs?limit=25');
-        logs = res.logs || [];
-      } catch (_) {
-        // Fallback nhật ký thao tác hệ thống cục bộ
-        logs = [
-          { created_at: new Date().toISOString(), user_name: window.appState?.user?.full_name || 'Admin', action: 'LOGIN', target_type: 'AUTH', details: 'Đăng nhập vào hệ thống POS chi nhánh' },
-          { created_at: new Date(Date.now() - 15 * 60000).toISOString(), user_name: 'Thu Ngân', action: 'OPEN_SHIFT', target_type: 'SHIFT', details: 'Mở ca làm việc đầu ngày' },
-          { created_at: new Date(Date.now() - 40 * 60000).toISOString(), user_name: 'Thu Ngân', action: 'CREATE', target_type: 'ORDER', details: 'Tạo đơn hàng mang đi #ORD-0012' },
-          { created_at: new Date(Date.now() - 75 * 60000).toISOString(), user_name: 'Quản Lý', action: 'UPDATE', target_type: 'STORE', details: 'Cập nhật thông tin cấu hình cửa hàng' }
-        ];
-      }
-
-      if (!logs.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:20px">Chưa có bản ghi lịch sử thao tác nào</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = logs.map(log => {
-        const time = new Date(log.created_at || Date.now()).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
-        return `
-          <tr>
-            <td><small class="text-muted">${time}</small></td>
-            <td><strong>${log.user_name || log.username || 'Hệ thống'}</strong></td>
-            <td><span class="badge-pill store-type-pill" style="font-size:11px">${log.action}</span></td>
-            <td>${log.details || log.description || log.target_type || '-'}</td>
-            <td><span class="badge-role" style="background:#e6f8f0;color:#059669">Thành công</span></td>
-          </tr>
-        `;
-      }).join('');
-    } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger" style="padding:20px">Không thể tải nhật ký thao tác</td></tr>';
-    }
   },
 
   // 10. Danh sách cửa hàng

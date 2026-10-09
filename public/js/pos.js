@@ -209,11 +209,9 @@ window.posModule = {
     const tabs = document.getElementById('takeawayWorkspaceTabs');
     const draftsPanel = document.getElementById('takeawayDraftsPanel');
     const hint = document.getElementById('takeawayActiveOrderHint');
-    const historyLabel = document.querySelector('#navItemOrders span');
     if (tabs) tabs.style.display = enabled ? 'flex' : 'none';
     if (draftsPanel) draftsPanel.style.display = enabled ? 'block' : 'none';
     if (hint) hint.style.display = enabled ? 'flex' : 'none';
-    if (historyLabel) historyLabel.textContent = enabled ? 'Lịch sử' : 'Đơn hàng';
 
     if (enabled) {
       window.appState.ensureTakeawayDraft();

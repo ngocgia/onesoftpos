@@ -58,7 +58,7 @@ window.ordersModule = {
     const header = document.querySelector('#viewOrders .header-info h2');
     const description = document.querySelector('#viewOrders .header-info p');
     const tabs = document.getElementById('orderStatusTabs');
-    const navLabel = document.querySelector('#navItemOrders span');
+    const navLabel = document.querySelector('#menuItemOrderHistory .more-item-label');
     const thead = document.querySelector('#ordersTable thead');
     if (!this.isKitchenHistory()) {
       const isTakeaway = window.appState.isTakeawayOnlyStore?.();

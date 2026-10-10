@@ -13,6 +13,9 @@ import android.print.PrintManager;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowInsetsController;
+import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -44,23 +47,50 @@ public final class MainActivity extends Activity {
     private ProgressBar progress;
     private LinearLayout errorView;
     private boolean loadFailed;
+    private boolean pageLoaded;
+
+    private int insetTopDp = 0;
+    private int insetBottomDp = 0;
+    private int insetLeftDp = 0;
+    private int insetRightDp = 0;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+
         FrameLayout frame = new FrameLayout(this);
         frame.setBackgroundColor(Color.WHITE);
         setContentView(frame);
-        if (Build.VERSION.SDK_INT >= 35) {
-            frame.setOnApplyWindowInsetsListener((view, insets) -> {
-                view.setPadding(0, insets.getSystemWindowInsetTop(), 0, insets.getSystemWindowInsetBottom());
-                return insets;
-            });
-            frame.requestApplyInsets();
-        }
+
+        // Kích hoạt tràn viền an toàn sau khi đã setContentView
+        setupEdgeToEdge();
 
         webView = new WebView(this);
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        frame.addView(webView, new FrameLayout.LayoutParams(-1, -1));
+        frame.addView(webView, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        // Lắng nghe Window Insets: KHÔNG set padding cho FrameLayout để WebView tràn sát mép
+        frame.setOnApplyWindowInsetsListener((view, insets) -> {
+            try {
+                int topPx = insets.getSystemWindowInsetTop();
+                int bottomPx = insets.getSystemWindowInsetBottom();
+                int leftPx = insets.getSystemWindowInsetLeft();
+                int rightPx = insets.getSystemWindowInsetRight();
+
+                float density = getResources().getDisplayMetrics().density;
+                if (density > 0) {
+                    insetTopDp = Math.round(topPx / density);
+                    insetBottomDp = Math.round(bottomPx / density);
+                    insetLeftDp = Math.round(leftPx / density);
+                    insetRightDp = Math.round(rightPx / density);
+                }
+
+                if (pageLoaded) {
+                    applyInsetsToWebView();
+                }
+            } catch (Throwable ignored) {}
+            return insets;
+        });
 
         progress = new ProgressBar(this);
         FrameLayout.LayoutParams progressParams = new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER);
@@ -121,6 +151,7 @@ public final class MainActivity extends Activity {
             }
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 loadFailed = false;
+                pageLoaded = false;
                 errorView.setVisibility(View.GONE);
                 progress.setVisibility(View.VISIBLE);
                 view.setVisibility(View.INVISIBLE);
@@ -132,6 +163,8 @@ public final class MainActivity extends Activity {
                     return;
                 }
                 if (loadFailed || !isAppHost(uri) || !url.equals(view.getUrl())) return;
+                pageLoaded = true;
+                applyInsetsToWebView();
                 view.evaluateJavascript(APP_BRIDGE_SCRIPT, ignored -> {
                     if (!url.equals(view.getUrl())) return;
                     view.clearHistory();
@@ -142,6 +175,7 @@ public final class MainActivity extends Activity {
             @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (!request.isForMainFrame()) return;
                 loadFailed = true;
+                pageLoaded = false;
                 progress.setVisibility(View.GONE);
                 view.setVisibility(View.INVISIBLE);
                 errorView.setVisibility(View.VISIBLE);
@@ -149,6 +183,86 @@ public final class MainActivity extends Activity {
         });
 
         if (state == null || webView.restoreState(state) == null) webView.loadUrl(POS_URL);
+    }
+
+    private void setupEdgeToEdge() {
+        try {
+            Window window = getWindow();
+
+            // 1. Vẽ xuyên qua tai thỏ / camera cutout
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                WindowManager.LayoutParams lp = window.getAttributes();
+                lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+                window.setAttributes(lp);
+            }
+
+            // 2. Kích hoạt vẽ tràn viền và trong suốt thanh hệ thống
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window.setDecorFitsSystemWindows(false);
+                window.setStatusBarColor(Color.TRANSPARENT);
+                window.setNavigationBarColor(Color.TRANSPARENT);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    window.setStatusBarContrastEnforced(false);
+                    window.setNavigationBarContrastEnforced(false);
+                }
+                WindowInsetsController controller = window.getInsetsController();
+                if (controller != null) {
+                    // Header nền sẫm -> icon pin, sóng, giờ màu trắng sáng
+                    controller.setSystemBarsAppearance(0, WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS);
+                    // Đáy nền trắng -> icon/thanh gạch cử chỉ màu tối
+                    controller.setSystemBarsAppearance(
+                            WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
+                            WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                window.getDecorView().setSystemUiVisibility(flags);
+                window.setStatusBarColor(Color.TRANSPARENT);
+                window.setNavigationBarColor(Color.TRANSPARENT);
+            }
+        } catch (Throwable ignored) {
+            // Không bao giờ để lỗi cấu hình UI làm gián đoạn khởi động app
+        }
+    }
+
+    private void applyInsetsToWebView() {
+        if (webView == null || !pageLoaded) return;
+        try {
+            String js = String.format(java.util.Locale.US,
+                    "(function(){"
+                    + "var top='%dpx',bottom='%dpx',left='%dpx',right='%dpx';"
+                    + "var d=document.documentElement;"
+                    + "if(d){"
+                    + "d.style.setProperty('--android-inset-top',top);"
+                    + "d.style.setProperty('--android-inset-bottom',bottom);"
+                    + "d.style.setProperty('--android-inset-left',left);"
+                    + "d.style.setProperty('--android-inset-right',right);"
+                    + "d.style.setProperty('--safe-top',top);"
+                    + "d.style.setProperty('--safe-bottom',bottom);"
+                    + "d.style.setProperty('--safe-left',left);"
+                    + "d.style.setProperty('--safe-right',right);"
+                    + "}"
+                    + "var st=document.getElementById('android-e2e-style');"
+                    + "if(!st&&document.head){"
+                    + "st=document.createElement('style');"
+                    + "st.id='android-e2e-style';"
+                    + "document.head.appendChild(st);"
+                    + "}"
+                    + "if(st){"
+                    + "st.textContent='@media(max-width:520px){"
+                    + ":root{--header-height:calc(58px + '+top+')!important;--bottom-nav-height:calc(64px + '+bottom+')!important;}"
+                    + ".top-header{min-height:calc(58px + '+top+')!important;padding-top:'+top+'!important;}"
+                    + ".bottom-nav-bar{min-height:calc(64px + '+bottom+')!important;height:calc(64px + '+bottom+')!important;padding-bottom:'+bottom+'!important;}"
+                    + ".main-content{margin-bottom:calc(64px + '+bottom+')!important;}"
+                    + "}';"
+                    + "}"
+                    + "})()",
+                    insetTopDp, insetBottomDp, insetLeftDp, insetRightDp);
+            webView.evaluateJavascript(js, null);
+        } catch (Throwable ignored) {}
     }
 
     private boolean isAppHost(Uri uri) {

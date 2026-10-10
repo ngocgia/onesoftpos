@@ -55,6 +55,12 @@
   /* Layout dimensions */
   --header-height: 62px;
   --bottom-nav-height: 64px;
+
+  /* Safe Area Insets (Edge-to-Edge for Android & iOS) */
+  --safe-top: max(env(safe-area-inset-top, 0px), var(--android-inset-top, 0px));
+  --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--android-inset-bottom, 0px));
+  --safe-left: max(env(safe-area-inset-left, 0px), var(--android-inset-left, 0px));
+  --safe-right: max(env(safe-area-inset-right, 0px), var(--android-inset-right, 0px));
 }
 
 /* Dark Theme */
@@ -3113,8 +3119,8 @@ textarea.form-input {
 
 @media (max-width: 520px) {
   :root {
-    --header-height: calc(58px + env(safe-area-inset-top));
-    --bottom-nav-height: calc(64px + env(safe-area-inset-bottom));
+    --header-height: calc(58px + var(--safe-top));
+    --bottom-nav-height: calc(64px + var(--safe-bottom));
   }
 
   html {
@@ -3123,8 +3129,8 @@ textarea.form-input {
   }
 
   body {
-    padding-right: env(safe-area-inset-right);
-    padding-left: env(safe-area-inset-left);
+    padding-right: var(--safe-right);
+    padding-left: var(--safe-left);
     overscroll-behavior: none;
   }
 
@@ -3149,7 +3155,7 @@ textarea.form-input {
 
   .top-header {
     min-height: var(--header-height);
-    padding: env(safe-area-inset-top) 8px 0;
+    padding: var(--safe-top) 8px 0;
     gap: 6px;
   }
 
@@ -3264,7 +3270,7 @@ textarea.form-input {
   .orders-view-container,
   .kds-view-container,
   .admin-view-container {
-    padding: 10px 12px calc(92px + env(safe-area-inset-bottom));
+    padding: 10px 12px calc(92px + var(--safe-bottom));
   }
 
   .pos-catalog {
@@ -3352,9 +3358,9 @@ textarea.form-input {
   }
 
   .pos-cart-panel {
-    right: env(safe-area-inset-right);
+    right: var(--safe-right);
     bottom: var(--bottom-nav-height);
-    left: env(safe-area-inset-left);
+    left: var(--safe-left);
     max-height: calc(100dvh - var(--header-height) - 10px);
     border-radius: 18px 18px 0 0;
     transform: translateY(calc(100% - 72px));
@@ -3388,7 +3394,7 @@ textarea.form-input {
   }
 
   .cart-footer {
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    padding-bottom: calc(12px + var(--safe-bottom));
   }
 
   .btn-checkout,
@@ -3400,7 +3406,7 @@ textarea.form-input {
   .bottom-nav-bar {
     min-height: var(--bottom-nav-height);
     height: var(--bottom-nav-height);
-    padding: 4px max(4px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(4px, env(safe-area-inset-left));
+    padding: 4px max(4px, var(--safe-right)) var(--safe-bottom) max(4px, var(--safe-left));
     overflow-x: auto;
     overscroll-behavior-x: contain;
   }
@@ -3603,14 +3609,14 @@ textarea.form-input {
   .modal-overlay,
   .modal {
     align-items: flex-end;
-    padding: env(safe-area-inset-top) 0 0;
+    padding: var(--safe-top) 0 0;
   }
 
   .modal-dialog,
   .modal-sheet-dialog {
     width: 100%;
     max-width: none;
-    max-height: calc(100dvh - env(safe-area-inset-top));
+    max-height: calc(100dvh - var(--safe-top));
     margin: 0;
     border-radius: 20px 20px 0 0;
   }
@@ -3621,7 +3627,7 @@ textarea.form-input {
 
   .modal-footer,
   .modal-actions {
-    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+    padding-bottom: calc(14px + var(--safe-bottom));
   }
 
   .modal-footer button,
@@ -3631,7 +3637,7 @@ textarea.form-input {
 
   .toast-container,
   #toastContainer {
-    top: calc(10px + env(safe-area-inset-top));
+    top: calc(10px + var(--safe-top));
     right: 12px;
     left: 12px;
     width: auto;
@@ -3677,8 +3683,8 @@ textarea.form-input {
 
 @media (orientation: landscape) and (min-width: 700px) and (max-height: 520px) {
   :root {
-    --header-height: calc(50px + env(safe-area-inset-top));
-    --bottom-nav-height: calc(54px + env(safe-area-inset-bottom));
+    --header-height: calc(50px + var(--safe-top));
+    --bottom-nav-height: calc(54px + var(--safe-bottom));
   }
 
   .store-banner {
@@ -3696,7 +3702,7 @@ textarea.form-input {
 
   .pos-cart-panel {
     top: var(--header-height);
-    right: env(safe-area-inset-right);
+    right: var(--safe-right);
     bottom: var(--bottom-nav-height);
     left: auto;
     width: 346px;
@@ -4055,7 +4061,7 @@ textarea.form-input {
 
   .takeaway-only-store #posWorkspace[data-takeaway-pane="orders"] .cart-footer {
     flex: 0 0 auto;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    padding-bottom: calc(12px + var(--safe-bottom));
   }
 }
 

@@ -17,6 +17,7 @@ import android.view.Window;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.webkit.CookieManager;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -53,6 +54,9 @@ public final class MainActivity extends Activity {
     private int insetBottomDp = 0;
     private int insetLeftDp = 0;
     private int insetRightDp = 0;
+
+    private ValueCallback<Uri[]> fileUploadCallback;
+    private static final int FILE_CHOOSER_REQUEST_CODE = 1001;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -116,8 +120,8 @@ public final class MainActivity extends Activity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setAllowFileAccess(false);
-        settings.setAllowContentAccess(false);
+        settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setMediaPlaybackRequiresUserGesture(false);
         CookieManager.getInstance().setAcceptCookie(true);
@@ -126,6 +130,46 @@ public final class MainActivity extends Activity {
         webView.setWebChromeClient(new WebChromeClient() {
             @Override public void onProgressChanged(WebView view, int newProgress) {
                 if (!loadFailed && newProgress < 100) progress.setVisibility(View.VISIBLE);
+            }
+            @Override public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback,
+                    FileChooserParams fileChooserParams) {
+                if (fileUploadCallback != null) {
+                    fileUploadCallback.onReceiveValue(null);
+                    fileUploadCallback = null;
+                }
+                fileUploadCallback = filePathCallback;
+
+                Intent intent = null;
+                if (fileChooserParams != null) {
+                    try {
+                        intent = fileChooserParams.createIntent();
+                    } catch (Exception ignored) {}
+                }
+                if (intent == null) {
+                    intent = new Intent(Intent.ACTION_GET_CONTENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    intent.setType("image/*");
+                }
+
+                try {
+                    startActivityForResult(Intent.createChooser(intent, "Chọn hình ảnh"), FILE_CHOOSER_REQUEST_CODE);
+                    return true;
+                } catch (ActivityNotFoundException e) {
+                    try {
+                        Intent fallback = new Intent(Intent.ACTION_GET_CONTENT);
+                        fallback.addCategory(Intent.CATEGORY_OPENABLE);
+                        fallback.setType("image/*");
+                        startActivityForResult(fallback, FILE_CHOOSER_REQUEST_CODE);
+                        return true;
+                    } catch (Exception ex) {
+                        if (fileUploadCallback != null) {
+                            fileUploadCallback.onReceiveValue(null);
+                            fileUploadCallback = null;
+                        }
+                        Toast.makeText(MainActivity.this, "Không thể mở bộ chọn ảnh", Toast.LENGTH_SHORT).show();
+                        return false;
+                    }
+                }
             }
         });
         webView.setWebViewClient(new WebViewClient() {
@@ -301,11 +345,26 @@ public final class MainActivity extends Activity {
         else new AlertDialog.Builder(this).setMessage("Thoát Onesoft POS?")
                 .setNegativeButton("Ở lại", null).setPositiveButton("Thoát", (dialog, which) -> finish()).show();
     }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == FILE_CHOOSER_REQUEST_CODE) {
+            if (fileUploadCallback == null) return;
+            Uri[] results = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+            fileUploadCallback.onReceiveValue(results);
+            fileUploadCallback = null;
+        }
+    }
+
     @Override protected void onSaveInstanceState(Bundle outState) {
         webView.saveState(outState);
         super.onSaveInstanceState(outState);
     }
     @Override protected void onDestroy() {
+        if (fileUploadCallback != null) {
+            fileUploadCallback.onReceiveValue(null);
+            fileUploadCallback = null;
+        }
         ((ViewGroup) webView.getParent()).removeView(webView);
         webView.destroy();
         super.onDestroy();

@@ -2,6 +2,64 @@
 
 window.invoiceModule = {
   currentOrder: null,
+  receiptStoreId: null,
+  printing: false,
+
+  getPrintLayout(paperSize) {
+    return {
+      K58: { width: '54mm', fontSize: '11px', page: '58mm 297mm', margin: '2mm' },
+      K80: { width: '76mm', fontSize: '12px', page: '80mm 297mm', margin: '2mm' },
+      A4: { width: '190mm', fontSize: '14px', page: 'A4', margin: '10mm' }
+    }[paperSize] || this.getPrintLayout('K80');
+  },
+
+  async loadPrinterSettings(storeId) {
+    const result = await window.api.get('/store/menu-settings/printer');
+    if (storeId !== window.api.getCurrentStoreId()) throw new Error('Cửa hàng đã thay đổi; vui lòng mở lại phiếu');
+    return { ...window.moreMenuModule.defaultPrinterSettings, ...(result.settings || {}) };
+  },
+
+  applyPrinterSettings(settings) {
+    const layout = this.getPrintLayout(settings.paperSize);
+    const label = document.getElementById('receiptPrintLabel');
+    if (label) label.textContent = `In Hóa Đơn (${({ K58: '58mm', K80: '80mm', A4: 'A4' })[settings.paperSize] || '80mm'})`;
+    // The installed Android bridge reads this legacy field when window.print runs.
+    if (window.appState.storeSettings) {
+      window.appState.storeSettings.receipt_paper_size = { K58: '58mm', K80: '80mm', A4: 'A4' }[settings.paperSize] || '80mm';
+    }
+    let style = document.getElementById('receiptPrintSettings');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'receiptPrintSettings';
+      document.head.appendChild(style);
+    }
+    style.textContent = `
+      #receiptPaper { width: ${layout.width}; max-width: 100%; box-sizing: border-box; font-size: ${layout.fontSize}; }
+      @media print {
+        @page { size: ${layout.page}; margin: ${layout.margin}; }
+        #receiptModal { position: absolute; inset: 0; display: block !important; background: none; padding: 0; overflow: visible; }
+        #receiptModal .modal-dialog { width: auto; max-width: none; margin: 0; padding: 0; box-shadow: none; }
+        #receiptPaper { width: ${layout.width}; max-width: ${layout.width}; margin: 0; }
+      }`;
+  },
+
+  async printReceipt({ auto = false } = {}) {
+    if (this.printing) return;
+    this.printing = true;
+    try {
+      const storeId = window.api.getCurrentStoreId();
+      if (!this.currentOrder || this.receiptStoreId !== storeId) throw new Error('Vui lòng mở lại phiếu của cửa hàng hiện tại');
+      // Refresh on every print so another cashier's saved changes also take effect.
+      const settings = await this.loadPrinterSettings(storeId);
+      this.applyPrinterSettings(settings);
+      if (auto && !settings.autoPrintOnPayment) return;
+      window.print();
+    } catch (error) {
+      window.api.showToast(`Không thể in phiếu: ${error.message}`, 'error');
+    } finally {
+      this.printing = false;
+    }
+  },
 
   init() {
     this.bindEvents();
@@ -26,7 +84,7 @@ window.invoiceModule = {
 
     if (btnPrint) {
       btnPrint.addEventListener('click', () => {
-        window.print();
+        return this.printReceipt();
       });
     }
   },
@@ -55,8 +113,8 @@ window.invoiceModule = {
     });
   },
 
-  async showReceipt(order, payment = null, change = 0) {
-    this.currentOrder = order;
+  async showReceipt(order, payment = null, change = 0, { autoPrint = false } = {}) {
+    const storeId = window.api.getCurrentStoreId();
 
     try {
       let fullOrder;
@@ -72,6 +130,9 @@ window.invoiceModule = {
       }
       // Món hủy vẫn được lưu trong đơn để truy vết, nhưng không được xuất hiện trên bill.
       items = items.filter(item => item.status !== 'CANCELLED');
+      if (storeId !== window.api.getCurrentStoreId()) throw new Error('Cửa hàng đã thay đổi; vui lòng mở lại phiếu');
+      this.currentOrder = order;
+      this.receiptStoreId = storeId;
       const currentStore = window.appState.currentStore;
       const settings = window.appState.storeSettings;
 
@@ -160,6 +221,15 @@ window.invoiceModule = {
       }
 
       document.getElementById('receiptModal').style.display = 'flex';
+      if (autoPrint && !fullOrder.isDraft) {
+        await this.printReceipt({ auto: true });
+      } else {
+        try {
+          this.applyPrinterSettings(await this.loadPrinterSettings(storeId));
+        } catch (error) {
+          window.api.showToast(`Không thể tải cấu hình máy in: ${error.message}`, 'error');
+        }
+      }
     } catch (err) {
       console.error('showReceipt error:', err);
     }

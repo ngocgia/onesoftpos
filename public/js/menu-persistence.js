@@ -35,7 +35,7 @@ window.menuPersistence = {
     }
   },
   read(section, fallback) {
-    return { ...fallback, ...(this.settings[section] || {}) };
+    return { ...fallback, ...(this.storeId === window.api.getCurrentStoreId() ? this.settings[section] || {} : {}) };
   },
   populate(section) {
     const settings = section === 'workflow' ? this.settings[section] : { ...this.defaults[section], ...this.settings[section] };
@@ -53,8 +53,10 @@ window.menuPersistence = {
     }));
   },
   async save(section, settings) {
-    if (this.storeId !== window.api.getCurrentStoreId()) throw new Error('Cửa hàng đã thay đổi; vui lòng mở lại cài đặt');
+    const storeId = this.storeId;
+    if (storeId !== window.api.getCurrentStoreId()) throw new Error('Cửa hàng đã thay đổi; vui lòng mở lại cài đặt');
     const result = await window.api.put(`/store/menu-settings/${section}`, settings);
+    if (storeId !== window.api.getCurrentStoreId() || storeId !== this.storeId) throw new Error('Cửa hàng đã thay đổi; vui lòng mở lại cài đặt');
     this.settings[section] = result.settings;
   },
   async saveForm(section, modalId) {

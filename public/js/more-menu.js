@@ -217,6 +217,7 @@ window.moreMenuModule = {
     window.api?.showToast('Đang gửi lệnh in thử tới máy in...', 'info');
     const store = window.appState?.currentStore || {};
     const size = document.getElementById('printerPaperSize')?.value || 'K80';
+    const layout = window.invoiceModule.getPrintLayout(size);
     const printWindow = window.open('', '_blank', 'width=380,height=600');
     if (!printWindow) {
       window.api?.showToast('Trình duyệt đã chặn cửa sổ in. Vui lòng cho phép popup.', 'warning');
@@ -230,7 +231,8 @@ window.moreMenuModule = {
         <meta charset="utf-8">
         <title>In Thử Hóa Đơn</title>
         <style>
-          body { font-family: monospace; font-size: ${size === 'K58' ? '11px' : '13px'}; padding: 10px; width: ${size === 'K58' ? '54mm' : '76mm'}; margin: 0 auto; }
+          @page { size: ${layout.page}; margin: ${layout.margin}; }
+          body { font-family: monospace; font-size: ${layout.fontSize}; padding: 0; width: ${layout.width}; margin: 0; }
           .text-center { text-align: center; }
           .divider { border-top: 1px dashed #000; margin: 8px 0; }
           .row { display: flex; justify-content: space-between; margin: 4px 0; }

@@ -207,7 +207,7 @@ window.ordersModule = {
         const orderId = parseInt(btn.getAttribute('data-id'), 10);
         const order = this.orders.find(o => o.id === orderId);
         if (order && window.invoiceModule) {
-          window.invoiceModule.showReceipt(order);
+          await window.invoiceModule.showReceipt(order);
         }
       });
     });

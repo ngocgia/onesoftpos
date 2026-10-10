@@ -246,7 +246,7 @@ window.checkoutModule = {
 
       // Open printable receipt (Rule 29)
       if (window.invoiceModule) {
-        window.invoiceModule.showReceipt(order, payRes.payment, payRes.change);
+        window.invoiceModule.showReceipt(order, payRes.payment, payRes.change, { autoPrint: true });
       }
 
       // Refresh table status

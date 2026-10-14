@@ -6,6 +6,52 @@ window.tablesModule = {
   selectedAreaId: 'all',
   activeTableForAction: null,
   editorSubmit: null,
+  draftStatusQueue: new Map(),
+
+  syncDraftTableStatus(table, hasItems) {
+    if (table.current_order_id) return;
+    if (!hasItems && !table.draftOccupied) return;
+    table.draftOccupied = hasItems;
+    const status = hasItems ? 'OCCUPIED' : 'EMPTY';
+    const current = this.tables.find(item => Number(item.id) === Number(table.id));
+    if (table.status === status && (!current || current.status === status)) return;
+    table.status = status;
+    if (current) current.status = status;
+    this.renderTables();
+    const key = `${window.api.getCurrentStoreId()}:${table.id}`;
+    const previous = this.draftStatusQueue.get(key) || Promise.resolve();
+    const pending = previous.catch(() => {}).then(() => window.api.put(`/tables/${table.id}/status`, { status, draft: true }))
+      .catch(error => {
+        // Keep the draft, but reload the authoritative table status on failure.
+        window.api.showToast('Không thể cập nhật trạng thái bàn: ' + error.message, 'error');
+        return this.loadAreasAndTables();
+      }).finally(() => {
+        if (this.draftStatusQueue.get(key) === pending) this.draftStatusQueue.delete(key);
+      });
+    this.draftStatusQueue.set(key, pending);
+  },
+
+  async openTablePos(table) {
+    if (this.openingTable || window.posModule?.sendingOrder) return;
+    this.openingTable = true;
+    try {
+      const result = table.current_order_id ? await window.api.get(`/orders/${table.current_order_id}`) : null;
+      if (result && (result.order.payment_status === 'PAID' || ['COMPLETED', 'CANCELLED'].includes(result.order.order_status))) {
+        throw new Error('Đơn của bàn đã kết thúc, vui lòng chọn lại bàn');
+      }
+      window.appState.setSelectedTable(table);
+      window.appState.cart.sentItems = (result?.items || []).filter(item => item.status !== 'CANCELLED');
+      window.appState.cart.sentOrder = result?.order || null;
+      window.appState.notify('cart_updated', window.appState.cart);
+      const modal = document.getElementById('tableActionModal');
+      if (modal) modal.style.display = 'none';
+      window.appNavigation.switchView('viewPos');
+    } catch (error) {
+      window.api.showToast('Không thể mở bàn: ' + error.message, 'error');
+    } finally {
+      this.openingTable = false;
+    }
+  },
 
   async init() {
     this.bindEvents();
@@ -53,9 +99,7 @@ window.tablesModule = {
     if (btnActionPos) {
       btnActionPos.addEventListener('click', () => {
         if (this.activeTableForAction) {
-          window.appState.setSelectedTable(this.activeTableForAction);
-          closeActionModal();
-          window.appNavigation.switchView('viewPos');
+          this.openTablePos(this.activeTableForAction);
         }
       });
     }
@@ -116,6 +160,46 @@ window.tablesModule = {
     if (btnConfirmMerge) {
       btnConfirmMerge.addEventListener('click', () => this.confirmMerge());
     }
+
+    // Action: Print Bill (Tạm tính)
+    const btnPrintBill = document.getElementById('btnActionPrintBill');
+    if (btnPrintBill) {
+      btnPrintBill.addEventListener('click', async () => {
+        if (!this.activeTableForAction) return;
+        const orderId = this.activeTableForAction.current_order_id;
+        if (!orderId) {
+          window.api.showToast('Bàn chưa có đơn món để in hóa đơn', 'warning');
+          return;
+        }
+        closeActionModal();
+        if (window.invoiceModule) {
+          window.invoiceModule.showReceipt({ id: orderId });
+        }
+      });
+    }
+
+    // Action: Checkout / Pay
+    const btnCheckout = document.getElementById('btnActionCheckout');
+    if (btnCheckout) {
+      btnCheckout.addEventListener('click', async () => {
+        if (!this.activeTableForAction) return;
+        const orderId = this.activeTableForAction.current_order_id;
+        if (!orderId) {
+          window.api.showToast('Bàn chưa có đơn món để thanh toán', 'warning');
+          return;
+        }
+        try {
+          const res = await window.api.get(`/orders/${orderId}`);
+          closeActionModal();
+          if (window.checkoutModule) {
+            window.checkoutModule.openCheckoutModal(res.order);
+          }
+        } catch (err) {
+          window.api.showToast('Không thể mở thanh toán: ' + err.message, 'error');
+        }
+      });
+    }
+
     document.getElementById('btnManageAreas')?.addEventListener('click', () => this.manageAreas());
     document.getElementById('btnAddTable')?.addEventListener('click', () => this.editTable());
   },
@@ -321,9 +405,7 @@ window.tablesModule = {
 
         if (table.status === 'EMPTY') {
           // Empty table: immediately assign to cart and switch to POS
-          window.appState.setSelectedTable(table);
-          window.api.showToast(`Đã chọn ${table.name} cho đơn gọi món`, 'success');
-          window.appNavigation.switchView('viewPos');
+          this.openTablePos(table);
         } else {
           // Occupied table: open actions modal
           this.openTableActionModal(table);
@@ -388,6 +470,28 @@ window.tablesModule = {
       }
     }
 
+    const hasOrder = isOccupied && !!table.current_order_id;
+    const btnPrintBill = document.getElementById('btnActionPrintBill');
+    const btnCheckout = document.getElementById('btnActionCheckout');
+    const btnCheckoutText = document.getElementById('btnActionCheckoutText');
+
+    if (btnPrintBill) {
+      btnPrintBill.disabled = !hasOrder;
+      btnPrintBill.style.opacity = hasOrder ? '1' : '0.55';
+      btnPrintBill.style.cursor = hasOrder ? 'pointer' : 'not-allowed';
+    }
+
+    if (btnCheckout) {
+      btnCheckout.disabled = !hasOrder;
+      btnCheckout.style.opacity = hasOrder ? '1' : '0.55';
+      btnCheckout.style.cursor = hasOrder ? 'pointer' : 'not-allowed';
+      if (btnCheckoutText) {
+        btnCheckoutText.textContent = hasOrder && totalAmount > 0
+          ? `Thanh toán · ${window.api.formatMoney(totalAmount)}`
+          : 'Thanh toán';
+      }
+    }
+
     if (modal) modal.style.display = 'flex';
     this.loadActiveOrderDetails(table);
   },
@@ -417,6 +521,31 @@ window.tablesModule = {
       if (this.activeTableForAction?.id !== table.id) return;
       const items = result.items || [];
       if (count) count.textContent = `${items.reduce((sum, item) => sum + Number(item.quantity || 1), 0)} món`;
+
+      if (result.order?.total_amount != null) {
+        const amt = Number(result.order.total_amount || 0);
+        const billAmount = document.getElementById('tableBillAmount');
+        if (billAmount) billAmount.textContent = window.api.formatMoney(amt);
+        const checkoutBtn = document.getElementById('btnActionCheckout');
+        const checkoutText = document.getElementById('btnActionCheckoutText');
+        const printBtn = document.getElementById('btnActionPrintBill');
+        const hasValidOrder = items.length > 0;
+        if (checkoutBtn) {
+          checkoutBtn.disabled = !hasValidOrder;
+          checkoutBtn.style.opacity = hasValidOrder ? '1' : '0.55';
+          checkoutBtn.style.cursor = hasValidOrder ? 'pointer' : 'not-allowed';
+        }
+        if (printBtn) {
+          printBtn.disabled = !hasValidOrder;
+          printBtn.style.opacity = hasValidOrder ? '1' : '0.55';
+          printBtn.style.cursor = hasValidOrder ? 'pointer' : 'not-allowed';
+        }
+        if (checkoutText) {
+          checkoutText.textContent = hasValidOrder && amt > 0
+            ? `Thanh toán · ${window.api.formatMoney(amt)}`
+            : 'Thanh toán';
+        }
+      }
       list.innerHTML = items.length ? items.map(item => {
         const options = (item.options || []).map(option => option.option_name).filter(Boolean).join(', ');
         const canCancel = this.canCancelOrderItems() && ['PENDING', 'PREPARING', 'READY'].includes(item.status);

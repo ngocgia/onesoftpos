@@ -72,8 +72,10 @@ async function processPayment(req, res) {
         }
         const workflow = normalizeWorkflow(currentOrder.workflow_snapshot);
         const stageIndex = resolveStageIndex(workflow, currentOrder.workflow_stage_index, currentOrder.order_status, !!currentOrder.workflow_snapshot);
-        const paymentStep = isRepayment
-          ? [...workflow.steps].reverse().find(step => step.type === 'PAYMENT')
+        const targetPaymentStep = [...workflow.steps].reverse().find(step => step.type === 'PAYMENT');
+        const isPrePayment = currentOrder.order_type === 'TAKEAWAY' || currentStep(workflow, stageIndex)?.type !== 'PAYMENT';
+        const paymentStep = isRepayment || isPrePayment
+          ? targetPaymentStep
           : currentStep(workflow, stageIndex);
         if (!paymentStep || paymentStep.type !== 'PAYMENT') {
           const error = new Error('Đơn hàng chưa đến bước thanh toán trong quy trình');
@@ -110,19 +112,26 @@ async function processPayment(req, res) {
         );
         payment = payRes.rows[0];
 
-        // Update order status
-        const nextStageIndex = workflow.steps.length;
+        // Update order status: if items are still in kitchen, keep PREPARING; if all done, mark COMPLETED
+        const itemsPendingRes = await client.query(
+          `SELECT 1 FROM order_items WHERE order_id = $1 AND status IN ('PENDING', 'PREPARING') LIMIT 1`,
+          [order_id]
+        );
+        const hasUnfinishedKitchenItems = itemsPendingRes.rows.length > 0;
+        const nextStageIndex = hasUnfinishedKitchenItems ? currentOrder.workflow_stage_index : workflow.steps.length;
+        const nextOrderStatus = hasUnfinishedKitchenItems ? 'PREPARING' : 'COMPLETED';
+
         const orderRes = await client.query(
           `UPDATE orders 
-           SET payment_status = 'PAID', workflow_stage_index=$2, order_status='COMPLETED',
-               completed_at=CURRENT_TIMESTAMP,
+           SET payment_status = 'PAID', workflow_stage_index = $2, order_status = $3,
+               completed_at = CASE WHEN $4 THEN CURRENT_TIMESTAMP ELSE completed_at END,
                updated_at = CURRENT_TIMESTAMP
            WHERE id = $1 RETURNING *`,
-          [order_id, nextStageIndex]
+          [order_id, nextStageIndex, nextOrderStatus, nextOrderStatus === 'COMPLETED']
         );
         updatedOrder = orderRes.rows[0];
 
-        if (currentOrder.table_id) {
+        if (nextOrderStatus === 'COMPLETED' && currentOrder.table_id) {
           await client.query(
             `UPDATE tables SET status='EMPTY', current_order_id=NULL
              WHERE id=$1 AND current_order_id=$2`,
@@ -151,8 +160,10 @@ async function processPayment(req, res) {
       }
       const workflow = normalizeWorkflow(order.workflow_snapshot);
       const stageIndex = resolveStageIndex(workflow, order.workflow_stage_index, order.order_status, !!order.workflow_snapshot);
-      const paymentStep = isRepayment
-        ? [...workflow.steps].reverse().find(step => step.type === 'PAYMENT')
+      const targetPaymentStep = [...workflow.steps].reverse().find(step => step.type === 'PAYMENT');
+      const isPrePayment = order.order_type === 'TAKEAWAY' || currentStep(workflow, stageIndex)?.type !== 'PAYMENT';
+      const paymentStep = isRepayment || isPrePayment
+        ? targetPaymentStep
         : currentStep(workflow, stageIndex);
       if (!paymentStep || paymentStep.type !== 'PAYMENT') return res.status(409).json({ success: false, message: 'Đơn hàng chưa đến bước thanh toán trong quy trình' });
       if (!roleCanHandle(paymentStep, req.user?.role)) return res.status(403).json({ success: false, message: `Bước thanh toán chỉ dành cho nhóm ${paymentStep.roles.join(', ')}` });
@@ -180,14 +191,20 @@ async function processPayment(req, res) {
       };
       memoryStore.payments.push(payment);
 
+      const hasUnfinishedKitchenItems = memoryStore.order_items.some(
+        item => item.order_id === parseInt(order_id, 10) && ['PENDING', 'PREPARING'].includes(item.status)
+      );
+      const nextStageIndex = hasUnfinishedKitchenItems ? order.workflow_stage_index : workflow.steps.length;
+      const nextOrderStatus = hasUnfinishedKitchenItems ? 'PREPARING' : 'COMPLETED';
+
       order.payment_status = 'PAID';
-      order.workflow_stage_index = workflow.steps.length;
-      order.order_status = 'COMPLETED';
-      order.completed_at = new Date().toISOString();
-      order.updated_at = order.completed_at;
+      order.workflow_stage_index = nextStageIndex;
+      order.order_status = nextOrderStatus;
+      if (nextOrderStatus === 'COMPLETED') order.completed_at = new Date().toISOString();
+      order.updated_at = new Date().toISOString();
       updatedOrder = order;
 
-      if (order.table_id) {
+      if (nextOrderStatus === 'COMPLETED' && order.table_id) {
         const table = memoryStore.tables.find(item => item.id === order.table_id && item.current_order_id === order.id);
         if (table) {
           table.status = 'EMPTY';

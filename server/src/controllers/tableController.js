@@ -222,14 +222,23 @@ async function deleteTable(req, res) {
 
 async function updateTableStatus(req, res) {
   const tableId = parseInt(req.params.id, 10);
+  const storeId = req.storeId;
   const { status } = req.body; // EMPTY, OCCUPIED, RESERVED
+  if (!['EMPTY', 'OCCUPIED', 'RESERVED'].includes(status)) {
+    return res.status(400).json({ success: false, message: 'Trạng thái bàn không hợp lệ' });
+  }
+  if (!storeId) return res.status(400).json({ success: false, message: 'Vui lòng chọn cửa hàng' });
 
   try {
     if (isPostgresConnected()) {
-      await pool.query('UPDATE tables SET status = $1 WHERE id = $2', [status, tableId]);
+      const result = await pool.query(`UPDATE tables SET status = $1 WHERE id = $2 AND store_id = $3
+        ${req.body.draft ? 'AND current_order_id IS NULL' : ''} RETURNING *`, [status, tableId, storeId]);
+      if (!result.rowCount) return res.status(409).json({ success: false, message: 'Bàn không khả dụng hoặc đã có đơn, vui lòng tải lại' });
     } else {
-      const table = memoryStore.tables.find(t => t.id === tableId);
-      if (table) table.status = status;
+      const table = memoryStore.tables.find(t => t.id === tableId && t.store_id === storeId);
+      if (!table) return res.status(404).json({ success: false, message: 'Không tìm thấy bàn' });
+      if (req.body.draft && table.current_order_id) return res.status(409).json({ success: false, message: 'Bàn đã có đơn, vui lòng tải lại' });
+      table.status = status;
     }
     res.json({ success: true, message: 'Cập nhật trạng thái bàn thành công' });
   } catch (error) {

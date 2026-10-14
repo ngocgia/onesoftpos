@@ -157,8 +157,8 @@ window.invoiceModule = {
 
       if (storeName) storeName.textContent = currentStore ? currentStore.name.toUpperCase() : 'THÍCH GÀ POS';
       if (storeAddress) storeAddress.textContent = currentStore ? currentStore.address : '';
-      if (storePhone) storePhone.textContent = currentStore ? `Hotline: ${currentStore.phone}` : '';
-      if (receiptTitle) receiptTitle.textContent = fullOrder.isDraft ? 'BIÊN LAI TẠM' : 'PHIẾU THANH TOÁN';
+      const isUnpaid = fullOrder.isDraft || fullOrder.payment_status !== 'PAID';
+      if (receiptTitle) receiptTitle.textContent = isUnpaid ? 'PHIẾU TẠM TÍNH' : 'PHIẾU THANH TOÁN';
       if (orderCodeText) orderCodeText.textContent = `${fullOrder.isDraft ? 'Mã tạm' : 'Mã đơn'}: #${fullOrder.order_code}`;
       if (dateTime) dateTime.textContent = `Ngày: ${new Date(fullOrder.created_at || Date.now()).toLocaleString('vi-VN')}`;
 
@@ -198,8 +198,8 @@ window.invoiceModule = {
 
       if (totalEl) totalEl.textContent = window.api.formatMoney(fullOrder.total_amount);
       
-      const payMethod = fullOrder.isDraft ? 'UNPAID' : (payment ? payment.payment_method : 'CASH');
-      let methodText = fullOrder.isDraft ? 'Chưa thanh toán' : 'Tiền mặt';
+      const payMethod = isUnpaid ? 'UNPAID' : (payment ? payment.payment_method : 'CASH');
+      let methodText = isUnpaid ? 'Chưa thanh toán' : 'Tiền mặt';
       if (payMethod === 'QR') methodText = 'VietQR';
       if (payMethod === 'CARD') methodText = 'Thẻ ngân hàng';
       if (payMethod === 'BANK_TRANSFER') methodText = 'Chuyển khoản';

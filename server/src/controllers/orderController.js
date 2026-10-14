@@ -248,11 +248,12 @@ async function createOrder(req, res) {
           const nextSubtotal = Number(existingOrder.subtotal || 0) + subtotal;
           const nextDiscount = Number(existingOrder.discount_amount || 0) + Number(discount_amount || 0);
           const nextTax = Number(existingOrder.tax_amount || 0) + Number(tax_amount || 0);
+          const nextTotal = Math.max(0, nextSubtotal - nextDiscount + nextTax);
           const updated = await client.query(
             `UPDATE orders SET subtotal=$1, discount_amount=$2, tax_amount=$3,
-             total_amount=GREATEST(0,$1-$2+$3), order_status=$4, workflow_stage_index=$5,
+             total_amount=$7, order_status=$4, workflow_stage_index=$5,
              updated_at=CURRENT_TIMESTAMP WHERE id=$6 RETURNING *`,
-            [nextSubtotal, nextDiscount, nextTax, initialStatus, initialStageIndex, existingOrder.id]
+            [nextSubtotal, nextDiscount, nextTax, initialStatus, initialStageIndex, existingOrder.id, nextTotal]
           );
           createdOrder = updated.rows[0];
         }

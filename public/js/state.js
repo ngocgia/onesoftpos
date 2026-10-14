@@ -4,6 +4,8 @@ const createEmptyPosCart = () => ({
   orderType: 'TAKEAWAY',
   selectedTable: null,
   existingOrderId: null,
+  sentItems: [],
+  sentOrder: null,
   fulfillmentType: '',
   customerName: '',
   customerPhone: '',
@@ -60,7 +62,29 @@ window.appState = {
   },
 
   notify(event, data) {
+    if (event === 'cart_updated') this.saveTableCart();
     this.listeners.forEach(fn => fn(event, data));
+  },
+
+  tableCartKey(tableId) {
+    return `thichgapos_table_cart_${this.currentStore?.id || window.api.getCurrentStoreId()}_${this.user?.id || 'staff'}_${tableId}`;
+  },
+
+  getTableCart(tableId) {
+    try { return JSON.parse(localStorage.getItem(this.tableCartKey(tableId)) || 'null'); }
+    catch (_) { return null; }
+  },
+
+  saveTableCart() {
+    const table = this.cart.orderType === 'DINE_IN' && this.cart.selectedTable;
+    if (!table) return;
+    window.tablesModule?.syncDraftTableStatus(table, this.cart.items.length > 0);
+    try {
+      if (this.cart.items.length) localStorage.setItem(this.tableCartKey(table.id), JSON.stringify(this.cart));
+      else localStorage.removeItem(this.tableCartKey(table.id));
+    } catch (_) {
+      window.api.showToast('Không thể lưu giỏ món của bàn trên thiết bị này', 'error');
+    }
   },
 
   isTakeawayOnlyStore() {
@@ -281,17 +305,17 @@ window.appState = {
 
   applyOrderWorkflow() {
     const workflow = this.storeSettings?.workflow_definition;
-    const checkoutButton = document.getElementById('btnProceedCheckout');
-
-    // Cả hai luồng đều yêu cầu bếp hoàn tất trước khi thu tiền. Thanh toán
-    // được thực hiện từ danh sách đơn sau khi đơn chuyển sang READY.
-    if (checkoutButton) checkoutButton.style.display = 'none';
-
     this.setOrderType(this.cart.orderType);
     this.notify('order_workflow_updated', workflow);
   },
 
   setOrderType(type) {
+    if (window.posModule?.sendingOrder && type !== this.cart.orderType) return;
+    if (type !== this.cart.orderType && this.cart.selectedTable) {
+      this.saveTableCart();
+      this.cart = createEmptyPosCart();
+      this.notify('cart_updated', this.cart);
+    }
     if (type === 'DINE_IN' && (!this.features.enableDineIn || !this.features.enableTable)) {
       window.api.showToast('Cửa hàng này không hỗ trợ bán tại bàn', 'error');
       return;
@@ -317,15 +341,33 @@ window.appState = {
       const canCreate = role === 'SUPER_ADMIN' || (createStep
         ? createStep.roles?.includes(role)
         : this.roleFeatures.POS !== false);
-      btnSendKitchen.style.display = canCreate ? 'inline-flex' : 'none';
+      btnSendKitchen.style.display = canCreate && type === 'DINE_IN' ? 'inline-flex' : 'none';
       btnSendKitchen.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ${nextStep ? `Chuyển: ${nextStep.name}` : 'Tạo đơn'}`;
+    }
+
+    const checkoutButton = document.getElementById('btnProceedCheckout');
+    if (checkoutButton) {
+      const role = this.user?.role;
+      const canPay = (role === 'SUPER_ADMIN' || this.roleFeatures.PAYMENT !== false) && type === 'TAKEAWAY';
+      checkoutButton.style.display = canPay ? 'flex' : 'none';
+      checkoutButton.disabled = !this.cart.items.length;
     }
 
     this.notify('order_type_changed', type);
     window.posModule?.updateFulfillmentVisibility?.();
+    window.posModule?.syncOrderActionButtons?.();
   },
 
   setSelectedTable(table) {
+    if (window.posModule?.sendingOrder) return;
+    this.saveTableCart();
+    const sameTable = table && this.cart.orderType === 'DINE_IN' && Number(this.cart.selectedTable?.id) === Number(table.id);
+    const unassignedCart = table && !this.cart.selectedTable && this.cart.orderType === 'DINE_IN' ? this.cart : null;
+    if (!sameTable) this.cart = (table && this.getTableCart(table.id)) || unassignedCart || createEmptyPosCart();
+    if (table) {
+      table.draftOccupied = this.cart.selectedTable?.draftOccupied || false;
+      this.cart.orderType = 'DINE_IN';
+    }
     this.cart.selectedTable = table;
     this.cart.existingOrderId = table?.current_order_id || null;
     const selectedTablePill = document.getElementById('selectedTablePill');
@@ -340,10 +382,12 @@ window.appState = {
     }
 
     this.notify('table_selected', table);
+    this.notify('cart_updated', this.cart);
   },
 
   // Cart operations
   addToCart(item) {
+    if (window.posModule?.sendingOrder) return;
     if (this.isTakeawayOnlyStore()) this.ensureTakeawayDraft();
     // Check if identical item (same product_id, variant_id, options, note) exists
     const optionsKey = (item.options || []).map(o => o.option_id || o.name).sort().join('_');
@@ -371,6 +415,7 @@ window.appState = {
   },
 
   updateCartItemQty(index, delta) {
+    if (window.posModule?.sendingOrder) return;
     if (!this.cart.items[index]) return;
     this.cart.items[index].quantity += delta;
     if (this.cart.items[index].quantity <= 0) {

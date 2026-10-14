@@ -1330,78 +1330,74 @@
           <div id="tableOrderItems"></div>
         </div>
 
-        <!-- 3 Primary Action Tiles -->
-        <div class="table-action-options">
-          <button type="button" class="btn-action-tile tile-pos" id="btnActionOpenPos">
-            <div class="tile-icon-box">
+        <!-- 3 Quick Action Icons (Xem & Thêm món, Chuyển bàn, Ghép bàn) -->
+        <div class="table-quick-actions">
+          <button type="button" class="btn-quick-action action-pos" id="btnActionOpenPos" title="Xem & Thêm món (Mở POS)">
+            <div class="quick-action-icon">
               <i class="fa-solid fa-utensils"></i>
             </div>
-            <div class="tile-content">
-              <div class="tile-title-row">
-                <strong>Xem & Thêm Món</strong>
-                <span class="tile-badge-recommend">Mở POS</span>
-              </div>
-              <span>Mở giỏ hàng, gọi thêm món hoặc xem chi tiết đơn</span>
-            </div>
-            <i class="fa-solid fa-chevron-right tile-arrow"></i>
+            <span class="quick-action-label">Thêm món</span>
           </button>
 
-          <button type="button" class="btn-action-tile tile-transfer" id="btnActionTransfer">
-            <div class="tile-icon-box">
+          <button type="button" class="btn-quick-action action-transfer" id="btnActionTransfer" title="Chuyển toàn bộ món sang bàn trống khác">
+            <div class="quick-action-icon">
               <i class="fa-solid fa-arrow-right-arrow-left"></i>
             </div>
-            <div class="tile-content">
-              <strong>Chuyển Bàn</strong>
-              <span>Dời toàn bộ món chưa thanh toán sang bàn trống khác</span>
-            </div>
-            <i class="fa-solid fa-chevron-down tile-arrow tile-arrow-toggle"></i>
+            <span class="quick-action-label">Chuyển bàn</span>
           </button>
 
-          <!-- Transfer form subpanel -->
-          <div id="transferSubpanel" class="action-subpanel" style="display: none;">
-            <div class="subpanel-header">
-              <i class="fa-solid fa-arrow-right-arrow-left"></i>
-              <h4 class="subpanel-title">Chọn bàn trống cần chuyển sang:</h4>
+          <button type="button" class="btn-quick-action action-merge" id="btnActionMerge" title="Ghép đơn của bàn này vào bàn có khách khác">
+            <div class="quick-action-icon">
+              <i class="fa-solid fa-object-group"></i>
             </div>
-            <div class="subpanel-select-wrap">
-              <select id="transferTargetSelect" class="form-input custom-table-select"></select>
-            </div>
-            <div class="subpanel-actions">
-              <button type="button" class="btn-subpanel-cancel" id="btnCancelTransfer">Hủy</button>
-              <button type="button" class="btn-primary btn-subpanel-confirm" id="btnConfirmTransfer">
-                <i class="fa-solid fa-check"></i> Xác nhận chuyển bàn
-              </button>
-            </div>
+            <span class="quick-action-label">Ghép bàn</span>
+          </button>
+        </div>
+
+        <!-- Transfer form subpanel -->
+        <div id="transferSubpanel" class="action-subpanel" style="display: none;">
+          <div class="subpanel-header">
+            <i class="fa-solid fa-arrow-right-arrow-left"></i>
+            <h4 class="subpanel-title">Chọn bàn trống cần chuyển sang:</h4>
           </div>
-
-          <button type="button" class="btn-action-tile tile-merge" id="btnActionMerge">
-            <div class="tile-icon-box">
-              <i class="fa-solid fa-object-group"></i>
-            </div>
-            <div class="tile-content">
-              <strong>Ghép Bàn</strong>
-              <span>Gộp đơn của bàn này vào một bàn đang có khách khác</span>
-            </div>
-            <i class="fa-solid fa-chevron-down tile-arrow tile-arrow-toggle"></i>
-          </button>
-
-          <!-- Merge form subpanel -->
-          <div id="mergeSubpanel" class="action-subpanel" style="display: none;">
-            <div class="subpanel-header">
-              <i class="fa-solid fa-object-group"></i>
-              <h4 class="subpanel-title">Chọn bàn đang có khách để ghép vào:</h4>
-            </div>
-            <div class="subpanel-select-wrap">
-              <select id="mergeTargetSelect" class="form-input custom-table-select"></select>
-            </div>
-            <div class="subpanel-actions">
-              <button type="button" class="btn-subpanel-cancel" id="btnCancelMerge">Hủy</button>
-              <button type="button" class="btn-primary btn-subpanel-confirm btn-merge-confirm" id="btnConfirmMerge">
-                <i class="fa-solid fa-check"></i> Xác nhận ghép bàn
-              </button>
-            </div>
+          <div class="subpanel-select-wrap">
+            <select id="transferTargetSelect" class="form-input custom-table-select"></select>
+          </div>
+          <div class="subpanel-actions">
+            <button type="button" class="btn-subpanel-cancel" id="btnCancelTransfer">Hủy</button>
+            <button type="button" class="btn-primary btn-subpanel-confirm" id="btnConfirmTransfer">
+              <i class="fa-solid fa-check"></i> Xác nhận chuyển bàn
+            </button>
           </div>
         </div>
+
+        <!-- Merge form subpanel -->
+        <div id="mergeSubpanel" class="action-subpanel" style="display: none;">
+          <div class="subpanel-header">
+            <i class="fa-solid fa-object-group"></i>
+            <h4 class="subpanel-title">Chọn bàn đang có khách để ghép vào:</h4>
+          </div>
+          <div class="subpanel-select-wrap">
+            <select id="mergeTargetSelect" class="form-input custom-table-select"></select>
+          </div>
+          <div class="subpanel-actions">
+            <button type="button" class="btn-subpanel-cancel" id="btnCancelMerge">Hủy</button>
+            <button type="button" class="btn-primary btn-subpanel-confirm btn-merge-confirm" id="btnConfirmMerge">
+              <i class="fa-solid fa-check"></i> Xác nhận ghép bàn
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- Footer Actions: In Hóa Đơn & Thanh Toán -->
+      <div class="modal-footer table-modal-footer" id="tableModalFooter">
+        <button type="button" class="btn-table-action btn-table-print" id="btnActionPrintBill" title="In tạm tính cho bàn này">
+          <i class="fa-solid fa-print"></i>
+          <span>In Hóa Đơn</span>
+        </button>
+        <button type="button" class="btn-table-action btn-table-checkout" id="btnActionCheckout" title="Thanh toán hóa đơn bàn này">
+          <i class="fa-solid fa-credit-card"></i>
+          <span id="btnActionCheckoutText">Thanh Toán</span>
+        </button>
       </div>
     </div>
   </div>
@@ -2157,9 +2153,9 @@
 
   <!-- SCRIPTS (Vanilla ES6 Modules) -->
   <script src="js/api.js"></script>
-  <script src="js/state.js?v=20261009-history-in-more"></script>
-  <script src="js/pos.js?v=20260923-store-context-fix"></script>
-  <script src="js/tables.js?v=20260923-kitchen-cancel-setting"></script>
+  <script src="js/state.js?v=20261015-takeaway-checkout"></script>
+  <script src="js/pos.js?v=20261015-takeaway-checkout"></script>
+  <script src="js/tables.js?v=20261015-table-cart"></script>
   <script src="js/kds.js?v=20261009-database"></script>
   <script src="js/completed-items.js?v=20260923-table-first"></script>
   <script src="js/orders.js?v=20261010-history-printer"></script>

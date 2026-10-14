@@ -130,6 +130,7 @@ window.posModule = {
     const btnClearCart = document.getElementById('btnClearCart');
     if (btnClearCart) {
       btnClearCart.addEventListener('click', () => {
+        if (this.sendingOrder) return;
         if (confirm('Bạn có chắc chắn muốn xóa toàn bộ giỏ hàng?')) {
           window.appState.clearCart();
         }
@@ -618,12 +619,14 @@ window.posModule = {
     const btnPrintDraft = document.getElementById('btnPrintDraftReceipt');
 
     const items = window.appState.cart.items;
-    const subtotal = window.appState.getCartSubtotal();
-    const discount = window.appState.getCartDiscount();
-    const grandTotal = window.appState.getCartGrandTotal();
-    const itemCount = window.appState.getCartItemCount();
+    const sentItems = window.appState.cart.orderType === 'DINE_IN' ? (window.appState.cart.sentItems || []) : [];
+    const sentOrder = window.appState.cart.orderType === 'DINE_IN' ? window.appState.cart.sentOrder : null;
+    const subtotal = window.appState.getCartSubtotal() + Number(sentOrder?.subtotal || 0);
+    const discount = window.appState.getCartDiscount() + Number(sentOrder?.discount_amount || 0);
+    const grandTotal = window.appState.getCartGrandTotal() + Number(sentOrder?.total_amount || 0);
+    const itemCount = window.appState.getCartItemCount() + sentItems.reduce((sum, item) => sum + Number(item.quantity || 1), 0);
 
-    if (items.length === 0) {
+    if (items.length === 0 && sentItems.length === 0) {
       if (itemsList) itemsList.innerHTML = '';
       if (emptyState) {
         itemsList.appendChild(emptyState);
@@ -634,7 +637,19 @@ window.posModule = {
       if (emptyState) emptyState.style.display = 'none';
       if (btnProceed) btnProceed.disabled = false;
 
-      itemsList.innerHTML = items.map((item, idx) => `
+      const sentHtml = sentItems.map(item => `<div class="cart-item-row cart-item-sent">
+        <div class="cart-item-info">
+          <h4 class="cart-item-name">${this.escapeHtml(item.product_name)}</h4>
+          <div class="cart-item-tags">
+            <span class="cart-item-tag">Đã gửi bếp · ${Number(item.quantity)} món</span>
+            ${item.variant_name ? `<span class="cart-item-tag">${this.escapeHtml(item.variant_name)}</span>` : ''}
+            ${(item.options || []).map(option => `<span class="cart-item-tag">+${this.escapeHtml(option.option_name || '')}</span>`).join('')}
+          </div>
+          ${item.note ? `<p class="cart-item-note">${this.escapeHtml(item.note)}</p>` : ''}
+        </div>
+        <div class="cart-item-right"><span class="cart-item-price">${window.api.formatMoney(item.subtotal)}</span></div>
+      </div>`).join('');
+      itemsList.innerHTML = sentHtml + items.map((item, idx) => `
         <div class="cart-item-row" data-index="${idx}">
           <div class="cart-item-info">
             <h4 class="cart-item-name">${item.product_name}</h4>
@@ -693,6 +708,10 @@ window.posModule = {
   syncOrderActionButtons(itemCount = window.appState.cart.items.length) {
     const btnSendKitchen = document.getElementById('btnSendKitchen');
     const btnPrintDraft = document.getElementById('btnPrintDraftReceipt');
+    const btnProceedCheckout = document.getElementById('btnProceedCheckout');
+    const btnCheckoutAmount = document.getElementById('btnCheckoutAmount');
+    const grandTotal = window.appState.getCartGrandTotal();
+
     const workflow = window.appState.storeSettings?.workflow_definition || { steps: [] };
     const createStep = workflow.steps?.[0];
     const nextStep = workflow.steps?.[1];
@@ -700,10 +719,20 @@ window.posModule = {
     const canCreate = role === 'SUPER_ADMIN' || (createStep
       ? createStep.roles?.includes(role)
       : window.appState.roleFeatures.POS !== false);
+    const isTakeaway = window.appState.cart.orderType === 'TAKEAWAY';
+    const canPay = (role === 'SUPER_ADMIN' || window.appState.roleFeatures.PAYMENT !== false) && isTakeaway;
+
+    if (btnProceedCheckout) {
+      btnProceedCheckout.style.display = canPay ? 'flex' : 'none';
+      btnProceedCheckout.disabled = !itemCount;
+      if (btnCheckoutAmount) {
+        btnCheckoutAmount.textContent = window.api.formatMoney(grandTotal);
+      }
+    }
 
     if (btnSendKitchen) {
-      btnSendKitchen.style.display = canCreate ? 'inline-flex' : 'none';
-      btnSendKitchen.disabled = !itemCount;
+      btnSendKitchen.style.display = canCreate && !isTakeaway ? 'inline-flex' : 'none';
+      btnSendKitchen.disabled = !itemCount || !!this.sendingOrder;
       btnSendKitchen.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ${nextStep ? `Chuyển: ${nextStep.name}` : 'Chuyển món cho bếp'}`;
     }
     if (btnPrintDraft) {
@@ -714,6 +743,7 @@ window.posModule = {
 
   // Send dine-in order to kitchen (KDS)
   async sendOrderToKitchen() {
+    if (this.sendingOrder) return;
     if (window.appState.cart.items.length === 0) {
       window.api.showToast('Vui lòng chọn món trước khi gửi bếp', 'error');
       return;
@@ -725,7 +755,14 @@ window.posModule = {
       return;
     }
 
+    this.sendingOrder = true;
+    this.syncOrderActionButtons();
     try {
+      const selectedTable = window.appState.cart.selectedTable;
+      if (selectedTable) {
+        const statusKey = `${window.api.getCurrentStoreId()}:${selectedTable.id}`;
+        await window.tablesModule?.draftStatusQueue.get(statusKey);
+      }
       const payload = {
         order_type: window.appState.cart.orderType,
         table_id: window.appState.cart.selectedTable ? window.appState.cart.selectedTable.id : null,
@@ -739,7 +776,12 @@ window.posModule = {
       const res = await window.api.post('/orders', payload);
       if (window.appState.cart.orderType === 'DINE_IN' && res.order?.id) {
         window.appState.cart.existingOrderId = res.order.id;
-        if (window.appState.cart.selectedTable) window.appState.cart.selectedTable.current_order_id = res.order.id;
+        window.appState.cart.sentItems = [...(window.appState.cart.sentItems || []), ...payload.items];
+        window.appState.cart.sentOrder = res.order;
+        if (window.appState.cart.selectedTable) {
+          window.appState.cart.selectedTable.current_order_id = res.order.id;
+          window.appState.cart.selectedTable.status = 'OCCUPIED';
+        }
       }
       window.api.showToast(res.message || 'Đã tạo đơn và chuyển sang bước tiếp theo', 'success');
       if (this.isTakeawayOnlyOrder()) {
@@ -754,6 +796,9 @@ window.posModule = {
       if (window.tablesModule) window.tablesModule.loadAreasAndTables();
     } catch (err) {
       window.api.showToast('Lỗi gửi bếp: ' + err.message, 'error');
+    } finally {
+      this.sendingOrder = false;
+      this.syncOrderActionButtons();
     }
   }
 };

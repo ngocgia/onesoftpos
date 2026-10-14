@@ -11,11 +11,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="css/admin-page.css?v=20260919-v3">
-  <link rel="stylesheet" href="css/admin-responsive.css?v=20260919-v3">
+  <link rel="stylesheet" href="css/admin-responsive.css?v=20261015-sidebar">
   <link rel="stylesheet" href="css/admin-workflow.css?v=20260919-v3">
 </head>
 <body>
-  <aside class="sidebar">
+  <aside class="sidebar" id="adminSidebar" aria-label="Menu quản trị">
+    <button class="sidebar-close" id="sidebarClose" type="button" aria-label="Đóng menu"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     <a class="brand" href="admin.html">
       <span>🍗</span>
       <div>
@@ -39,10 +40,12 @@
       <button id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i>Đăng xuất</button>
     </div>
   </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
 
   <main>
     <header>
-      <div>
+      <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Mở menu" aria-controls="adminSidebar" aria-expanded="false"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>
+      <div class="header-title">
         <p class="eyebrow">HỆ THỐNG QUẢN TRỊ F&B</p>
         <h1 id="pageTitle">Tổng quan</h1>
       </div>
@@ -60,7 +63,7 @@
         <div>
           <strong>Báo cáo doanh thu</strong>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;">
+        <div class="report-filters" style="display:flex;gap:8px;align-items:center;">
           <input type="date" id="adminReportStartDate" class="form-input">
           <span>-</span>
           <input type="date" id="adminReportEndDate" class="form-input">
@@ -373,6 +376,6 @@
   <div id="toast"></div>
 
   <script src="js/api.js?v=20260923-admin-loop-fix"></script>
-  <script src="js/admin-page.js?v=20260923-shift-permissions"></script>
+  <script src="js/admin-page.js?v=20261015-sidebar"></script>
 </body>
 </html>

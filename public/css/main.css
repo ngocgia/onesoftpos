@@ -2426,6 +2426,9 @@ textarea.form-input {
   background: #ffffff;
   overflow: hidden;
   animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
 }
 
 @keyframes modalPop {
@@ -2547,11 +2550,14 @@ textarea.form-input {
 }
 
 .table-modal-body {
-  padding: 16px 20px 20px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   background: #f8fafc;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 /* Overview Bill Card */
@@ -2832,13 +2838,173 @@ textarea.form-input {
   color: #ea580c;
 }
 
+/* Quick Action Icon Buttons (Thêm món, Chuyển bàn, Ghép bàn) */
+.table-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.btn-quick-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 6px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  font-family: inherit;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.btn-quick-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.07);
+}
+
+.btn-quick-action:active {
+  transform: translateY(0);
+}
+
+.quick-action-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  transition: transform 0.2s ease;
+}
+
+.btn-quick-action:hover .quick-action-icon {
+  transform: scale(1.08);
+}
+
+.quick-action-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+}
+
+/* Specific themes for Quick Actions */
+.btn-quick-action.action-pos {
+  border-color: #fed7aa;
+}
+.btn-quick-action.action-pos:hover {
+  border-color: #f97316;
+  background: #fffdfb;
+}
+.btn-quick-action.action-pos .quick-action-icon {
+  background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
+  color: #ea580c;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.22);
+}
+
+.btn-quick-action.action-transfer:hover {
+  border-color: #60a5fa;
+  background: #f8faff;
+}
+.btn-quick-action.action-transfer .quick-action-icon {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #2563eb;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+}
+.btn-quick-action.action-transfer.active-subpanel {
+  border-color: #2563eb !important;
+  background: #eff6ff !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+}
+
+.btn-quick-action.action-merge:hover {
+  border-color: #c084fc;
+  background: #faf8ff;
+}
+.btn-quick-action.action-merge .quick-action-icon {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  color: #7c3aed;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.2);
+}
+.btn-quick-action.action-merge.active-subpanel {
+  border-color: #7c3aed !important;
+  background: #faf5ff !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15) !important;
+}
+
+/* Modal Footer Actions (In Hóa Đơn & Thanh Toán) */
+.table-modal-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.03);
+  flex-shrink: 0;
+}
+
+.btn-table-action {
+  height: 44px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+  border: none;
+}
+
+.btn-table-print {
+  flex: 1;
+  background: #ffffff;
+  color: #334155;
+  border: 1.5px solid #cbd5e1;
+}
+
+.btn-table-print:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+.btn-table-checkout {
+  flex: 1.4;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+}
+
+.btn-table-checkout:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(234, 88, 12, 0.4);
+}
+
+.btn-table-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
 /* Subpanels (Transfer / Merge select boxes) */
 .action-subpanel {
   background: #ffffff;
   border: 1.5px solid #e2e8f0;
   border-radius: 14px;
   padding: 14px 16px;
-  margin: -4px 0 2px;
+  margin: 6px 0 2px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   animation: subpanelSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }

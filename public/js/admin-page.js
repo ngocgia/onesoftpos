@@ -1,4 +1,49 @@
 const adminApp = {
+  bindSidebar() {
+    const sidebar = document.getElementById("adminSidebar");
+    const toggle = document.getElementById("sidebarToggle");
+    const close = document.getElementById("sidebarClose");
+    const main = document.querySelector("main");
+    const mobile = window.matchMedia("(max-width: 720px)");
+    const setOpen = (open, restoreFocus = true) => {
+      open = mobile.matches && open;
+      const focusWasInSidebar = sidebar.contains(document.activeElement);
+      document.body.classList.toggle("sidebar-open", open);
+      toggle.setAttribute("aria-expanded", String(open));
+      toggle.setAttribute("aria-label", open ? "Đóng menu" : "Mở menu");
+      sidebar.inert = mobile.matches && !open;
+      main.inert = open;
+      if (open) close.focus();
+      else if (restoreFocus && mobile.matches && focusWasInSidebar) toggle.focus();
+    };
+    toggle.addEventListener("click", () => setOpen(!document.body.classList.contains("sidebar-open")));
+    close.addEventListener("click", () => setOpen(false));
+    document.getElementById("sidebarBackdrop").addEventListener("click", () => setOpen(false));
+    sidebar.addEventListener("click", (event) => {
+      if (event.target.closest("#adminNav button, .sidebar-footer a, .sidebar-footer button")) setOpen(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (!document.body.classList.contains("sidebar-open")) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setOpen(false);
+      } else if (event.key === "Tab") {
+        const controls = [...sidebar.querySelectorAll("a[href], button:not([disabled])")]
+          .filter((element) => element.getClientRects().length > 0);
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    });
+    mobile.addEventListener("change", () => setOpen(false));
+    setOpen(false, false);
+  },
   me: null,
   stores: [],
   storeTypes: [],
@@ -2162,7 +2207,10 @@ const adminApp = {
   }
 };
 window.adminApp = adminApp;
-document.addEventListener("DOMContentLoaded", () => adminApp.init());
+document.addEventListener("DOMContentLoaded", () => {
+  adminApp.bindSidebar();
+  adminApp.init();
+});
 
 document.addEventListener("click", (e) => {
   const toggle = e.target.closest(".dropdown-toggle");

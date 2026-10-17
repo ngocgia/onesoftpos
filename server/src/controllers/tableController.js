@@ -27,6 +27,15 @@ async function getTables(req, res) {
   try {
     let tables = [];
     if (isPostgresConnected()) {
+      // Repair table links left behind by older payment flows.
+      await pool.query(
+        `UPDATE tables SET status = 'EMPTY', current_order_id = NULL
+         WHERE store_id = $1 AND current_order_id IN (
+           SELECT id FROM orders WHERE store_id = $1
+           AND (payment_status = 'PAID' OR order_status IN ('COMPLETED', 'CANCELLED'))
+         )`,
+        [storeId]
+      );
       const result = await pool.query(
         `SELECT t.*, a.name as area_name, o.order_code, o.total_amount, o.created_at as order_time 
          FROM tables t 
@@ -42,13 +51,18 @@ async function getTables(req, res) {
         .filter(t => t.store_id === storeId)
         .map(t => {
           const area = memoryStore.areas.find(a => a.id === t.area_id);
-          const order = t.current_order_id ? memoryStore.orders.find(o => o.id === t.current_order_id) : null;
+          const order = t.current_order_id ? memoryStore.orders.find(o => o.id === t.current_order_id && o.store_id === storeId) : null;
+          if (order && (order.payment_status === 'PAID' || ['COMPLETED', 'CANCELLED'].includes(order.order_status))) {
+            t.status = 'EMPTY';
+            t.current_order_id = null;
+          }
+          const activeOrder = t.current_order_id ? order : null;
           return {
             ...t,
             area_name: area ? area.name : '',
-            order_code: order ? order.order_code : null,
-            total_amount: order ? order.total_amount : 0,
-            order_time: order ? order.created_at : null
+            order_code: activeOrder ? activeOrder.order_code : null,
+            total_amount: activeOrder ? activeOrder.total_amount : 0,
+            order_time: activeOrder ? activeOrder.created_at : null
           };
         })
         .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));

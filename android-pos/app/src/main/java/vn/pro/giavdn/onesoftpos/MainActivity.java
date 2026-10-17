@@ -40,11 +40,16 @@ public final class MainActivity extends Activity {
             + "sessionStorage.clear();"
             + "})()";
     private static final String APP_BRIDGE_SCRIPT = "(function(){"
+            + "window.onesoftAudio={beep:function(v){OnesoftAudioBridge.beep(v)},speak:function(t,v){OnesoftAudioBridge.speak(String(t),v)}};"
+            + "window.onesoftNativePrint=true;"
             + "window.print=function(){var paper=(window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_paper_size)||'80mm';"
-            + "window.location.href='tgpos://print?paper='+encodeURIComponent(paper)}"
+            + "var connection=(window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_connection_type)||'browser';"
+            + "window.location.href='tgpos://print?paper='+encodeURIComponent(paper)+'&connection='+encodeURIComponent(connection)}"
             + "})()";
 
     private WebView webView;
+    private ThermalPrinter thermalPrinter;
+    private NativeSpeaker nativeSpeaker;
     private ProgressBar progress;
     private LinearLayout errorView;
     private boolean loadFailed;
@@ -60,6 +65,13 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        thermalPrinter = new ThermalPrinter(this);
+        nativeSpeaker = new NativeSpeaker(this);
+        setVolumeControlStream(android.media.AudioManager.STREAM_MUSIC);
+        if (Build.VERSION.SDK_INT >= 33) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::handleBack);
+        }
 
         FrameLayout frame = new FrameLayout(this);
         frame.setBackgroundColor(Color.WHITE);
@@ -69,6 +81,7 @@ public final class MainActivity extends Activity {
         setupEdgeToEdge();
 
         webView = new WebView(this);
+        webView.addJavascriptInterface(new AudioBridge(), "OnesoftAudioBridge");
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         frame.addView(webView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -177,7 +190,23 @@ public final class MainActivity extends Activity {
                 if (!request.isForMainFrame()) return false;
                 Uri uri = request.getUrl();
                 if ("tgpos".equals(uri.getScheme()) && "print".equals(uri.getHost())) {
-                    printReceipt(uri.getQueryParameter("paper"));
+                    if (!isAppHost(Uri.parse(view.getUrl()))) return true;
+                    String paper = uri.getQueryParameter("paper");
+                    String connection = uri.getQueryParameter("connection");
+                    if ("bluetooth".equals(connection) || "usb".equals(connection)) {
+                        if (!"58mm".equals(paper) && !"80mm".equals(paper) && !"85mm".equals(paper)) {
+                            Toast.makeText(MainActivity.this, "Chọn khổ K58, K80 hoặc K85 để in nhiệt", Toast.LENGTH_LONG).show();
+                            return true;
+                        }
+                        String sourceUrl = view.getUrl();
+                        view.evaluateJavascript("window.invoiceModule && window.invoiceModule.receiptText || ''", value -> {
+                            if (!sourceUrl.equals(view.getUrl())) return;
+                            try {
+                                Object receipt = new org.json.JSONTokener(value).nextValue();
+                                thermalPrinter.print(receipt instanceof String ? (String) receipt : "", paper, connection);
+                            } catch (Exception error) { Toast.makeText(MainActivity.this, "Không đọc được dữ liệu hóa đơn", Toast.LENGTH_LONG).show(); }
+                        });
+                    } else printReceipt(paper);
                     return true;
                 }
                 if (isAppHost(uri)) {
@@ -312,6 +341,20 @@ public final class MainActivity extends Activity {
     private boolean isAppHost(Uri uri) {
         return "https".equals(uri.getScheme()) && HOST.equalsIgnoreCase(uri.getHost());
     }
+
+    // Audio uses a native interface so announcements cannot cancel a print URL navigation.
+    public final class AudioBridge {
+        @android.webkit.JavascriptInterface public void beep(int volume) {
+            runOnUiThread(() -> {
+                if (!isFinishing() && !isDestroyed() && webView.getUrl() != null && isAppHost(Uri.parse(webView.getUrl()))) nativeSpeaker.beep(Math.max(0, Math.min(100, volume)));
+            });
+        }
+        @android.webkit.JavascriptInterface public void speak(String text, int volume) {
+            runOnUiThread(() -> {
+                if (!isFinishing() && !isDestroyed() && webView.getUrl() != null && isAppHost(Uri.parse(webView.getUrl()))) nativeSpeaker.speak(text, Math.max(0, Math.min(100, volume)));
+            });
+        }
+    }
     private boolean isAdminPath(Uri uri) {
         String path = uri.getPath();
         return isAppHost(uri) && path != null && (path.equals("/admin")
@@ -331,16 +374,24 @@ public final class MainActivity extends Activity {
         PrintManager printer = (PrintManager) getSystemService(PRINT_SERVICE);
         if (printer == null) return;
         boolean narrow = "58mm".equalsIgnoreCase(paperSize);
+        boolean wide85 = "85mm".equalsIgnoreCase(paperSize);
         PrintAttributes.MediaSize media = new PrintAttributes.MediaSize(
-                narrow ? "POS_58MM" : "POS_80MM", narrow ? "Hóa đơn 58 mm" : "Hóa đơn 80 mm",
-                narrow ? 2283 : 3150, 11693);
+                narrow ? "POS_58MM" : (wide85 ? "POS_85MM" : "POS_80MM"),
+                narrow ? "Hóa đơn 58 mm" : (wide85 ? "Hóa đơn 85 mm" : "Hóa đơn 80 mm"),
+                narrow ? 2283 : (wide85 ? 3346 : 3150), 11693);
+        if ("A4".equalsIgnoreCase(paperSize)) media = PrintAttributes.MediaSize.ISO_A4;
         PrintAttributes options = new PrintAttributes.Builder()
                 .setMediaSize(media)
                 .setColorMode(PrintAttributes.COLOR_MODE_MONOCHROME)
+                .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
                 .build();
         printer.print("Onesoft POS - Hóa đơn", webView.createPrintDocumentAdapter("Hóa đơn Onesoft POS"), options);
     }
-    @Override public void onBackPressed() {
+    // Android 13+ uses the callback registered in onCreate; older devices use this method.
+    @android.annotation.SuppressLint("GestureBackNavigation")
+    @Override public void onBackPressed() { handleBack(); }
+
+    private void handleBack() {
         if (webView.canGoBack()) webView.goBack();
         else new AlertDialog.Builder(this).setMessage("Thoát Onesoft POS?")
                 .setNegativeButton("Ở lại", null).setPositiveButton("Thoát", (dialog, which) -> finish()).show();
@@ -361,6 +412,8 @@ public final class MainActivity extends Activity {
         super.onSaveInstanceState(outState);
     }
     @Override protected void onDestroy() {
+        nativeSpeaker.close();
+        thermalPrinter.close();
         if (fileUploadCallback != null) {
             fileUploadCallback.onReceiveValue(null);
             fileUploadCallback = null;
@@ -368,5 +421,11 @@ public final class MainActivity extends Activity {
         ((ViewGroup) webView.getParent()).removeView(webView);
         webView.destroy();
         super.onDestroy();
+    }
+
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == ThermalPrinter.BLUETOOTH_PERMISSION) thermalPrinter.onBluetoothPermission(
+                grantResults.length > 0 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED);
     }
 }

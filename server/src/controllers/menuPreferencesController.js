@@ -2,7 +2,7 @@ const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 
 const fields = {
-  printer: { paperSize: ['K58', 'K80', 'A4'], connectionType: ['browser', 'usb', 'lan', 'bluetooth', 'network'], ipAddress: 'string', autoPrintOnPayment: 'boolean', autoCutPaper: 'boolean', printKitchenSeparate: 'boolean' },
+  printer: { paperSize: ['K58', 'K80', 'K85', 'A4'], connectionType: ['browser', 'usb', 'lan', 'bluetooth', 'network'], ipAddress: 'string', autoPrintOnPayment: 'boolean', autoCutPaper: 'boolean', printKitchenSeparate: 'boolean' },
   workflow: { enableDineIn: 'boolean', enableTakeaway: 'boolean', enableDelivery: 'boolean', enableKds: 'boolean' },
   shipping: { ahamove: 'boolean', grab: 'boolean', be: 'boolean', ghtk: 'boolean', own: 'boolean', fee: 'nonnegative' },
   number: { currencySymbol: 'string', symbolPosition: ['before', 'after'], thousandSeparator: ['.', ','], rounding: ['none', '100', '1000'] },

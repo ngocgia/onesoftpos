@@ -199,8 +199,8 @@ window.moreMenuModule = {
     modal.style.display = 'flex';
   },
 
-  async savePrinterSettings() {
-    const settings = {
+  getPrinterSettingsFromForm() {
+    return {
       paperSize: document.getElementById('printerPaperSize').value,
       connectionType: document.getElementById('printerConnectionType').value,
       ipAddress: document.getElementById('printerIpAddress').value,
@@ -208,70 +208,36 @@ window.moreMenuModule = {
       autoCutPaper: document.getElementById('printerAutoCut').checked,
       printKitchenSeparate: document.getElementById('printerKitchenSeparate').checked
     };
+  },
+
+  async savePrinterSettings() {
+    const settings = this.getPrinterSettingsFromForm();
     await window.menuPersistence.save('printer', settings);
     document.getElementById('printerSettingsModal').style.display = 'none';
     window.api?.showToast('Đã lưu cấu hình máy in thành công', 'success');
   },
 
-  testPrintBill() {
-    window.api?.showToast('Đang gửi lệnh in thử tới máy in...', 'info');
-    const store = window.appState?.currentStore || {};
-    const size = document.getElementById('printerPaperSize')?.value || 'K80';
-    const layout = window.invoiceModule.getPrintLayout(size);
-    const printWindow = window.open('', '_blank', 'width=380,height=600');
-    if (!printWindow) {
-      window.api?.showToast('Trình duyệt đã chặn cửa sổ in. Vui lòng cho phép popup.', 'warning');
-      return;
+  async testPrintBill() {
+    try {
+      await window.menuPersistence.save('printer', this.getPrinterSettingsFromForm());
+      document.getElementById('printerSettingsModal').style.display = 'none';
+      const invoice = window.invoiceModule;
+      await invoice.showReceipt({
+        isDraft: true, order_code: 'IN-THU-TIENG-VIET', created_at: new Date().toISOString(),
+        order_type: 'DINE_IN', table_code: 'B01', cashier_name: 'Nguyễn Thị Ánh',
+        subtotal: 65000, discount_amount: 5000, tax_amount: 3000, total_amount: 63000,
+        note: 'KIỂM TRA: ă â đ ê ô ơ ư – Ắ Ằ Ẳ Ẵ Ặ Ế Ề Ể Ễ Ệ Ớ Ờ Ở Ỡ Ợ Ứ Ừ Ử Ữ Ự',
+        items: [
+          { product_name: 'Gà rán giòn cay sốt phô mai đặc biệt', quantity: 1, unit_price: 35000, subtotal: 40000,
+            options: [{ option_name: 'Thêm phô mai', price: 5000 }], note: 'Ít cay, không hành' },
+          { product_name: 'Trà đào cam sả', quantity: 1, unit_price: 25000, subtotal: 25000 }
+        ]
+      });
+      if (invoice.currentOrder?.order_code === 'IN-THU-TIENG-VIET') await invoice.printReceipt();
+    } catch (error) {
+      window.api.showToast('Không thể in thử: ' + error.message, 'error');
     }
-
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>In Thử Hóa Đơn</title>
-        <style>
-          @page { size: ${layout.page}; margin: ${layout.margin}; }
-          body { font-family: monospace; font-size: ${layout.fontSize}; padding: 0; width: ${layout.width}; margin: 0; }
-          .text-center { text-align: center; }
-          .divider { border-top: 1px dashed #000; margin: 8px 0; }
-          .row { display: flex; justify-content: space-between; margin: 4px 0; }
-        </style>
-      </head>
-      <body>
-        <div class="text-center">
-          <h3 style="margin:0">${store.name || 'THÍCH GÀ POS'}</h3>
-          <p style="margin:2px 0">${store.address || 'Hệ thống Quán Gà & Đồ Ăn Nhanh'}</p>
-          <p style="margin:2px 0">Hotline: ${store.phone || '1900 6868'}</p>
-          <div class="divider"></div>
-          <strong>PHIẾU IN KIỂM TRA MÁY IN</strong>
-          <p style="font-size:11px;margin:2px 0">${new Date().toLocaleString('vi-VN')}</p>
-        </div>
-        <div class="divider"></div>
-        <div class="row"><span>Khổ giấy:</span><strong>${size}</strong></div>
-        <div class="row"><span>Trạng thái:</span><strong>KẾT NỐI TỐT</strong></div>
-        <div class="divider"></div>
-        <div class="row"><span>1x Gà Rán Giòn Cay</span><span>35.000đ</span></div>
-        <div class="row"><span>1x Trà Đào Cam Sả</span><span>25.000đ</span></div>
-        <div class="divider"></div>
-        <div class="row" style="font-size:14px;font-weight:bold"><span>TỔNG TIỀN:</span><span>60.000đ</span></div>
-        <div class="divider"></div>
-        <div class="text-center" style="margin-top:12px">
-          <p>Máy in hoạt động hoàn hảo!</p>
-          <p>Cảm ơn quý khách!</p>
-        </div>
-      </body>
-      </html>
-    `;
-    printWindow.document.write(html);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 400);
   },
-
   // 2. Quy trình bán hàng
   openWorkflowModal() {
     const modal = document.getElementById('workflowSettingsModal');
@@ -400,54 +366,14 @@ window.moreMenuModule = {
   },
 
   testOrderSound() {
-    try {
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const now = audioCtx.currentTime;
-      // Phát 2 nốt beep chuông vui tươi
-      const osc1 = audioCtx.createOscillator();
-      const gain1 = audioCtx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(587.33, now); // D5
-      gain1.gain.setValueAtTime(0.3, now);
-      gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-      osc1.connect(gain1);
-      gain1.connect(audioCtx.destination);
-      osc1.start(now);
-      osc1.stop(now + 0.2);
-
-      const osc2 = audioCtx.createOscillator();
-      const gain2 = audioCtx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(880, now + 0.15); // A5
-      gain2.gain.setValueAtTime(0.3, now + 0.15);
-      gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
-      osc2.connect(gain2);
-      gain2.connect(audioCtx.destination);
-      osc2.start(now + 0.15);
-      osc2.stop(now + 0.45);
-
-      window.api?.showToast('Đang phát chuông đơn hàng mới', 'info');
-    } catch (e) {
-      console.warn('AudioContext error:', e);
-    }
+    return window.audioModule.beep({ force: true, volume: document.getElementById('spkVolume')?.value ?? 85 });
   },
 
   testSpeechVietQR() {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const text = 'Đã nhận thành công một trăm năm mươi nghìn đồng qua VietQR.';
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = 'vi-VN';
-      utter.rate = 1.0;
-      const vol = (parseInt(document.getElementById('spkVolume')?.value || '85', 10)) / 100;
-      utter.volume = Math.max(0.1, Math.min(1.0, vol));
-      window.speechSynthesis.speak(utter);
-      window.api?.showToast('Đang đọc giọng nói mẫu thông báo VietQR...', 'info');
-    } else {
-      window.api?.showToast('Trình duyệt không hỗ trợ phát giọng nói SpeechSynthesis', 'warning');
-    }
+    return window.audioModule.speak('Đã nhận thành công một trăm năm mươi nghìn đồng qua VietQR.', {
+      kind: 'qr', force: true, volume: document.getElementById('spkVolume')?.value ?? 85
+    });
   },
-
   async saveSpeakerSettings() {
     const settings = {
       enableNewOrderSound: document.getElementById('spkNewOrder').checked,

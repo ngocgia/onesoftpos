@@ -37,17 +37,19 @@ window.completedItemsModule = {
   startPolling() {
     if (this.pollInterval) clearInterval(this.pollInterval);
     this.pollInterval = setInterval(() => {
-      const view = document.getElementById('viewCompletedItems');
-      if (this.canView() && view?.classList.contains('active-view')) this.loadCompletedItems(true);
+      if (window.appState.user && this.canView() && document.visibilityState !== 'hidden') this.loadCompletedItems(true);
     }, 8000);
   },
 
   async loadCompletedItems(silent = false) {
     if (!this.canView() || this.isLoading) return;
     this.isLoading = true;
+    const storeId = window.api.getCurrentStoreId();
     try {
       const result = await window.api.get('/kds/completed-items');
+      if (storeId !== window.api.getCurrentStoreId()) return;
       this.orders = result.orders || [];
+      window.audioModule?.observeItems('done', this.orders);
       this.render();
     } catch (error) {
       if (!silent) window.api.showToast(`Không thể tải món đã xong: ${error.message}`, 'error');

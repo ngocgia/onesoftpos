@@ -44,7 +44,9 @@ test('rejects malformed settings, unknown fields, invalid channel combinations a
   assert.throws(() => controller.validate('speaker', { ...speaker, extra: true }));
   assert.throws(() => controller.validate('workflow', { enableDineIn: false, enableTakeaway: false, enableDelivery: true, enableKds: true }));
   assert.throws(() => controller.validate('header', { wishesText: '', avatarType: 'upload', avatarSrc: 'javascript:alert(1)', bgTheme: '', showDecor: true }));
-  assert.deepEqual(controller.validate('printer', { paperSize: 'A4', connectionType: 'browser', ipAddress: '', autoPrintOnPayment: false, autoCutPaper: false, printKitchenSeparate: false }).paperSize, 'A4');
+  for (const paperSize of ['K58', 'K80', 'K85', 'A4']) {
+    assert.equal(controller.validate('printer', { paperSize, connectionType: 'browser', ipAddress: '', autoPrintOnPayment: false, autoCutPaper: false, printKitchenSeparate: false }).paperSize, paperSize);
+  }
 });
 
 test('database failure never returns successful persistence or falls back to memory', async () => {

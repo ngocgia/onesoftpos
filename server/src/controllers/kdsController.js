@@ -53,7 +53,7 @@ async function getKdsOrders(req, res) {
           SELECT oi.*, p.image_url 
           FROM order_items oi
           LEFT JOIN products p ON oi.product_id = p.id
-          WHERE oi.order_id = $1 AND oi.status NOT IN ('SERVED', 'CANCELLED')
+          WHERE oi.order_id = $1 AND oi.status IN ('PENDING', 'PREPARING')
         `;
         const itemParams = [ord.id];
         if (kitchenType) {
@@ -81,7 +81,7 @@ async function getKdsOrders(req, res) {
       activeOrders = orders.map(ord => {
         const table = memoryStore.tables.find(t => t.id === ord.table_id);
         let items = memoryStore.order_items.filter(
-          i => i.order_id === ord.id && !['SERVED', 'CANCELLED'].includes(i.status)
+          i => i.order_id === ord.id && ['PENDING', 'PREPARING'].includes(i.status)
         );
 
         if (kitchenType) {
@@ -314,7 +314,7 @@ async function updateKdsItemStatus(req, res) {
         }
 
         const allowedTransitions = {
-          PENDING: ['PREPARING', 'CANCELLED'],
+          PENDING: ['PREPARING', 'READY', 'CANCELLED'],
           PREPARING: ['READY', 'CANCELLED'],
           READY: ['SERVED', 'CANCELLED'],
           SERVED: [],
@@ -394,8 +394,8 @@ async function updateKdsItemStatus(req, res) {
 
         if (['COMPLETED', 'CANCELLED'].includes(orderStatus) && orderResult.rows[0]?.table_id) {
           await client.query(
-            'UPDATE tables SET status = $1, current_order_id = NULL WHERE id = $2',
-            ['EMPTY', orderResult.rows[0].table_id]
+            'UPDATE tables SET status = $1, current_order_id = NULL WHERE id = $2 AND current_order_id = $3',
+            ['EMPTY', orderResult.rows[0].table_id, item.order_id]
           );
         }
 
@@ -433,7 +433,7 @@ async function updateKdsItemStatus(req, res) {
         return res.status(409).json({ success: false, message: 'Đơn hàng đã kết thúc, không thể cập nhật KDS' });
       }
       const allowedTransitions = {
-        PENDING: ['PREPARING', 'CANCELLED'], PREPARING: ['READY', 'CANCELLED'],
+        PENDING: ['PREPARING', 'READY', 'CANCELLED'], PREPARING: ['READY', 'CANCELLED'],
         READY: ['SERVED', 'CANCELLED'], SERVED: [], CANCELLED: []
       };
       if (status !== item.status && !allowedTransitions[item.status]?.includes(status)) {
@@ -463,7 +463,7 @@ async function updateKdsItemStatus(req, res) {
       if (statuses.length && statuses.every(itemStatus => itemStatus === 'CANCELLED')) {
         order.order_status = 'CANCELLED';
         order.workflow_stage_index = workflow.steps.length;
-        const cancelledTable = memoryStore.tables.find(current => current.id === order.table_id);
+        const cancelledTable = memoryStore.tables.find(current => current.id === order.table_id && current.current_order_id === order.id);
         if (cancelledTable) { cancelledTable.status = 'EMPTY'; cancelledTable.current_order_id = null; }
       } else if (statuses.length && statuses.every(itemStatus => ['READY', 'SERVED', 'CANCELLED'].includes(itemStatus))) {
         if (currentStep(workflow, order.workflow_stage_index)?.type === 'KITCHEN') order.workflow_stage_index += 1;
@@ -471,7 +471,7 @@ async function updateKdsItemStatus(req, res) {
         if (order.order_status === 'COMPLETED' && order.payment_status !== 'PAID') order.order_status = 'READY';
         if (order.order_status === 'COMPLETED') {
           order.completed_at = order.completed_at || new Date().toISOString();
-          const table = memoryStore.tables.find(current => current.id === order.table_id);
+          const table = memoryStore.tables.find(current => current.id === order.table_id && current.current_order_id === order.id);
           if (table) { table.status = 'EMPTY'; table.current_order_id = null; }
         }
       } else if (statuses.some(itemStatus => itemStatus === 'PREPARING')) {

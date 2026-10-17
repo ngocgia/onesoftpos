@@ -5,11 +5,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const workflow = require('../src/services/workflowService');
 
+for (const orderType of ['TAKEAWAY', 'DINE_IN']) {
 for (const unfinished of [true, false]) {
-  test(`takeaway payment ${unfinished ? 'preserves kitchen work' : 'completes a finished order'} without conflicting SQL parameter types`, async () => {
+  test(`${orderType} payment ${unfinished ? 'preserves kitchen work' : 'completes a finished order'} and releases its table`, async () => {
     const calls = [];
     const order = {
-      id: 10, order_type: 'TAKEAWAY', payment_status: 'UNPAID', order_status: 'CONFIRMED',
+      id: 10, table_id: orderType === 'DINE_IN' ? 4 : null, order_type: orderType, payment_status: 'UNPAID', order_status: 'CONFIRMED',
       workflow_stage_index: 1, workflow_snapshot: workflow.DEFAULT_WORKFLOW, total_amount: '50000.00'
     };
     let released = false;
@@ -48,8 +49,15 @@ for (const unfinished of [true, false]) {
     assert.equal(res.data.change, 50000);
     assert.equal(res.data.payment.amount, 50000);
     assert.equal(calls.filter(call => call.sql.includes('INSERT INTO payments')).length, 1);
+    const release = calls.find(call => call.sql.includes('UPDATE tables'));
+    assert.equal(!!release, orderType === 'DINE_IN');
+    if (release) {
+      assert.match(release.sql, /current_order_id=\$2/);
+      assert.deepEqual(Array.from(release.values), [4, 10]);
+    }
     assert.ok(calls.some(call => call.sql === 'COMMIT'));
     assert.ok(!calls.some(call => call.sql === 'ROLLBACK'));
     assert.equal(released, true);
   });
+}
 }

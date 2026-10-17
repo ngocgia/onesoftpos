@@ -1,13 +1,13 @@
 # Thích Gà POS cho Android
 
-Ứng dụng Android dùng WebView để hiển thị **chính giao diện POS mobile của website** tại `https://thichgapos.giavdn.pro.vn/?mode=pos`. Bố cục, tính năng bán hàng và luồng API được cập nhật theo website. Dự án Android nằm riêng trong `android-pos/`; không cần sửa web hoặc server để chạy app.
+Ứng dụng Android dùng WebView để hiển thị **chính giao diện POS mobile của website** tại `https://onesoft.one/?mode=pos`. Bố cục, tính năng bán hàng và luồng API được cập nhật theo website. Dự án Android nằm riêng trong `android-pos/`. In trực tiếp cần cả web mới và APK từ phiên bản 1.3.0.
 
 ## Phạm vi ứng dụng
 
 - Đăng nhập và làm việc bằng tài khoản POS hiện có; phiên được website lưu trong WebView.
 - Menu, giỏ hàng, bàn, đơn hàng, KDS, thanh toán, ca làm việc và hóa đơn hoạt động theo quyền và cấu hình của website.
 - Mục quản trị bị ẩn và các điều hướng đến `/admin.html` bị chuyển về POS.
-- Nút in hóa đơn trên web mở hộp thoại in của Android, với khổ mặc định 58/80 mm theo cấu hình cửa hàng. Liên kết HTTPS ngoài hệ thống mở trong trình duyệt thiết bị.
+- Kết nối `browser` mở hộp thoại in Android. Kết nối `bluetooth` hoặc `usb` in ESC/POS trực tiếp, xem [hướng dẫn K58](../docs/printing-k58.md). Liên kết HTTPS ngoài hệ thống mở trong trình duyệt thiết bị.
 - Cần Internet và website public hoạt động; app không lưu menu hoặc đơn hàng để dùng offline.
 
 ## Mở và tạo APK

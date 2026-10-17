@@ -51,6 +51,9 @@ window.tablesModule = {
     try {
       const result = table.current_order_id ? await window.api.get(`/orders/${table.current_order_id}`) : null;
       if (result && (result.order.payment_status === 'PAID' || ['COMPLETED', 'CANCELLED'].includes(result.order.order_status))) {
+        await this.loadAreasAndTables();
+        const modal = document.getElementById('tableActionModal');
+        if (modal) modal.style.display = 'none';
         throw new Error('Đơn của bàn đã kết thúc, vui lòng chọn lại bàn');
       }
       window.appState.setSelectedTable(table);

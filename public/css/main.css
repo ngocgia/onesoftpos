@@ -1415,6 +1415,7 @@ button:active {
 
 .kds-item-left {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 8px;
 }
@@ -1433,7 +1434,11 @@ button:active {
 }
 
 .btn-kds-action {
-  padding: 5px 12px;
+  padding: 10px 12px;
+  min-height: 40px;
+  white-space: nowrap;
+  background: var(--success);
+  color: #fff;
   border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 700;
@@ -1451,14 +1456,18 @@ button:active {
 
 .kds-item-actions {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
-  gap: 6px;
+  gap: 16px;
 }
 
 .btn-kds-cancel {
   border: 1px solid #fecaca;
   border-radius: var(--radius-sm);
-  padding: 7px 9px;
+  width: 36px;
+  height: 40px;
+  padding: 0;
+  flex-shrink: 0;
   background: #fff1f2;
   color: #be123c;
   cursor: pointer;

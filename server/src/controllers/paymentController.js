@@ -131,7 +131,8 @@ async function processPayment(req, res) {
         );
         updatedOrder = orderRes.rows[0];
 
-        if (nextOrderStatus === 'COMPLETED' && currentOrder.table_id) {
+        // Payment releases the table even while its kitchen ticket is unfinished.
+        if (currentOrder.table_id) {
           await client.query(
             `UPDATE tables SET status='EMPTY', current_order_id=NULL
              WHERE id=$1 AND current_order_id=$2`,
@@ -204,7 +205,7 @@ async function processPayment(req, res) {
       order.updated_at = new Date().toISOString();
       updatedOrder = order;
 
-      if (nextOrderStatus === 'COMPLETED' && order.table_id) {
+      if (order.table_id) {
         const table = memoryStore.tables.find(item => item.id === order.table_id && item.current_order_id === order.id);
         if (table) {
           table.status = 'EMPTY';

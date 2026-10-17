@@ -35,41 +35,32 @@ window.kdsModule = {
     if (this.pollInterval) clearInterval(this.pollInterval);
     // Poll every 8 seconds for new kitchen tickets
     this.pollInterval = setInterval(() => {
-      // Only poll if currently in KDS view
-      const kdsView = document.getElementById('viewKds');
-      if (kdsView && kdsView.classList.contains('active-view')) {
+      // Keep kitchen alerts working while staff use another view in the foreground.
+      if (window.appState.user && window.appState.roleFeatures.KDS !== false && document.visibilityState !== 'hidden') {
         this.loadKdsOrders(true);
       }
     }, 8000);
   },
 
   speakAnnouncement(message) {
-    if (!message || !('speechSynthesis' in window)) {
-      if (message) window.api.showToast('Thiết bị không hỗ trợ đọc thông báo bằng loa', 'error');
-      return;
-    }
-    const utterance = new SpeechSynthesisUtterance(message);
-    utterance.lang = 'vi-VN';
-    utterance.rate = 0.95;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-    const vietnameseVoice = window.speechSynthesis.getVoices()
-      .find(voice => String(voice.lang || '').toLowerCase().startsWith('vi'));
-    if (vietnameseVoice) utterance.voice = vietnameseVoice;
-    window.speechSynthesis.speak(utterance);
+    window.audioModule?.speak(message, { kind: 'kitchen' });
   },
 
   async loadKdsOrders(silent = false) {
     if (this.isLoading || this.updatingItems.size > 0) return;
     this.isLoading = true;
+    const storeId = window.api.getCurrentStoreId();
+    const filter = this.currentFilter;
     try {
       let url = '/kds/orders';
-      if (this.currentFilter !== 'ALL') {
-        url += `?kitchen_type=${this.currentFilter}`;
+      if (filter !== 'ALL') {
+        url += `?kitchen_type=${filter}`;
       }
 
       const res = await window.api.get(url);
+      if (storeId !== window.api.getCurrentStoreId() || filter !== this.currentFilter) return;
       this.orders = res.orders || [];
+      window.audioModule?.observeItems('new', this.orders, filter);
       this.renderOrders();
     } catch (err) {
       if (!silent) console.error('loadKdsOrders error:', err);
@@ -81,11 +72,15 @@ window.kdsModule = {
   renderOrders() {
     const grid = document.getElementById('kdsOrdersGrid');
     if (!grid) return;
+    const pendingOrders = this.orders.map(order => ({
+      ...order,
+      items: (order.items || []).filter(item => ['PENDING', 'PREPARING'].includes(item.status))
+    })).filter(order => order.items.length > 0);
     const role = window.appState.user?.role;
     const canCancel = ['STORE_MANAGER', 'CASHIER'].includes(role)
       || (role === 'KITCHEN' && window.appState.storeSettings?.allow_cancel_item !== false);
 
-    if (this.orders.length === 0) {
+    if (pendingOrders.length === 0) {
       grid.innerHTML = `
         <div class="empty-state" style="padding: 40px; text-align: center; width: 100%;">
           <i class="fa-solid fa-mug-hot" style="font-size: 40px; color: var(--text-muted); margin-bottom: 12px;"></i>
@@ -95,7 +90,7 @@ window.kdsModule = {
       return;
     }
 
-    grid.innerHTML = this.orders.map(ord => {
+    grid.innerHTML = pendingOrders.map(ord => {
       const elapsedMinutes = Math.floor((new Date() - new Date(ord.created_at)) / 60000);
       const isUrgent = elapsedMinutes >= 15;
 
@@ -114,17 +109,6 @@ window.kdsModule = {
           </div>
           <div class="kds-card-items">
             ${(ord.items || []).map(item => {
-              let actionBtnText = 'Bắt đầu làm';
-              let nextStatus = 'PREPARING';
-
-              if (item.status === 'PREPARING') {
-                actionBtnText = 'Xong món';
-                nextStatus = 'READY';
-              } else if (item.status === 'READY') {
-                actionBtnText = 'Đã trả món';
-                nextStatus = 'SERVED';
-              }
-
               return `
                 <div class="kds-item-row">
                   <div class="kds-item-left">
@@ -137,12 +121,12 @@ window.kdsModule = {
                     </div>
                   </div>
                   <div class="kds-item-actions">
-                    <button type="button" class="btn-kds-action status-${item.status}" data-item-id="${item.id}" data-next="${nextStatus}">
-                      ${actionBtnText}
+                    <button type="button" class="btn-kds-action" data-item-id="${item.id}" data-next="READY">
+                      Xong món
                     </button>
                     ${canCancel && ['PENDING', 'PREPARING', 'READY'].includes(item.status) ? `
-                      <button type="button" class="btn-kds-cancel" data-cancel-item-id="${item.id}" data-item-name="${item.product_name}">
-                        <i class="fa-solid fa-ban"></i> Hủy
+                      <button type="button" class="btn-kds-cancel" data-cancel-item-id="${item.id}" data-item-name="${item.product_name}" title="Hủy món" aria-label="Hủy món">
+                        <i class="fa-solid fa-ban" aria-hidden="true"></i>
                       </button>` : ''}
                   </div>
                 </div>
@@ -172,7 +156,7 @@ window.kdsModule = {
           this.renderOrders();
           this.updatingItems.delete(itemId);
           await this.loadKdsOrders(true);
-          if (result.announcement) this.speakAnnouncement(result.announcement);
+          if (result.announcement && (!window.audioModule || window.audioModule.track('done', itemId))) this.speakAnnouncement(result.announcement);
           window.api.showToast('Đã cập nhật trạng thái món', 'success');
         } catch (err) {
           window.api.showToast('Lỗi cập nhật: ' + err.message, 'error');

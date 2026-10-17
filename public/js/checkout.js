@@ -230,6 +230,10 @@ window.checkoutModule = {
 
       const payRes = await window.api.post('/payments/process', payPayload);
       order = payRes.order || { ...order, payment_status: 'PAID', order_status: 'COMPLETED' };
+      if (this.selectedMethod === 'QR' && order.payment_status === 'PAID') {
+        const amount = Number(payRes.payment?.amount ?? order.total_amount ?? this.totalAmount);
+        if (Number.isFinite(amount)) window.audioModule?.speak(`Đã xác nhận thanh toán ${amount.toLocaleString('vi-VN')} đồng qua VietQR.`, { kind: 'qr' });
+      }
 
       window.api.showToast(this.isRepayment ? 'Đã cập nhật giao dịch thanh toán!' : 'Thanh toán thành công, đơn hàng đã hoàn tất!', 'success');
       document.getElementById('checkoutModal').style.display = 'none';
@@ -244,24 +248,23 @@ window.checkoutModule = {
       }
       window.appState.setSelectedTable(null);
 
-      // Open printable receipt (Rule 29)
-      if (window.invoiceModule) {
-        window.invoiceModule.showReceipt(order, payRes.payment, payRes.change, { autoPrint: true });
-      }
-
-      // Refresh table status
-      if (window.tablesModule) {
-        window.tablesModule.loadAreasAndTables();
-      }
-      if (window.ordersModule) {
-        await window.ordersModule.loadOrders();
-      }
-      if (window.completedItemsModule) {
-        await window.completedItemsModule.loadCompletedItems(true);
-      }
       this.currentOrder = null;
       this.openedFromExistingOrder = false;
       this.isRepayment = false;
+      const tableModal = document.getElementById('tableActionModal');
+      if (tableModal) tableModal.style.display = 'none';
+      // Refresh failures must never turn a committed payment into a payment error.
+      const refreshes = await Promise.allSettled([
+        window.tablesModule?.loadAreasAndTables(),
+        window.ordersModule?.loadOrders(),
+        window.completedItemsModule?.loadCompletedItems(true)
+      ]);
+      if (refreshes.some(result => result.status === 'rejected')) {
+        window.api.showToast('Đã thanh toán. Chưa tải lại được danh sách; vui lòng làm mới màn hình.', 'info');
+      }
+      if (window.invoiceModule) {
+        await window.invoiceModule.showReceipt(order, payRes.payment, payRes.change, { autoPrint: true });
+      }
     } catch (err) {
       window.api.showToast('Lỗi thanh toán: ' + err.message, 'error');
     } finally {

@@ -8,6 +8,20 @@ window.tablesModule = {
   editorSubmit: null,
   draftStatusQueue: new Map(),
 
+  getTableSummary(table, orderTotal = table.total_amount) {
+    const state = window.appState;
+    const cart = state.cart.orderType === 'DINE_IN' && Number(state.cart.selectedTable?.id) === Number(table.id)
+      ? state.cart : state.getTableCart(table.id);
+    const hasDraft = !!cart?.items?.length;
+    const subtotal = (cart?.items || []).reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
+    const discount = Number(cart?.discountCash || 0) + subtotal * Number(cart?.discountPercent || 0) / 100;
+    return {
+      hasDraft,
+      total: Number(orderTotal || 0) + Math.max(0, subtotal - Math.min(subtotal, discount)),
+      status: hasDraft ? 'OCCUPIED' : table.status
+    };
+  },
+
   syncDraftTableStatus(table, hasItems) {
     if (table.current_order_id) return;
     if (!hasItems && !table.draftOccupied) return;
@@ -65,6 +79,8 @@ window.tablesModule = {
         this.loadAreasAndTables();
       } else if (event === 'role_features_updated' || event === 'features_updated') {
         this.configureManagement();
+      } else if (event === 'cart_updated') {
+        this.renderTables();
       }
     });
   },
@@ -370,11 +386,12 @@ window.tablesModule = {
     }
 
     grid.innerHTML = filtered.map(t => {
-      const isOccupied = t.status === 'OCCUPIED';
+      const summary = this.getTableSummary(t);
+      const isOccupied = summary.status === 'OCCUPIED';
       const statusText = isOccupied ? 'Có khách' : (t.status === 'RESERVED' ? 'Đặt trước' : 'Trống');
 
       return `
-        <div class="table-card status-${t.status}" data-id="${t.id}">
+        <div class="table-card status-${summary.status}" data-id="${t.id}">
           <div class="table-card-header">
             <span class="table-code-badge">${t.code}</span>
             <span class="table-status-pill">${statusText}</span>
@@ -383,8 +400,8 @@ window.tablesModule = {
             <div class="text-sub" style="font-size: 11px;">${t.name} (${t.seats || 4} chỗ)</div>
             ${isOccupied ? `
               <div class="table-order-info">
-                <span class="table-amount">${window.api.formatMoney(t.total_amount || 0)}</span>
-                <div class="text-muted" style="font-size: 10px;">${t.order_code || ''}</div>
+                <span class="table-amount">${window.api.formatMoney(summary.total)}</span>
+                <div class="text-muted" style="font-size: 10px;">${t.order_code || ''}${summary.hasDraft ? ' · Món chưa gửi' : ''}</div>
               </div>
             ` : `
               <div class="table-order-info text-muted">
@@ -443,8 +460,9 @@ window.tablesModule = {
     if (areaTag) areaTag.innerHTML = `<i class="fa-solid fa-layer-group"></i> ${this.escape(areaName)}`;
     if (seatsTag) seatsTag.innerHTML = `<i class="fa-solid fa-chair"></i> ${table.seats || 4} chỗ`;
 
-    const isOccupied = table.status === 'OCCUPIED';
-    const totalAmount = Number(table.total_amount || 0);
+    const summary = this.getTableSummary(table);
+    const isOccupied = summary.status === 'OCCUPIED';
+    const totalAmount = summary.total;
 
     if (status) {
       if (isOccupied) {
@@ -457,10 +475,11 @@ window.tablesModule = {
     }
 
     if (billOverview) {
-      if (isOccupied && totalAmount > 0) {
+      if (isOccupied && (totalAmount > 0 || summary.hasDraft || table.current_order_id)) {
         billOverview.style.display = 'flex';
         if (billAmount) billAmount.textContent = window.api.formatMoney(totalAmount);
-        if (billOrderCode) billOrderCode.textContent = table.order_code ? `#${table.order_code}` : '#ĐANG PHỤC VỤ';
+        if (billOrderCode) billOrderCode.textContent = (table.order_code ? `#${table.order_code}` : '')
+          + (summary.hasDraft ? `${table.order_code ? ' · ' : ''}MÓN CHƯA GỬI` : (table.order_code ? '' : '#ĐANG PHỤC VỤ'));
       } else if (isOccupied) {
         billOverview.style.display = 'flex';
         if (billAmount) billAmount.textContent = '0 đ';
@@ -486,9 +505,7 @@ window.tablesModule = {
       btnCheckout.style.opacity = hasOrder ? '1' : '0.55';
       btnCheckout.style.cursor = hasOrder ? 'pointer' : 'not-allowed';
       if (btnCheckoutText) {
-        btnCheckoutText.textContent = hasOrder && totalAmount > 0
-          ? `Thanh toán · ${window.api.formatMoney(totalAmount)}`
-          : 'Thanh toán';
+        btnCheckoutText.textContent = 'Thanh toán';
       }
     }
 
@@ -523,7 +540,7 @@ window.tablesModule = {
       if (count) count.textContent = `${items.reduce((sum, item) => sum + Number(item.quantity || 1), 0)} món`;
 
       if (result.order?.total_amount != null) {
-        const amt = Number(result.order.total_amount || 0);
+        const amt = this.getTableSummary(table, result.order.total_amount).total;
         const billAmount = document.getElementById('tableBillAmount');
         if (billAmount) billAmount.textContent = window.api.formatMoney(amt);
         const checkoutBtn = document.getElementById('btnActionCheckout');
@@ -541,9 +558,7 @@ window.tablesModule = {
           printBtn.style.cursor = hasValidOrder ? 'pointer' : 'not-allowed';
         }
         if (checkoutText) {
-          checkoutText.textContent = hasValidOrder && amt > 0
-            ? `Thanh toán · ${window.api.formatMoney(amt)}`
-            : 'Thanh toán';
+          checkoutText.textContent = 'Thanh toán';
         }
       }
       list.innerHTML = items.length ? items.map(item => {

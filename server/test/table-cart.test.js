@@ -35,6 +35,53 @@ const item = { product_id: 1, product_name: 'Gà', unit_price: 20000, quantity: 
 const table = id => ({ id, code: `B${id}`, status: 'EMPTY', current_order_id: null });
 const flush = async tables => { await Promise.all([...tables.draftStatusQueue.values()]); };
 
+test('table card and action summary show unsent food after leaving and reloading', async () => {
+  const { window, state, storage } = harness();
+  state.setSelectedTable(table(1));
+  state.addToCart(item);
+  state.addToCart(item);
+  state.setSelectedTable(table(2));
+  const reloaded = harness(storage);
+  const tables = reloaded.window.tablesModule;
+  const active = { ...table(1), status: 'OCCUPIED', total_amount: 0 };
+  tables.tables = [active];
+  for (const id of ['tablesGrid', 'tableBillOverview', 'tableBillAmount', 'tableBillOrderCode']) {
+    reloaded.elements.set(id, { style: {}, innerHTML: '', querySelectorAll: () => [] });
+  }
+  tables.renderTables();
+  assert.match(reloaded.elements.get('tablesGrid').innerHTML, /40000/);
+  assert.match(reloaded.elements.get('tablesGrid').innerHTML, /Món chưa gửi/);
+  tables.openTableActionModal(active);
+  assert.equal(reloaded.elements.get('tableBillAmount').textContent, '40000');
+  assert.equal(reloaded.elements.get('tableBillOrderCode').textContent, 'MÓN CHƯA GỬI');
+  assert.equal(reloaded.calls.length, 0);
+  await flush(window.tablesModule);
+});
+
+test('table summary combines sent and unsent food, applies draft discount and clears removed food', () => {
+  const { window, state } = harness();
+  const active = { ...table(1), current_order_id: 77, status: 'OCCUPIED', total_amount: '50000' };
+  state.setSelectedTable(active);
+  state.addToCart(item);
+  state.cart.discountPercent = 10;
+  state.cart.discountCash = 1000;
+  assert.equal(window.tablesModule.getTableSummary(active).total, 67000);
+  assert.equal(window.tablesModule.getTableSummary(active, '60000').total, 77000);
+  state.updateCartItemQty(0, -1);
+  assert.equal(window.tablesModule.getTableSummary(active).total, 50000);
+  assert.equal(window.tablesModule.getTableSummary(active).hasDraft, false);
+});
+
+test('free unsent food is still identified as a draft', () => {
+  const { window, state } = harness();
+  state.setSelectedTable(table(1));
+  state.addToCart({ ...item, unit_price: 0 });
+  const summary = window.tablesModule.getTableSummary(table(1));
+  assert.equal(summary.hasDraft, true);
+  assert.equal(summary.total, 0);
+  assert.equal(summary.status, 'OCCUPIED');
+});
+
 test('adding food occupies table before kitchen submission and restores each table draft after reload', async () => {
   const { window, state, calls, storage } = harness();
   state.setSelectedTable(table(1));

@@ -611,7 +611,6 @@ window.posModule = {
     const discountEl = document.getElementById('cartDiscount');
     const discountRow = document.getElementById('cartDiscountRow');
     const grandTotalEl = document.getElementById('cartGrandTotal');
-    const btnCheckoutAmount = document.getElementById('btnCheckoutAmount');
     const btnProceed = document.getElementById('btnProceedCheckout');
     const mobileCount = document.getElementById('mobileCartCount');
     const mobileTotal = document.getElementById('mobileCartTotal');
@@ -695,7 +694,6 @@ window.posModule = {
     if (discountEl) discountEl.textContent = '-' + window.api.formatMoney(discount);
     if (discountRow) discountRow.style.display = discount > 0 ? 'flex' : 'none';
     if (grandTotalEl) grandTotalEl.textContent = window.api.formatMoney(grandTotal);
-    if (btnCheckoutAmount) btnCheckoutAmount.textContent = window.api.formatMoney(grandTotal);
     if (btnPrintDraft) btnPrintDraft.disabled = items.length === 0;
     this.syncOrderActionButtons(items.length);
 
@@ -709,8 +707,6 @@ window.posModule = {
     const btnSendKitchen = document.getElementById('btnSendKitchen');
     const btnPrintDraft = document.getElementById('btnPrintDraftReceipt');
     const btnProceedCheckout = document.getElementById('btnProceedCheckout');
-    const btnCheckoutAmount = document.getElementById('btnCheckoutAmount');
-    const grandTotal = window.appState.getCartGrandTotal();
 
     const workflow = window.appState.storeSettings?.workflow_definition || { steps: [] };
     const createStep = workflow.steps?.[0];
@@ -725,9 +721,6 @@ window.posModule = {
     if (btnProceedCheckout) {
       btnProceedCheckout.style.display = canPay ? 'flex' : 'none';
       btnProceedCheckout.disabled = !itemCount;
-      if (btnCheckoutAmount) {
-        btnCheckoutAmount.textContent = window.api.formatMoney(grandTotal);
-      }
     }
 
     if (btnSendKitchen) {

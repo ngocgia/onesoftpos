@@ -1,0 +1,79 @@
+name: Deploy master to DirectAdmin
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: onesoft-production-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: production
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_PORT: ${{ secrets.SSH_PORT }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/home/onesofto6ab3/onesoftpos' }}
+      NODE_ACTIVATE: ${{ vars.NODE_ACTIVATE || '/home/onesofto6ab3/nodevenv/onesoftpos/22/bin/activate' }}
+      HEALTH_URL: ${{ vars.HEALTH_URL }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install and test
+        run: |
+          npm ci --prefix server
+          npm test --prefix server
+          bash -n scripts/deploy-passenger.sh
+      - name: Prepare SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          for name in SSH_HOST SSH_PORT SSH_USER SSH_PRIVATE_KEY SSH_KNOWN_HOSTS; do
+            if [ -z "${!name}" ]; then echo "Missing GitHub secret: $name" >&2; exit 1; fi
+          done
+          [[ "$SSH_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
+          [[ "$SSH_USER" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$ ]]
+          [[ "$SSH_PORT" =~ ^[0-9]+$ ]] && (( SSH_PORT > 0 && SSH_PORT < 65536 ))
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+      - name: Package application code
+        run: |
+          tar --exclude='.env' --exclude='.env.*' --exclude='.htaccess' \
+            --exclude='node_modules' --exclude='server/data' \
+            -czf "$RUNNER_TEMP/application.tar.gz" \
+            public server/src package.json server/package.json server/package-lock.json
+      - name: Upload and deploy
+        run: |
+          set -euo pipefail
+          SSH_ARGS=(-i "$HOME/.ssh/deploy_key" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 -o ServerAliveInterval=30)
+          ssh "${SSH_ARGS[@]}" -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" 'mkdir -p "$HOME/.onesoft-deploy" && chmod 700 "$HOME/.onesoft-deploy"'
+          scp "${SSH_ARGS[@]}" -P "$SSH_PORT" "$RUNNER_TEMP/application.tar.gz" "$SSH_USER@$SSH_HOST:.onesoft-deploy/$GITHUB_SHA.tar.gz"
+          printf -v REMOTE_ARGS '%q ' "$DEPLOY_PATH" "$NODE_ACTIVATE" "$GITHUB_SHA"
+          ssh "${SSH_ARGS[@]}" -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "bash -s -- $REMOTE_ARGS" < scripts/deploy-passenger.sh
+      - name: Check website
+        if: env.HEALTH_URL != ''
+        run: |
+          curl --fail --silent --show-error --location --retry 6 --retry-all-errors \
+            --retry-delay 5 --connect-timeout 15 --max-time 30 "$HEALTH_URL"
+      - name: Remove runner SSH credentials
+        if: always()
+        run: rm -f "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"

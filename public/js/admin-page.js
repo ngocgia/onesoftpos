@@ -302,6 +302,7 @@ const adminApp = {
     }
   },
   bind() {
+    document.getElementById('uploadApkBtn').onclick = () => this.openApkUpload();
     document
       .querySelectorAll("#adminNav button")
       .forEach((btn) => (btn.onclick = () => this.showPage(btn.dataset.page)));
@@ -380,7 +381,9 @@ const adminApp = {
       .forEach((x) => x.classList.toggle("active", x.id === `page-${page}`));
     document
       .querySelectorAll("#adminNav button")
-      .forEach((p) => p.classList.toggle("active", p.id === `page-${page}`));
+      .forEach((p) => p.classList.toggle("active", p.dataset.page === page));
+    const activeNav = document.querySelector(`#adminNav button[data-page="${page}"]`);
+    if (activeNav) document.getElementById('pageTitle').textContent = activeNav.textContent.trim();
     if (page === "dashboard") await this.loadDashboard();
     if (page === "stores") await this.loadStores();
     if (page === "storeTypes") await this.loadStoreTypes();
@@ -390,6 +393,89 @@ const adminApp = {
     if (page === "tables") await this.prepareTableManagement();
     if (page === "inventory") await this.prepareInventory();
     if (page === "audit") await this.loadAudit();
+    if (page === "apks") {
+      try { await this.loadApks(); } catch (error) { this.toast(error.message, true); }
+    }
+  },
+  async loadApks() {
+    const body = document.getElementById('apkReleasesList');
+    body.innerHTML = '<tr><td colspan="6">Đang tải phiên bản APK...</td></tr>';
+    try {
+      const { releases } = await window.api.get('/admin/apks');
+      const active = releases.find(item => item.isDefault);
+      document.getElementById('apkDefaultStatus').textContent = active
+        ? `Link /download đang tải phiên bản ${active.version}.`
+        : 'Chưa có bản mặc định. Hãy cho phép tải và chọn một phiên bản cho /download.';
+      body.innerHTML = releases.map(item => `<tr>
+        <td><strong>${this.esc(item.version)}</strong>${item.isDefault ? '<br><span class="badge active">Mặc định</span>' : ''}</td>
+        <td>${this.esc(item.filename)}<br><small class="muted">${(item.size / 1024 / 1024).toFixed(2)} MB</small></td>
+        <td>${this.esc(new Date(item.createdAt).toLocaleString('vi-VN'))}</td>
+        <td><label><input type="checkbox" ${item.enabled ? 'checked' : ''} aria-label="Cho phép tải phiên bản ${this.esc(item.version)}" onchange="adminApp.updateApk('${item.id}',{enabled:this.checked},this)"> Cho phép tải</label></td>
+        <td>${item.enabled ? `<a href="${this.esc(item.downloadUrl)}">Tải ${this.esc(item.version)}</a><br><button class="btn ghost small" onclick="adminApp.copyApkLink('${this.esc(item.downloadUrl)}')">Sao chép link</button>` : '<span class="muted">Đã khóa tải</span>'}</td>
+        <td><div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${!item.isDefault && item.enabled ? `<button class="btn ghost small" onclick="adminApp.updateApk('${item.id}',{isDefault:true},this)">Đặt mặc định</button>` : ''}
+          <button class="btn danger small" onclick="adminApp.deleteApk('${item.id}',this)">Xóa</button>
+        </div></td>
+      </tr>`).join('') || '<tr><td colspan="6">Chưa có APK. Nhấn “Tải APK lên” để thêm phiên bản đầu tiên.</td></tr>';
+    } catch (error) {
+      body.innerHTML = '<tr><td colspan="6">Không tải được danh sách APK. Vui lòng thử lại.</td></tr>';
+      throw error;
+    }
+  },
+  openApkUpload() {
+    this.openModal('Tải phiên bản APK lên', `
+      ${this.field('version', 'Phiên bản (ví dụ 1.3.4)', 'text', '', null, true)}
+      <label class="field full"><span>File APK (tối đa 150 MB)</span><input name="apk" type="file" accept=".apk" required></label>
+      <label class="field full"><span><input name="enabled" type="checkbox" checked> Cho phép người dùng tải phiên bản này</span></label>
+      <label class="field full"><span><input name="isDefault" type="checkbox" checked> Dùng phiên bản này cho link /download</span></label>
+      <p class="field full" id="apkUploadStatus" role="status"></p>`, async (data, form) => {
+      const file = form.elements.apk.files[0];
+      if (!file || !/\.apk$/i.test(file.name)) throw new Error('Vui lòng chọn file .apk');
+      if (file.size > 150 * 1024 * 1024) throw new Error('File APK vượt giới hạn 150 MB');
+      if (data.isDefault && !data.enabled) throw new Error('Bản mặc định phải được cho phép tải');
+      const submit = form.querySelector('button[type="submit"]');
+      submit.disabled = true;
+      document.getElementById('modalClose').disabled = true;
+      document.getElementById('modalCancel').disabled = true;
+      document.getElementById('apkUploadStatus').textContent = 'Đang tải APK lên, vui lòng chờ...';
+      try {
+        const response = await fetch('/api/admin/apks', {
+          method: 'POST', body: file,
+          headers: { Authorization: `Bearer ${window.api.getToken()}`, 'Content-Type': 'application/vnd.android.package-archive',
+            'X-Apk-Version': data.version.trim(), 'X-Apk-Filename': encodeURIComponent(file.name),
+            'X-Apk-Enabled': String(data.enabled), 'X-Apk-Default': String(data.isDefault) }
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Không tải được file APK lên');
+        document.getElementById('apkUploadStatus').textContent = 'Đã tải APK lên.';
+        this.toast('Đã lưu phiên bản APK');
+        try { await this.loadApks(); } catch { this.toast('Đã lưu APK. Hãy nhấn Làm mới để tải lại danh sách.', true); }
+      } catch (error) {
+        document.getElementById('apkUploadStatus').textContent = error.message;
+        throw error;
+      } finally {
+        submit.disabled = false;
+        document.getElementById('modalClose').disabled = false;
+        document.getElementById('modalCancel').disabled = false;
+      }
+    });
+  },
+  async updateApk(id, patch, control) {
+    control.disabled = true;
+    try { await window.api.put(`/admin/apks/${id}`, patch); await this.loadApks(); this.toast('Đã cập nhật phiên bản APK'); }
+    catch (error) { if (control.type === 'checkbox') control.checked = !control.checked; this.toast(error.message, true); }
+    finally { control.disabled = false; }
+  },
+  async deleteApk(id, control) {
+    if (!confirm('Xóa file APK này? Link tải của phiên bản sẽ ngừng hoạt động. Nếu đây là bản mặc định, cần chọn bản khác cho /download.')) return;
+    control.disabled = true;
+    try { await window.api.del(`/admin/apks/${id}`); await this.loadApks(); this.toast('Đã xóa phiên bản APK'); }
+    catch (error) { this.toast(error.message, true); }
+    finally { control.disabled = false; }
+  },
+  async copyApkLink(url) {
+    try { await navigator.clipboard.writeText(new URL(url, location.origin).href); this.toast('Đã sao chép link tải APK'); }
+    catch { this.toast('Không sao chép được link. Bạn có thể sao chép địa chỉ từ nút Tải.', true); }
   },
   async loadDashboard() {
     const startDate = document.getElementById("adminReportStartDate")?.value;

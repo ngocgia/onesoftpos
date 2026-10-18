@@ -34,6 +34,7 @@
       <button data-page="tables"><i class="fa-solid fa-chair"></i>Phòng & bàn</button>
       <button data-page="inventory"><i class="fa-solid fa-boxes-stacked"></i>Quản lý kho</button>
       <button data-page="audit"><i class="fa-solid fa-clock-rotate-left"></i>Nhật ký hệ thống</button>
+      <button data-page="apks"><i class="fa-brands fa-android"></i>Phiên bản APK</button>
     </nav>
     <div class="sidebar-footer">
       <a href="/?mode=pos" class="secondary-link"><i class="fa-solid fa-cash-register"></i>Vào trang bán hàng</a>
@@ -330,6 +331,24 @@
       </div>
     </section>
 
+    <section class="page" id="page-apks">
+      <div class="toolbar">
+        <div>
+          <strong>Quản lý ứng dụng Android</strong>
+          <p><a href="/download">/download</a> tự động tải phiên bản mặc định. Chỉ những phiên bản được cho phép mới có thể tải.</p>
+        </div>
+        <button class="btn primary" id="uploadApkBtn"><i class="fa-solid fa-upload"></i>Tải APK lên</button>
+        <button class="btn ghost" data-refresh="apks"><i class="fa-solid fa-rotate"></i>Làm mới</button>
+      </div>
+      <p id="apkDefaultStatus" role="status"></p>
+      <div class="panel table-wrap">
+        <table>
+          <thead><tr><th>Phiên bản</th><th>File / Dung lượng</th><th>Ngày tải lên</th><th>Cho phép tải</th><th>Link tải</th><th>Thao tác</th></tr></thead>
+          <tbody id="apkReleasesList"></tbody>
+        </table>
+      </div>
+    </section>
+
     <section class="page" id="page-audit">
       <div class="toolbar">
         <div>
@@ -376,6 +395,6 @@
   <div id="toast"></div>
 
   <script src="js/api.js?v=20260923-admin-loop-fix"></script>
-  <script src="js/admin-page.js?v=20261015-sidebar"></script>
+  <script src="js/admin-page.js?v=20261018-apks"></script>
 </body>
 </html>

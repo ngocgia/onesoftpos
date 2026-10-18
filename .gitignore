@@ -17,3 +17,6 @@ lerna-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Uploaded APK binaries and release metadata (persist separately on the server)
+server/data/apks/

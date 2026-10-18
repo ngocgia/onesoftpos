@@ -228,6 +228,32 @@ async function processPayment(req, res) {
 }
 
 // Rule 28: Tạo mã VietQR động theo đơn hàng
+// Receipt previews must not create an order or fall back to a sample bank account.
+async function previewReceiptVietQR(req, res) {
+  const amount = Number(req.body.amount);
+  const memo = String(req.body.memo || '').trim();
+  if (!Number.isSafeInteger(amount) || amount <= 0 || amount > 999999999999 || !memo || memo.length > 100) {
+    return res.status(400).json({ success: false, message: 'Số tiền hoặc nội dung chuyển khoản không hợp lệ' });
+  }
+  try {
+    const settings = isPostgresConnected()
+      ? (await pool.query('SELECT * FROM store_settings WHERE store_id = $1', [req.storeId])).rows[0]
+      : memoryStore.store_settings.find(entry => Number(entry.store_id) === Number(req.storeId));
+    const bankName = String(settings?.bank_name || '').trim();
+    const bankAccount = String(settings?.bank_account_number || '').trim();
+    const accountHolder = String(settings?.bank_account_holder || '').trim();
+    const bin = Object.entries(BANK_BIN_MAP).find(([name]) => name.toLowerCase().replace(/\s/g, '') === bankName.toLowerCase().replace(/\s/g, ''))?.[1]
+      || (/^\d{6}$/.test(bankName) ? bankName : null);
+    if (!bin || !/^[a-zA-Z0-9]{1,50}$/.test(bankAccount) || !accountHolder) {
+      return res.json({ success: true, configured: false });
+    }
+    const qrUrl = `https://img.vietqr.io/image/${bin}-${bankAccount}-qr_only.png?amount=${amount}&addInfo=${encodeURIComponent(memo)}&accountName=${encodeURIComponent(accountHolder)}`;
+    res.json({ success: true, configured: true, qrUrl, bankName, bankAccount, accountHolder, amount, memo });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Không thể tạo mã QR thanh toán cho hóa đơn' });
+  }
+}
+
 async function getVietQR(req, res) {
   const orderId = parseInt(req.params.orderId, 10);
   const storeId = req.storeId || parseInt(req.query.store_id, 10);
@@ -281,5 +307,6 @@ async function getVietQR(req, res) {
 
 module.exports = {
   processPayment,
+  previewReceiptVietQR,
   getVietQR
 };

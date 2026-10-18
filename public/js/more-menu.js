@@ -11,6 +11,7 @@ window.moreMenuModule = {
     connectionType: 'browser',
     ipAddress: '192.168.1.200',
     autoPrintOnPayment: true,
+    autoPrintOrderSlipOnTransfer: false,
     autoCutPaper: true,
     openCashDrawer: true,
     printKitchenSeparate: true
@@ -193,6 +194,7 @@ window.moreMenuModule = {
     document.getElementById('printerConnectionType').value = saved.connectionType || 'browser';
     document.getElementById('printerIpAddress').value = saved.ipAddress || '192.168.1.200';
     document.getElementById('printerAutoPrint').checked = !!saved.autoPrintOnPayment;
+    document.getElementById('printerAutoPrintOrderSlip').checked = !!saved.autoPrintOrderSlipOnTransfer;
     document.getElementById('printerAutoCut').checked = !!saved.autoCutPaper;
     document.getElementById('printerKitchenSeparate').checked = !!saved.printKitchenSeparate;
 
@@ -205,6 +207,7 @@ window.moreMenuModule = {
       connectionType: document.getElementById('printerConnectionType').value,
       ipAddress: document.getElementById('printerIpAddress').value,
       autoPrintOnPayment: document.getElementById('printerAutoPrint').checked,
+      autoPrintOrderSlipOnTransfer: document.getElementById('printerAutoPrintOrderSlip').checked,
       autoCutPaper: document.getElementById('printerAutoCut').checked,
       printKitchenSeparate: document.getElementById('printerKitchenSeparate').checked
     };

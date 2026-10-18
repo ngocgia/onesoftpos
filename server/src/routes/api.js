@@ -101,6 +101,7 @@ router.put('/order-items/:itemId/cancel', authenticateToken, requireStoreContext
 
 // 6. Payment & VietQR routes
 router.post('/payments/process', authenticateToken, requireFeature('PAYMENT'), paymentController.processPayment);
+router.post('/payments/vietqr/receipt', authenticateToken, requireStoreContext(), paymentController.previewReceiptVietQR);
 router.get('/payments/vietqr/:orderId', authenticateToken, requireFeature('PAYMENT'), paymentController.getVietQR);
 
 // 7. KDS routes

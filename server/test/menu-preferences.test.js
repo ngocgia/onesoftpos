@@ -45,7 +45,11 @@ test('rejects malformed settings, unknown fields, invalid channel combinations a
   assert.throws(() => controller.validate('workflow', { enableDineIn: false, enableTakeaway: false, enableDelivery: true, enableKds: true }));
   assert.throws(() => controller.validate('header', { wishesText: '', avatarType: 'upload', avatarSrc: 'javascript:alert(1)', bgTheme: '', showDecor: true }));
   for (const paperSize of ['K58', 'K80', 'K85', 'A4']) {
-    assert.equal(controller.validate('printer', { paperSize, connectionType: 'browser', ipAddress: '', autoPrintOnPayment: false, autoCutPaper: false, printKitchenSeparate: false }).paperSize, paperSize);
+    const legacyPrinter = { paperSize, connectionType: 'browser', ipAddress: '', autoPrintOnPayment: false, autoCutPaper: false, printKitchenSeparate: false };
+    assert.equal(controller.validate('printer', legacyPrinter).paperSize, paperSize);
+    assert.equal(controller.validate('printer', legacyPrinter).autoPrintOrderSlipOnTransfer, false);
+    assert.equal(controller.validate('printer', { ...legacyPrinter, autoPrintOrderSlipOnTransfer: true }).autoPrintOrderSlipOnTransfer, true);
+    assert.throws(() => controller.validate('printer', { ...legacyPrinter, autoPrintOrderSlipOnTransfer: 'true' }));
   }
 });
 

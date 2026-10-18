@@ -143,11 +143,34 @@ test('failed kitchen submission keeps unsent food and restores send button', asy
   const { window, state, elements } = harness();
   state.setSelectedTable(table(1));
   state.addToCart(item);
+  let prints = 0;
+  window.invoiceModule = { showOrderSlip: async () => prints++ };
   window.api.post = async () => { throw new Error('offline'); };
   await window.posModule.sendOrderToKitchen();
   assert.equal(state.cart.items.length, 1);
   assert.equal(state.cart.sentItems.length, 0);
   assert.equal(elements.get('btnSendKitchen').disabled, false);
+  assert.equal(prints, 0);
+});
+
+test('successful transfer prints only submitted food after cart clears, once', async () => {
+  const { window, state } = harness();
+  state.setSelectedTable(table(4));
+  state.cart.sentItems = [{ product_name: 'Món cũ', quantity: 2 }];
+  state.addToCart(item);
+  const slips = [];
+  window.invoiceModule = { showOrderSlip: async (order, items, options) => {
+    assert.equal(state.cart.items.length, 0);
+    slips.push({ order, items, options });
+  } };
+  await Promise.all([window.posModule.sendOrderToKitchen(), window.posModule.sendOrderToKitchen()]);
+  assert.equal(slips.length, 1);
+  assert.equal(slips[0].order.id, 77);
+  assert.equal(slips[0].order.table_name, 'B4');
+  assert.equal(slips[0].items.length, 1);
+  assert.equal(slips[0].items[0].product_name, 'Gà');
+  assert.equal(slips[0].options.auto, true);
+  assert.equal(slips[0].options.storeId, '11');
 });
 
 function statusController(db) {

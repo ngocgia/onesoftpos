@@ -35,9 +35,11 @@
       </div>
 
       <!-- Cụm chào mừng bên trái theo hình (click để mở thông tin tài khoản & tùy chỉnh) -->
-      <div class="header-welcome-left" id="headerProfileTrigger" style="cursor:pointer" title="Xem thông tin tài khoản & tùy chỉnh giao diện">
+      <div class="header-welcome-left" id="headerProfileTrigger" style="cursor:pointer"
+        title="Xem thông tin tài khoản & tùy chỉnh giao diện">
         <div class="header-avatar-wrapper">
-          <img src="images/staff-avatar.jpg" alt="Nhân viên" class="header-avatar-img" id="headerAvatarImg" onerror="this.style.display='none';document.getElementById('userAvatar').style.display='flex'">
+          <img src="images/staff-avatar.jpg" alt="Nhân viên" class="header-avatar-img" id="headerAvatarImg"
+            onerror="this.style.display='none';document.getElementById('userAvatar').style.display='flex'">
           <div class="avatar fallback-avatar" id="userAvatar" style="display:none">TN</div>
         </div>
         <div class="header-welcome-text">
@@ -280,6 +282,10 @@
                   <i class="fa-solid fa-circle-check"></i>
                   <span>Thanh toán</span>
                 </button>
+                <button type="button" class="btn-print-order-slip btn-secondary" id="btnPrintOrderSlip"
+                  style="display: none;" disabled>
+                  <i class="fa-solid fa-print"></i> In phiếu đặt đồ
+                </button>
                 <button type="button" class="btn-send-kitchen btn-secondary" id="btnSendKitchen" style="display: none;">
                   <i class="fa-solid fa-kitchen-set"></i> Gửi bếp
                 </button>
@@ -428,7 +434,8 @@
                   <i class="fa-solid fa-chair text-info"></i>
                   <span>Phòng bàn</span>
                 </button>
-                <button type="button" class="more-quick-btn" data-target-subview="adminInventory" id="btnQuickInventory">
+                <button type="button" class="more-quick-btn" data-target-subview="adminInventory"
+                  id="btnQuickInventory">
                   <i class="fa-solid fa-boxes-stacked text-success"></i>
                   <span>Kho hàng</span>
                 </button>
@@ -524,7 +531,8 @@
                   <i class="fa-solid fa-chevron-right more-item-arrow"></i>
                 </div>
 
-                <button type="button" class="more-menu-item" id="menuItemOrderHistory" style="width:100%;text-align:left;background:transparent;border:0;font:inherit;color:inherit">
+                <button type="button" class="more-menu-item" id="menuItemOrderHistory"
+                  style="width:100%;text-align:left;background:transparent;border:0;font:inherit;color:inherit">
                   <span class="more-item-left">
                     <span class="more-item-icon icon-account"><i class="fa-solid fa-clock-rotate-left"></i></span>
                     <span class="more-item-label">Lịch sử</span>
@@ -728,8 +736,9 @@
               <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-secondary btn-sm"
                   id="btnManageCategories"><i class="fa-solid fa-tags"></i> Danh mục</button><button
                   class="btn-secondary btn-sm" id="btnManageToppings"><i class="fa-solid fa-layer-group"></i>
-                  Topping</button><button class="btn-secondary btn-sm" id="btnManageSizes"><i class="fa-solid fa-ruler"></i> Kích cỡ</button><button class="btn-primary btn-sm" id="btnOpenAddProductModal"><i
-                    class="fa-solid fa-plus"></i> Thêm món mới</button></div>
+                  Topping</button><button class="btn-secondary btn-sm" id="btnManageSizes"><i
+                    class="fa-solid fa-ruler"></i> Kích cỡ</button><button class="btn-primary btn-sm"
+                  id="btnOpenAddProductModal"><i class="fa-solid fa-plus"></i> Thêm món mới</button></div>
             </div>
             <div class="admin-products-table-wrapper">
               <table class="orders-table">
@@ -798,14 +807,20 @@
           <div id="adminInventory" class="admin-subview">
             <div class="subview-header" style="flex-wrap:wrap; gap: 8px;">
               <div>
-                <h3 style="margin:0;"><i class="fa-solid fa-boxes-stacked text-primary"></i> Quản lý kho & Nguyên vật liệu</h3>
-                <p class="text-muted" style="margin:2px 0 0 0; font-size:13px;">Theo dõi xuất - nhập - tồn, giá trị hàng hóa và cảnh báo thiếu hụt</p>
+                <h3 style="margin:0;"><i class="fa-solid fa-boxes-stacked text-primary"></i> Quản lý kho & Nguyên vật
+                  liệu</h3>
+                <p class="text-muted" style="margin:2px 0 0 0; font-size:13px;">Theo dõi xuất - nhập - tồn, giá trị hàng
+                  hóa và cảnh báo thiếu hụt</p>
               </div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <button type="button" class="btn-primary btn-sm" id="btnOpenAddInventoryItemModal"><i class="fa-solid fa-plus"></i> Thêm mặt hàng</button>
-                <button type="button" class="btn-secondary btn-sm" id="btnOpenImportInventoryModal"><i class="fa-solid fa-arrow-down"></i> Nhập kho</button>
-                <button type="button" class="btn-secondary btn-sm" id="btnOpenExportInventoryModal"><i class="fa-solid fa-arrow-up"></i> Xuất kho</button>
-                <button type="button" class="btn-secondary btn-sm" id="btnOpenAdjustInventoryModal"><i class="fa-solid fa-scale-balanced"></i> Kiểm kê cân bằng</button>
+                <button type="button" class="btn-primary btn-sm" id="btnOpenAddInventoryItemModal"><i
+                    class="fa-solid fa-plus"></i> Thêm mặt hàng</button>
+                <button type="button" class="btn-secondary btn-sm" id="btnOpenImportInventoryModal"><i
+                    class="fa-solid fa-arrow-down"></i> Nhập kho</button>
+                <button type="button" class="btn-secondary btn-sm" id="btnOpenExportInventoryModal"><i
+                    class="fa-solid fa-arrow-up"></i> Xuất kho</button>
+                <button type="button" class="btn-secondary btn-sm" id="btnOpenAdjustInventoryModal"><i
+                    class="fa-solid fa-scale-balanced"></i> Kiểm kê cân bằng</button>
               </div>
             </div>
 
@@ -826,48 +841,61 @@
                 </div>
               </div>
               <div class="report-card" style="border-left: 4px solid var(--warning, #f59e0b);">
-                <div class="card-icon" style="color: var(--warning, #f59e0b);"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="card-icon" style="color: var(--warning, #f59e0b);"><i
+                    class="fa-solid fa-triangle-exclamation"></i></div>
                 <div class="card-data">
                   <span class="card-label">Sắp hết định mức</span>
-                  <strong class="card-value" id="invMetricLowStock" style="color: var(--warning, #f59e0b);">0 món</strong>
+                  <strong class="card-value" id="invMetricLowStock" style="color: var(--warning, #f59e0b);">0
+                    món</strong>
                 </div>
               </div>
               <div class="report-card" style="border-left: 4px solid var(--danger, #ef4444);">
-                <div class="card-icon" style="color: var(--danger, #ef4444);"><i class="fa-solid fa-circle-xmark"></i></div>
+                <div class="card-icon" style="color: var(--danger, #ef4444);"><i class="fa-solid fa-circle-xmark"></i>
+                </div>
                 <div class="card-data">
                   <span class="card-label">Đã cạn kho</span>
-                  <strong class="card-value" id="invMetricOutOfStock" style="color: var(--danger, #ef4444);">0 món</strong>
+                  <strong class="card-value" id="invMetricOutOfStock" style="color: var(--danger, #ef4444);">0
+                    món</strong>
                 </div>
               </div>
             </div>
 
             <!-- Inventory Segmented Nav Pills -->
-            <div style="display:flex;gap:8px;margin:16px 0 12px 0;border-bottom:1px solid var(--border-color, #e2e8f0);padding-bottom:8px;flex-wrap:wrap;">
-              <button type="button" class="btn-sm btn-primary inv-nav-pill active" data-pill="invPillSummary" id="btnInvPillSummary">
+            <div
+              style="display:flex;gap:8px;margin:16px 0 12px 0;border-bottom:1px solid var(--border-color, #e2e8f0);padding-bottom:8px;flex-wrap:wrap;">
+              <button type="button" class="btn-sm btn-primary inv-nav-pill active" data-pill="invPillSummary"
+                id="btnInvPillSummary">
                 <i class="fa-solid fa-layer-group"></i> Tổng hợp tồn kho
               </button>
-              <button type="button" class="btn-sm btn-secondary inv-nav-pill" data-pill="invPillItems" id="btnInvPillItems">
+              <button type="button" class="btn-sm btn-secondary inv-nav-pill" data-pill="invPillItems"
+                id="btnInvPillItems">
                 <i class="fa-solid fa-list-check"></i> Danh mục mặt hàng
               </button>
-              <button type="button" class="btn-sm btn-secondary inv-nav-pill" data-pill="invPillReports" id="btnInvPillReports">
+              <button type="button" class="btn-sm btn-secondary inv-nav-pill" data-pill="invPillReports"
+                id="btnInvPillReports">
                 <i class="fa-solid fa-chart-pie"></i> Thống kê từ ngày đến ngày
               </button>
-              <button type="button" class="btn-sm btn-secondary inv-nav-pill" data-pill="invPillTransactions" id="btnInvPillTransactions">
+              <button type="button" class="btn-sm btn-secondary inv-nav-pill" data-pill="invPillTransactions"
+                id="btnInvPillTransactions">
                 <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử giao dịch
               </button>
             </div>
 
             <!-- TAB 1: TỔNG HỢP TỒN KHO -->
             <div id="invPillSummary" class="inv-tab-content active">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
+              <div
+                style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
                 <div style="display:flex;gap:8px;flex:1;max-width:520px;">
-                  <input id="invSummarySearch" class="form-input" placeholder="🔍 Tìm theo mã hoặc tên nguyên liệu..." style="padding:6px 12px;font-size:13px;">
-                  <select id="invSummaryCategoryFilter" class="form-input" style="width:auto;padding:6px 12px;font-size:13px;">
+                  <input id="invSummarySearch" class="form-input" placeholder="🔍 Tìm theo mã hoặc tên nguyên liệu..."
+                    style="padding:6px 12px;font-size:13px;">
+                  <select id="invSummaryCategoryFilter" class="form-input"
+                    style="width:auto;padding:6px 12px;font-size:13px;">
                     <option value="">Tất cả phân loại</option>
                   </select>
                 </div>
                 <div style="display:flex;gap:8px;">
-                  <button type="button" class="btn-secondary btn-sm" id="btnInvRefreshSummary"><i class="fa-solid fa-rotate"></i> Làm mới</button>
+                  <button type="button" class="btn-secondary btn-sm" id="btnInvRefreshSummary"><i
+                      class="fa-solid fa-rotate"></i> Làm mới</button>
                 </div>
               </div>
               <div class="admin-products-table-wrapper">
@@ -893,9 +921,12 @@
 
             <!-- TAB 2: DANH MỤC MẶT HÀNG (CRUD) -->
             <div id="invPillItems" class="inv-tab-content" style="display:none;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
-                <input id="invItemsSearch" class="form-input" placeholder="🔍 Tìm kiếm mã, tên mặt hàng..." style="max-width:320px;padding:6px 12px;font-size:13px;">
-                <button type="button" class="btn-primary btn-sm" onclick="adminModule.openEditInventoryItem()"><i class="fa-solid fa-plus"></i> Thêm mặt hàng mới</button>
+              <div
+                style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
+                <input id="invItemsSearch" class="form-input" placeholder="🔍 Tìm kiếm mã, tên mặt hàng..."
+                  style="max-width:320px;padding:6px 12px;font-size:13px;">
+                <button type="button" class="btn-primary btn-sm" onclick="adminModule.openEditInventoryItem()"><i
+                    class="fa-solid fa-plus"></i> Thêm mặt hàng mới</button>
               </div>
               <div class="admin-products-table-wrapper">
                 <table class="orders-table">
@@ -919,17 +950,25 @@
 
             <!-- TAB 3: BÁO CÁO THỐNG KÊ TỪ NGÀY ĐẾN NGÀY -->
             <div id="invPillReports" class="inv-tab-content" style="display:none;">
-              <div style="background:var(--bg-card, #f8fafc);border:1px solid var(--border-color, #e2e8f0);border-radius:10px;padding:12px;margin-bottom:14px;">
+              <div
+                style="background:var(--bg-card, #f8fafc);border:1px solid var(--border-color, #e2e8f0);border-radius:10px;padding:12px;margin-bottom:14px;">
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                  <strong style="font-size:14px;"><i class="fa-solid fa-calendar-days text-primary"></i> Khoảng thời gian:</strong>
-                  <input type="date" id="invReportStartDate" class="form-input" style="width:auto;padding:6px 10px;font-size:13px;">
+                  <strong style="font-size:14px;"><i class="fa-solid fa-calendar-days text-primary"></i> Khoảng thời
+                    gian:</strong>
+                  <input type="date" id="invReportStartDate" class="form-input"
+                    style="width:auto;padding:6px 10px;font-size:13px;">
                   <span>đến</span>
-                  <input type="date" id="invReportEndDate" class="form-input" style="width:auto;padding:6px 10px;font-size:13px;">
-                  <button type="button" class="btn-primary btn-sm" id="btnFilterInvReports"><i class="fa-solid fa-filter"></i> Lọc báo cáo</button>
+                  <input type="date" id="invReportEndDate" class="form-input"
+                    style="width:auto;padding:6px 10px;font-size:13px;">
+                  <button type="button" class="btn-primary btn-sm" id="btnFilterInvReports"><i
+                      class="fa-solid fa-filter"></i> Lọc báo cáo</button>
                   <div style="margin-left:auto;display:flex;gap:4px;">
-                    <button type="button" class="btn-secondary btn-sm" onclick="adminModule.setInvDateRange('today')">Hôm nay</button>
-                    <button type="button" class="btn-secondary btn-sm" onclick="adminModule.setInvDateRange('7days')">7 ngày</button>
-                    <button type="button" class="btn-secondary btn-sm" onclick="adminModule.setInvDateRange('thisMonth')">Tháng này</button>
+                    <button type="button" class="btn-secondary btn-sm"
+                      onclick="adminModule.setInvDateRange('today')">Hôm nay</button>
+                    <button type="button" class="btn-secondary btn-sm" onclick="adminModule.setInvDateRange('7days')">7
+                      ngày</button>
+                    <button type="button" class="btn-secondary btn-sm"
+                      onclick="adminModule.setInvDateRange('thisMonth')">Tháng này</button>
                   </div>
                 </div>
               </div>
@@ -937,7 +976,8 @@
               <!-- Thống kê tổng số lượng & giá trị trong kỳ -->
               <div class="reports-summary-cards" id="invRepCardsContainer" style="margin-bottom:14px;">
                 <div class="report-card" id="invRepCardImport" style="border-left: 4px solid var(--success, #10b981);">
-                  <div class="card-icon" style="color:var(--success, #10b981);"><i class="fa-solid fa-arrow-down"></i></div>
+                  <div class="card-icon" style="color:var(--success, #10b981);"><i class="fa-solid fa-arrow-down"></i>
+                  </div>
                   <div class="card-data">
                     <span class="card-label">Tổng giá trị nhập trong kỳ</span>
                     <strong class="card-value" id="invRepTotalImport">0đ</strong>
@@ -945,7 +985,8 @@
                   </div>
                 </div>
                 <div class="report-card" id="invRepCardExport" style="border-left: 4px solid var(--primary, #ef4b25);">
-                  <div class="card-icon" style="color:var(--primary, #ef4b25);"><i class="fa-solid fa-arrow-up"></i></div>
+                  <div class="card-icon" style="color:var(--primary, #ef4b25);"><i class="fa-solid fa-arrow-up"></i>
+                  </div>
                   <div class="card-data">
                     <span class="card-label">Tổng giá trị xuất trong kỳ</span>
                     <strong class="card-value" id="invRepTotalExport">0đ</strong>
@@ -953,7 +994,8 @@
                   </div>
                 </div>
                 <div class="report-card" id="invRepCardNet" style="border-left: 4px solid var(--info, #3b82f6);">
-                  <div class="card-icon" style="color:var(--info, #3b82f6);"><i class="fa-solid fa-scale-balanced"></i></div>
+                  <div class="card-icon" style="color:var(--info, #3b82f6);"><i class="fa-solid fa-scale-balanced"></i>
+                  </div>
                   <div class="card-data">
                     <span class="card-label">Biến động tồn kho ròng</span>
                     <strong class="card-value" id="invRepNetValue">0đ</strong>
@@ -963,7 +1005,8 @@
               </div>
 
               <div class="panel" style="margin-bottom:14px;">
-                <h4 id="invReportsTableTitle" style="margin:0 0 10px 0;"><i class="fa-solid fa-table-list text-primary"></i> Báo cáo Nhập - Xuất - Tồn theo mặt hàng</h4>
+                <h4 id="invReportsTableTitle" style="margin:0 0 10px 0;"><i
+                    class="fa-solid fa-table-list text-primary"></i> Báo cáo Nhập - Xuất - Tồn theo mặt hàng</h4>
                 <div class="admin-products-table-wrapper">
                   <table class="orders-table">
                     <thead id="invReportsTableHead">
@@ -989,15 +1032,18 @@
 
             <!-- TAB 4: LỊCH SỬ GIAO DỊCH KHO -->
             <div id="invPillTransactions" class="inv-tab-content" style="display:none;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
+              <div
+                style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
                 <div style="display:flex;gap:8px;flex:1;max-width:520px;">
-                  <select id="invTransTypeFilter" class="form-input" style="width:auto;padding:6px 12px;font-size:13px;">
+                  <select id="invTransTypeFilter" class="form-input"
+                    style="width:auto;padding:6px 12px;font-size:13px;">
                     <option value="">Tất cả loại phiếu</option>
                     <option value="IN">Phiếu Nhập kho (IN)</option>
                     <option value="OUT">Phiếu Xuất kho (OUT)</option>
                     <option value="ADJUST">Kiểm kê cân bằng (ADJUST)</option>
                   </select>
-                  <button type="button" class="btn-secondary btn-sm" id="btnRefreshInvTrans"><i class="fa-solid fa-rotate"></i> Tải lại</button>
+                  <button type="button" class="btn-secondary btn-sm" id="btnRefreshInvTrans"><i
+                      class="fa-solid fa-rotate"></i> Tải lại</button>
                 </div>
               </div>
               <div class="admin-products-table-wrapper">
@@ -1224,57 +1270,72 @@
   <div class="modal-overlay" id="receiptModal" style="display: none;">
     <div class="modal-dialog receipt-dialog">
       <div class="modal-header">
-        <h3>Hóa đơn thanh toán</h3>
+        <h3 id="receiptModalTitle">Hóa đơn thanh toán</h3>
         <button type="button" class="btn-close-modal" id="btnCloseReceiptModal">&times;</button>
       </div>
       <div class="modal-body">
         <!-- Printable receipt content -->
         <div class="receipt-paper" id="receiptPaper">
-          <div class="receipt-header-center">
-            <div class="receipt-logo">🍗</div>
-            <h2 id="receiptStoreName">THÍCH GÀ - QUANG TRUNG</h2>
-            <p id="receiptStoreAddress">123 Quang Trung, P.10, Gò Vấp</p>
-            <p id="receiptStorePhone">Hotline: 0901234567</p>
-            <div class="receipt-divider">--------------------------------</div>
-            <h3 class="receipt-title">PHIẾU THANH TOÁN</h3>
-            <p id="receiptOrderCodeText">Mã đơn: #TG000123</p>
-            <p id="receiptDateTime">Ngày: 16/09/2026 23:45</p>
-            <p id="receiptTableType">Bàn: B01 - Tại chỗ</p>
-            <p id="receiptCashier"></p>
-            <div class="receipt-divider">--------------------------------</div>
-          </div>
-
-          <table class="receipt-items-table">
-            <thead>
-              <tr>
-                <th class="text-left">Tên món</th>
-                <th class="text-center">SL</th>
-                <th class="text-right">T.Tiền</th>
-              </tr>
-            </thead>
-            <tbody id="receiptItemsTbody">
-              <!-- Item rows -->
-            </tbody>
-          </table>
-
-          <div class="receipt-divider">--------------------------------</div>
-          <div class="receipt-totals-box">
-            <div class="receipt-row"><span>Tạm tính:</span><span id="receiptSubtotal">0đ</span></div>
-            <div class="receipt-row" id="receiptDiscountRow" style="display:none;"><span>Giảm giá:</span><span
-                id="receiptDiscount">-0đ</span></div>
-            <div class="receipt-row" id="receiptTaxRow" style="display:none"><span>Thuế:</span><span id="receiptTax">0đ</span></div>
-            <div class="receipt-row grand-total"><span>TỔNG CỘNG:</span><strong id="receiptTotal">0đ</strong></div>
-            <div class="receipt-row"><span>Thanh toán:</span><span id="receiptMethod">Tiền mặt</span></div>
-            <div class="receipt-row" id="receiptCashRow"><span>Tiền khách đưa:</span><span
-                id="receiptCashGiven">0đ</span></div>
-            <div class="receipt-row" id="receiptChangeRow"><span>Tiền thối:</span><span id="receiptCashReturn">0đ</span>
+          <div id="orderSlipContent" style="display:none;"></div>
+          <div id="receiptInvoiceContent">
+            <div class="receipt-header-center">
+              <h2 id="receiptStoreName">THÍCH GÀ - QUANG TRUNG</h2>
+              <p id="receiptStoreAddress">123 Quang Trung, P.10, Gò Vấp</p>
+              <p id="receiptStorePhone">Hotline: 0901234567</p>
+              <h3 class="receipt-title">HÓA ĐƠN THANH TOÁN</h3>
+              <p id="receiptPrintCount">In lần 1</p>
+              <p id="receiptOrderCodeText">Mã đơn: #TG000123</p>
             </div>
-          </div>
-          <div class="receipt-divider">--------------------------------</div>
-          <div class="receipt-footer-center">
+            <div class="receipt-meta">
+              <p id="receiptTableType">Bàn: B01 - Tại chỗ</p>
+              <div class="receipt-row"><span id="receiptDateTime"></span><span id="receiptPrintedAt"></span></div>
+              <p id="receiptCashier"></p>
+            </div>
+
+            <table class="receipt-items-table">
+              <thead>
+                <tr>
+                  <th class="text-left">Mặt hàng</th>
+                  <th class="text-right">Đ.Giá</th>
+                  <th class="text-center">SL</th>
+                  <th class="text-right">T.Tiền</th>
+                </tr>
+              </thead>
+              <tbody id="receiptItemsTbody">
+                <!-- Item rows -->
+              </tbody>
+            </table>
+
+            <div class="receipt-totals-box">
+              <div class="receipt-row"><span id="receiptSubtotalLabel">Tiền hàng</span><span
+                  id="receiptSubtotal">0đ</span></div>
+              <div class="receipt-row" id="receiptDiscountRow" style="display:none;"><span>Giảm giá:</span><span
+                  id="receiptDiscount">-0đ</span></div>
+              <div class="receipt-row" id="receiptTaxRow" style="display:none"><span>Thuế:</span><span
+                  id="receiptTax">0đ</span></div>
+              <div class="receipt-row grand-total"><span id="receiptTotalLabel">TỔNG CỘNG</span><strong
+                  id="receiptTotal">0đ</strong></div>
+              <div class="receipt-row" id="receiptMethodRow"><span>Thanh toán:</span><span id="receiptMethod">Tiền mặt</span></div>
+              <div class="receipt-row" id="receiptCashRow"><span>Tiền khách đưa:</span><span
+                  id="receiptCashGiven">0đ</span></div>
+              <div class="receipt-row" id="receiptChangeRow"><span>Tiền thối:</span><span
+                  id="receiptCashReturn">0đ</span>
+              </div>
+            </div>
             <p id="receiptNote"></p>
-            <p id="receiptFooterMessage">Cảm ơn Quý khách & Hẹn gặp lại!</p>
-            <p class="receipt-software-tag">Phần mềm ThichGaPOS Multi-Store v1.0</p>
+            <div id="receiptPaymentQr" class="receipt-payment-qr" style="display:none;">
+              <strong>Quét mã QR để thanh toán</strong>
+              <img id="receiptQrImage" alt="Mã QR chuyển khoản thanh toán hóa đơn">
+              <p id="receiptQrBank"></p>
+              <p id="receiptQrAccount"></p>
+              <p id="receiptQrMemo"></p>
+            </div>
+            <p id="receiptQrNotice" class="text-center" style="display:none;"></p>
+            <div class="receipt-divider">---------------- * ----------------</div>
+            <div class="receipt-footer-center">
+              <p id="receiptFooterMessage">Cảm ơn Quý khách & Hẹn gặp lại!</p>
+              <p class="receipt-software-tag">Phần mềm ThichGaPOS Multi-Store v1.0</p>
+            </div>
           </div>
         </div>
       </div>
@@ -1334,21 +1395,24 @@
 
         <!-- 3 Quick Action Icons (Xem & Thêm món, Chuyển bàn, Ghép bàn) -->
         <div class="table-quick-actions">
-          <button type="button" class="btn-quick-action action-pos" id="btnActionOpenPos" title="Xem & Thêm món (Mở POS)">
+          <button type="button" class="btn-quick-action action-pos" id="btnActionOpenPos"
+            title="Xem & Thêm món (Mở POS)">
             <div class="quick-action-icon">
               <i class="fa-solid fa-utensils"></i>
             </div>
             <span class="quick-action-label">Thêm món</span>
           </button>
 
-          <button type="button" class="btn-quick-action action-transfer" id="btnActionTransfer" title="Chuyển toàn bộ món sang bàn trống khác">
+          <button type="button" class="btn-quick-action action-transfer" id="btnActionTransfer"
+            title="Chuyển toàn bộ món sang bàn trống khác">
             <div class="quick-action-icon">
               <i class="fa-solid fa-arrow-right-arrow-left"></i>
             </div>
             <span class="quick-action-label">Chuyển bàn</span>
           </button>
 
-          <button type="button" class="btn-quick-action action-merge" id="btnActionMerge" title="Ghép đơn của bàn này vào bàn có khách khác">
+          <button type="button" class="btn-quick-action action-merge" id="btnActionMerge"
+            title="Ghép đơn của bàn này vào bàn có khách khác">
             <div class="quick-action-icon">
               <i class="fa-solid fa-object-group"></i>
             </div>
@@ -1392,11 +1456,13 @@
       </div>
       <!-- Footer Actions: In Hóa Đơn & Thanh Toán -->
       <div class="modal-footer table-modal-footer" id="tableModalFooter">
-        <button type="button" class="btn-table-action btn-table-print" id="btnActionPrintBill" title="In tạm tính cho bàn này">
+        <button type="button" class="btn-table-action btn-table-print" id="btnActionPrintBill"
+          title="In tạm tính cho bàn này">
           <i class="fa-solid fa-print"></i>
           <span>In Hóa Đơn</span>
         </button>
-        <button type="button" class="btn-table-action btn-table-checkout" id="btnActionCheckout" title="Thanh toán hóa đơn bàn này">
+        <button type="button" class="btn-table-action btn-table-checkout" id="btnActionCheckout"
+          title="Thanh toán hóa đơn bàn này">
           <i class="fa-solid fa-credit-card"></i>
           <span id="btnActionCheckoutText">Thanh toán</span>
         </button>
@@ -1503,7 +1569,8 @@
         </div>
         <div class="form-group">
           <label>Mật khẩu:</label>
-          <input type="password" id="loginPassword" class="form-input" autocomplete="current-password" placeholder="Mật khẩu">
+          <input type="password" id="loginPassword" class="form-input" autocomplete="current-password"
+            placeholder="Mật khẩu">
         </div>
         <button type="button" class="btn-primary btn-block mt-3" id="btnSubmitLogin">Đăng Nhập</button>
       </div>
@@ -1542,13 +1609,20 @@
           <label>Địa chỉ IP máy in LAN (nếu dùng mạng LAN):</label>
           <input type="text" id="printerIpAddress" class="form-input" placeholder="192.168.1.200" value="192.168.1.200">
         </div>
-        
+
         <div class="setting-switch-row">
           <div class="setting-switch-label">
             <span class="setting-switch-title">Tự động in hóa đơn khi thanh toán</span>
             <span class="setting-switch-desc">Tự động gửi lệnh in ngay khi đơn hàng hoàn tất</span>
           </div>
           <input type="checkbox" id="printerAutoPrint" checked>
+        </div>
+        <div class="setting-switch-row">
+          <label class="setting-switch-label" for="printerAutoPrintOrderSlip">
+            <span class="setting-switch-title">Tự động in phiếu đặt đồ khi chuyển</span>
+            <span class="setting-switch-desc">In các món vừa chuyển sau khi chuyển đơn thành công</span>
+          </label>
+          <input type="checkbox" id="printerAutoPrintOrderSlip">
         </div>
         <div class="setting-switch-row">
           <div class="setting-switch-label">
@@ -1565,8 +1639,10 @@
           <input type="checkbox" id="printerKitchenSeparate" checked>
         </div>
       </div>
-      <div class="modal-footer" style="display:flex;gap:8px;justify-content:space-between;padding:12px 18px;border-top:1px solid var(--border-color)">
-        <button type="button" class="btn-secondary" onclick="moreMenuModule.testPrintBill()"><i class="fa-solid fa-file-invoice"></i> In thử hóa đơn mẫu</button>
+      <div class="modal-footer"
+        style="display:flex;gap:8px;justify-content:space-between;padding:12px 18px;border-top:1px solid var(--border-color)">
+        <button type="button" class="btn-secondary" onclick="moreMenuModule.testPrintBill()"><i
+            class="fa-solid fa-file-invoice"></i> In thử hóa đơn mẫu</button>
         <div style="display:flex;gap:8px">
           <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
           <button type="button" class="btn-primary" onclick="moreMenuModule.savePrinterSettings()">Lưu cài đặt</button>
@@ -1583,8 +1659,9 @@
         <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
       </div>
       <div class="modal-body">
-        <p class="text-muted" style="margin-bottom:12px;font-size:13px">Cấu hình các hình thức phục vụ và phương thức vận hành cho cửa hàng hiện tại.</p>
-        
+        <p class="text-muted" style="margin-bottom:12px;font-size:13px">Cấu hình các hình thức phục vụ và phương thức
+          vận hành cho cửa hàng hiện tại.</p>
+
         <div class="setting-switch-row">
           <div class="setting-switch-label">
             <span class="setting-switch-title">Phục vụ tại chỗ (Dine-in)</span>
@@ -1615,12 +1692,16 @@
         </div>
 
         <div style="margin-top:16px;padding:12px;background:var(--bg-muted);border-radius:var(--radius-md)">
-          <div style="font-weight:700;margin-bottom:4px"><i class="fa-solid fa-user-shield"></i> Cấu hình quyền theo vai trò</div>
-          <p class="text-muted" style="font-size:12px;margin:0 0 8px 0">Phân quyền chi tiết cho Thu ngân, Phục vụ, Đầu bếp...</p>
-          <button type="button" class="btn-secondary btn-sm" onclick="moreMenuModule.goToAdvancedWorkflow()"><i class="fa-solid fa-sliders"></i> Mở phân quyền nâng cao</button>
+          <div style="font-weight:700;margin-bottom:4px"><i class="fa-solid fa-user-shield"></i> Cấu hình quyền theo vai
+            trò</div>
+          <p class="text-muted" style="font-size:12px;margin:0 0 8px 0">Phân quyền chi tiết cho Thu ngân, Phục vụ, Đầu
+            bếp...</p>
+          <button type="button" class="btn-secondary btn-sm" onclick="moreMenuModule.goToAdvancedWorkflow()"><i
+              class="fa-solid fa-sliders"></i> Mở phân quyền nâng cao</button>
         </div>
       </div>
-      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+      <div class="modal-footer"
+        style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
         <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
         <button type="button" class="btn-primary" onclick="moreMenuModule.saveWorkflowSettings()">Lưu cấu hình</button>
       </div>
@@ -1635,8 +1716,9 @@
         <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
       </div>
       <div class="modal-body">
-        <p class="text-muted" style="font-size:13px;margin-bottom:12px">Tích hợp các hãng giao nhận hàng giao siêu tốc cho đơn mang về & giao hàng.</p>
-        
+        <p class="text-muted" style="font-size:13px;margin-bottom:12px">Tích hợp các hãng giao nhận hàng giao siêu tốc
+          cho đơn mang về & giao hàng.</p>
+
         <div class="setting-switch-row">
           <div class="setting-switch-label">
             <span class="setting-switch-title">AhaMove</span>
@@ -1678,7 +1760,8 @@
           <input type="number" id="shipFee" class="form-input" value="15000" min="0" placeholder="15000">
         </div>
       </div>
-      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+      <div class="modal-footer"
+        style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
         <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
         <button type="button" class="btn-primary" onclick="moreMenuModule.saveShippingSettings()">Lưu cài đặt</button>
       </div>
@@ -1724,12 +1807,15 @@
           </select>
         </div>
 
-        <div style="background:var(--bg-muted);padding:14px;border-radius:var(--radius-md);text-align:center;margin-top:12px">
+        <div
+          style="background:var(--bg-muted);padding:14px;border-radius:var(--radius-md);text-align:center;margin-top:12px">
           <span class="text-muted" style="font-size:12px">Xem trước số tiền hiển thị:</span>
-          <div style="font-size:22px;font-weight:800;color:var(--primary);margin-top:4px" id="fmtPreviewText">150.000 ₫</div>
+          <div style="font-size:22px;font-weight:800;color:var(--primary);margin-top:4px" id="fmtPreviewText">150.000 ₫
+          </div>
         </div>
       </div>
-      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+      <div class="modal-footer"
+        style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
         <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
         <button type="button" class="btn-primary" onclick="moreMenuModule.saveNumberFormat()">Lưu định dạng</button>
       </div>
@@ -1744,8 +1830,9 @@
         <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
       </div>
       <div class="modal-body">
-        <p class="text-muted" style="font-size:13px;margin-bottom:12px">Kết nối với cổng phát hành Hóa đơn điện tử (HĐĐT) chuẩn theo quy định Tổng cục Thuế.</p>
-        
+        <p class="text-muted" style="font-size:13px;margin-bottom:12px">Kết nối với cổng phát hành Hóa đơn điện tử
+          (HĐĐT) chuẩn theo quy định Tổng cục Thuế.</p>
+
         <div class="form-group">
           <label>Nhà cung cấp dịch vụ HĐĐT:</label>
           <select id="eiProvider" class="form-input">
@@ -1775,11 +1862,14 @@
           <input type="checkbox" id="eiAutoIssue" checked>
         </div>
       </div>
-      <div class="modal-footer" style="display:flex;gap:8px;justify-content:space-between;padding:12px 18px;border-top:1px solid var(--border-color)">
-        <button type="button" class="btn-secondary" onclick="moreMenuModule.testEInvoiceConnection()"><i class="fa-solid fa-network-wired"></i> Kiểm tra kết nối</button>
+      <div class="modal-footer"
+        style="display:flex;gap:8px;justify-content:space-between;padding:12px 18px;border-top:1px solid var(--border-color)">
+        <button type="button" class="btn-secondary" onclick="moreMenuModule.testEInvoiceConnection()"><i
+            class="fa-solid fa-network-wired"></i> Kiểm tra kết nối</button>
         <div style="display:flex;gap:8px">
           <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
-          <button type="button" class="btn-primary" onclick="moreMenuModule.saveEInvoiceSettings()">Lưu cấu hình</button>
+          <button type="button" class="btn-primary" onclick="moreMenuModule.saveEInvoiceSettings()">Lưu cấu
+            hình</button>
         </div>
       </div>
     </div>
@@ -1793,17 +1883,21 @@
         <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
       </div>
       <div class="modal-body text-center">
-        <p class="text-muted" style="font-size:13px;margin-bottom:14px">Khách hàng quét mã QR để xem thực đơn trực tuyến và tự gọi món tại bàn.</p>
-        
-        <div style="display:inline-block;padding:12px;background:#fff;border-radius:16px;box-shadow:0 4px 16px rgba(0,0,0,0.08);margin-bottom:14px">
-          <img id="storeWebsiteQrImage" src="" alt="QR Menu" style="width:190px;height:190px;display:block;border-radius:8px">
+        <p class="text-muted" style="font-size:13px;margin-bottom:14px">Khách hàng quét mã QR để xem thực đơn trực tuyến
+          và tự gọi món tại bàn.</p>
+
+        <div
+          style="display:inline-block;padding:12px;background:#fff;border-radius:16px;box-shadow:0 4px 16px rgba(0,0,0,0.08);margin-bottom:14px">
+          <img id="storeWebsiteQrImage" src="" alt="QR Menu"
+            style="width:190px;height:190px;display:block;border-radius:8px">
         </div>
 
         <div class="form-group" style="text-align:left">
           <label>Đường dẫn trang thực đơn online:</label>
           <div style="display:flex;gap:8px">
             <input type="text" id="storeWebsiteUrl" class="form-input" readonly>
-            <button type="button" class="btn-secondary" onclick="moreMenuModule.copyWebsiteUrl()"><i class="fa-solid fa-copy"></i> Chép</button>
+            <button type="button" class="btn-secondary" onclick="moreMenuModule.copyWebsiteUrl()"><i
+                class="fa-solid fa-copy"></i> Chép</button>
           </div>
         </div>
 
@@ -1815,10 +1909,13 @@
           <input type="checkbox" id="websiteAllowOrdering" checked>
         </div>
       </div>
-      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+      <div class="modal-footer"
+        style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
         <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
         <button type="button" class="btn-primary" onclick="moreMenuModule.saveWebsiteSettings()">Lưu cài đặt</button>
-        <button type="button" class="btn-primary" onclick="window.open(document.getElementById('storeWebsiteUrl').value, '_blank')"><i class="fa-solid fa-arrow-up-right-from-square"></i> Mở xem thử</button>
+        <button type="button" class="btn-primary"
+          onclick="window.open(document.getElementById('storeWebsiteUrl').value, '_blank')"><i
+            class="fa-solid fa-arrow-up-right-from-square"></i> Mở xem thử</button>
       </div>
     </div>
   </div>
@@ -1865,7 +1962,8 @@
           <input type="checkbox" id="loyaltyCombineVoucher" checked>
         </div>
       </div>
-      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+      <div class="modal-footer"
+        style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
         <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
         <button type="button" class="btn-primary" onclick="moreMenuModule.saveLoyaltySettings()">Lưu cài đặt</button>
       </div>
@@ -1880,8 +1978,9 @@
         <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
       </div>
       <div class="modal-body">
-        <p class="text-muted" style="font-size:13px;margin-bottom:12px">Cài đặt chuông và giọng đọc âm thanh cho thu ngân và quầy phục vụ.</p>
-        
+        <p class="text-muted" style="font-size:13px;margin-bottom:12px">Cài đặt chuông và giọng đọc âm thanh cho thu
+          ngân và quầy phục vụ.</p>
+
         <div class="setting-switch-row">
           <div class="setting-switch-label">
             <span class="setting-switch-title">Chuông báo khi có đơn hàng mới</span>
@@ -1911,15 +2010,20 @@
             <label style="margin:0">Âm lượng thông báo:</label>
             <strong id="spkVolumeLabel" class="text-primary">85%</strong>
           </div>
-          <input type="range" id="spkVolume" min="10" max="100" value="85" style="width:100%" oninput="document.getElementById('spkVolumeLabel').textContent=this.value+'%'">
+          <input type="range" id="spkVolume" min="10" max="100" value="85" style="width:100%"
+            oninput="document.getElementById('spkVolumeLabel').textContent=this.value+'%'">
         </div>
 
         <div style="display:flex;gap:8px;margin-top:14px">
-          <button type="button" class="btn-secondary btn-sm" style="flex:1" onclick="moreMenuModule.testOrderSound()"><i class="fa-solid fa-volume-high"></i> Thử chuông</button>
-          <button type="button" class="btn-secondary btn-sm" style="flex:1" onclick="moreMenuModule.testSpeechVietQR()"><i class="fa-solid fa-comment-dots"></i> Thử giọng nói AI</button>
+          <button type="button" class="btn-secondary btn-sm" style="flex:1" onclick="moreMenuModule.testOrderSound()"><i
+              class="fa-solid fa-volume-high"></i> Thử chuông</button>
+          <button type="button" class="btn-secondary btn-sm" style="flex:1"
+            onclick="moreMenuModule.testSpeechVietQR()"><i class="fa-solid fa-comment-dots"></i> Thử giọng nói
+            AI</button>
         </div>
       </div>
-      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+      <div class="modal-footer"
+        style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
         <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
         <button type="button" class="btn-primary" onclick="moreMenuModule.saveSpeakerSettings()">Lưu cài đặt</button>
       </div>
@@ -1936,7 +2040,8 @@
       <div class="modal-body scrollable" style="max-height:450px" id="storeListContainer">
         <!-- Loaded via JS -->
       </div>
-      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+      <div class="modal-footer"
+        style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
         <button type="button" class="btn-secondary btn-close-more-modal">Đóng</button>
       </div>
     </div>
@@ -1963,7 +2068,8 @@
           <input type="password" id="inputConfirmPassword" class="form-input" placeholder="Nhập lại mật khẩu mới">
         </div>
       </div>
-      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+      <div class="modal-footer"
+        style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
         <button type="button" class="btn-secondary btn-close-more-modal">Hủy</button>
         <button type="button" class="btn-primary" onclick="moreMenuModule.handleChangePassword()">Đổi mật khẩu</button>
       </div>
@@ -1975,15 +2081,18 @@
     <div class="modal-dialog" style="max-width:580px;">
       <div class="modal-header" style="border-bottom:none;padding-bottom:8px;">
         <h3><i class="fa-solid fa-id-badge text-primary"></i> Thông tin tài khoản</h3>
-        <button type="button" class="btn-close-modal btn-close-more-modal" onclick="document.getElementById('accountInfoModal').style.display='none'">&times;</button>
+        <button type="button" class="btn-close-modal btn-close-more-modal"
+          onclick="document.getElementById('accountInfoModal').style.display='none'">&times;</button>
       </div>
 
       <!-- TABS NAVIGATION -->
       <div class="account-tabs-nav">
-        <button type="button" class="account-tab-btn active" id="tabBtnAccountGeneral" onclick="headerCustomizer.switchAccountTab('general')">
+        <button type="button" class="account-tab-btn active" id="tabBtnAccountGeneral"
+          onclick="headerCustomizer.switchAccountTab('general')">
           <i class="fa-solid fa-user"></i> Thông tin tài khoản
         </button>
-        <button type="button" class="account-tab-btn" id="tabBtnAccountHeader" onclick="headerCustomizer.switchAccountTab('header')">
+        <button type="button" class="account-tab-btn" id="tabBtnAccountHeader"
+          onclick="headerCustomizer.switchAccountTab('header')">
           <i class="fa-solid fa-wand-magic-sparkles"></i> Giao diện & Banner Header
         </button>
       </div>
@@ -1996,7 +2105,8 @@
             <div class="account-avatar-wrapper">
               <img src="images/staff-avatar.jpg" alt="Avatar" id="accProfileAvatarImg" class="acc-profile-avatar-img">
               <div id="accProfileAvatarFallback" class="acc-profile-avatar-fallback" style="display:none">AD</div>
-              <button type="button" class="avatar-change-badge" title="Đổi ảnh đại diện / phông nền" onclick="headerCustomizer.switchAccountTab('header')">
+              <button type="button" class="avatar-change-badge" title="Đổi ảnh đại diện / phông nền"
+                onclick="headerCustomizer.switchAccountTab('header')">
                 <i class="fa-solid fa-camera"></i>
               </button>
             </div>
@@ -2004,18 +2114,21 @@
               <h4 style="margin:0 0 4px 0;font-size:17px;font-weight:700" id="accFullName">Quản trị viên</h4>
               <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap">
                 <span class="badge-role" id="accRole">SUPER_ADMIN</span>
-                <span class="badge-role" style="background:#e6f8f0;color:#059669"><i class="fa-solid fa-circle-check"></i> Đang hoạt động</span>
+                <span class="badge-role" style="background:#e6f8f0;color:#059669"><i
+                    class="fa-solid fa-circle-check"></i> Đang hoạt động</span>
               </div>
             </div>
           </div>
 
           <!-- Quick Banner Customize CTA -->
-          <div class="account-customize-callout" onclick="headerCustomizer.switchAccountTab('header')" style="cursor:pointer">
+          <div class="account-customize-callout" onclick="headerCustomizer.switchAccountTab('header')"
+            style="cursor:pointer">
             <div style="display:flex;align-items:center;gap:12px">
               <div class="callout-icon-box"><i class="fa-solid fa-palette"></i></div>
               <div>
                 <strong style="color:var(--text-main);font-size:13px">Tùy chỉnh giao diện Header</strong>
-                <p class="text-muted" style="margin:2px 0 0 0;font-size:12px">Đổi ảnh đại diện, câu chúc và phông nền Header</p>
+                <p class="text-muted" style="margin:2px 0 0 0;font-size:12px">Đổi ảnh đại diện, câu chúc và phông nền
+                  Header</p>
               </div>
             </div>
             <i class="fa-solid fa-chevron-right text-muted"></i>
@@ -2050,7 +2163,7 @@
       <!-- TAB 2: TÙY CHỈNH GIAO DIỆN & BANNER HEADER -->
       <div class="account-tab-pane" id="tabPaneAccountHeader">
         <div class="modal-body scrollable" style="max-height:68vh;padding:18px 22px;">
-          
+
           <!-- PHẦN 1: CÂU LỜI CHÚC -->
           <div class="customizer-section">
             <div class="customizer-section-title">
@@ -2058,7 +2171,8 @@
               <span>Câu lời chúc hiển thị trên Banner</span>
             </div>
             <div class="form-group" style="margin-bottom:8px">
-              <input type="text" id="inputCustomWishes" class="form-input" placeholder="Nhập câu lời chúc..." maxlength="80">
+              <input type="text" id="inputCustomWishes" class="form-input" placeholder="Nhập câu lời chúc..."
+                maxlength="80">
             </div>
             <span class="text-muted" style="font-size:12px">Gợi ý câu chúc nhanh:</span>
             <div class="wishes-suggestions-grid" id="wishesSuggestionsContainer">
@@ -2077,7 +2191,8 @@
                 <!-- Render preview qua JS -->
               </div>
               <div style="flex:1">
-                <label class="btn-secondary btn-sm" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+                <label class="btn-secondary btn-sm"
+                  style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
                   <i class="fa-solid fa-upload"></i> Tải ảnh từ thiết bị
                   <input type="file" id="inputUploadAvatar" accept="image/*" style="display:none">
                 </label>
@@ -2111,11 +2226,15 @@
           </div>
 
         </div>
-        <div class="modal-footer" style="display:flex;gap:8px;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border-color)">
-          <button type="button" class="btn-secondary" onclick="headerCustomizer.resetDefaults()"><i class="fa-solid fa-rotate-left"></i> Mặc định</button>
+        <div class="modal-footer"
+          style="display:flex;gap:8px;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border-color)">
+          <button type="button" class="btn-secondary" onclick="headerCustomizer.resetDefaults()"><i
+              class="fa-solid fa-rotate-left"></i> Mặc định</button>
           <div style="display:flex;gap:8px">
-            <button type="button" class="btn-secondary" onclick="document.getElementById('accountInfoModal').style.display='none'">Hủy</button>
-            <button type="button" class="btn-primary" onclick="headerCustomizer.save()"><i class="fa-solid fa-check"></i> Lưu thay đổi</button>
+            <button type="button" class="btn-secondary"
+              onclick="document.getElementById('accountInfoModal').style.display='none'">Hủy</button>
+            <button type="button" class="btn-primary" onclick="headerCustomizer.save()"><i
+                class="fa-solid fa-check"></i> Lưu thay đổi</button>
           </div>
         </div>
       </div>
@@ -2131,7 +2250,8 @@
         <button type="button" class="btn-close-modal btn-close-more-modal">&times;</button>
       </div>
       <div class="modal-body">
-        <div style="padding:14px;background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius-md);margin-bottom:14px">
+        <div
+          style="padding:14px;background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius-md);margin-bottom:14px">
           <strong class="text-danger"><i class="fa-solid fa-circle-exclamation"></i> CẢNH BÁO QUAN TRỌNG:</strong>
           <p style="font-size:13px;color:#991b1b;margin:6px 0 0 0">
             Yêu cầu được lưu để quản trị viên xem xét. Tài khoản vẫn hoạt động cho đến khi yêu cầu được xử lý.
@@ -2140,12 +2260,15 @@
         <div class="form-group">
           <label>Lý do yêu cầu xóa tài khoản (tùy chọn):</label>
           <p id="deleteAccountRequestStatus" class="text-muted"></p>
-          <textarea id="deleteAccountReason" class="form-input" rows="3" placeholder="Ví dụ: Nghỉ việc, chuyển vị trí công tác..."></textarea>
+          <textarea id="deleteAccountReason" class="form-input" rows="3"
+            placeholder="Ví dụ: Nghỉ việc, chuyển vị trí công tác..."></textarea>
         </div>
       </div>
-      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
+      <div class="modal-footer"
+        style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border-color)">
         <button type="button" class="btn-secondary btn-close-more-modal">Hủy bỏ</button>
-        <button type="button" class="btn-primary" style="background:#ef4444;border-color:#ef4444" onclick="moreMenuModule.handleConfirmDeleteAccount()">Xác nhận gửi yêu cầu</button>
+        <button type="button" class="btn-primary" style="background:#ef4444;border-color:#ef4444"
+          onclick="moreMenuModule.handleConfirmDeleteAccount()">Xác nhận gửi yêu cầu</button>
       </div>
     </div>
   </div>
@@ -2175,4 +2298,3 @@
 </body>
 
 </html>
-

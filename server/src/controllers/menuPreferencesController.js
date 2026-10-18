@@ -2,7 +2,7 @@ const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 
 const fields = {
-  printer: { paperSize: ['K58', 'K80', 'K85', 'A4'], connectionType: ['browser', 'usb', 'lan', 'bluetooth', 'network'], ipAddress: 'string', autoPrintOnPayment: 'boolean', autoCutPaper: 'boolean', printKitchenSeparate: 'boolean' },
+  printer: { paperSize: ['K58', 'K80', 'K85', 'A4'], connectionType: ['browser', 'usb', 'lan', 'bluetooth', 'network'], ipAddress: 'string', autoPrintOnPayment: 'boolean', autoPrintOrderSlipOnTransfer: 'boolean', autoCutPaper: 'boolean', printKitchenSeparate: 'boolean' },
   workflow: { enableDineIn: 'boolean', enableTakeaway: 'boolean', enableDelivery: 'boolean', enableKds: 'boolean' },
   shipping: { ahamove: 'boolean', grab: 'boolean', be: 'boolean', ghtk: 'boolean', own: 'boolean', fee: 'nonnegative' },
   number: { currencySymbol: 'string', symbolPosition: ['before', 'after'], thousandSeparator: ['.', ','], rounding: ['none', '100', '1000'] },
@@ -16,6 +16,10 @@ const fields = {
 };
 
 function validate(section, data) {
+  // Older clients do not send the new, opt-in order slip setting.
+  if (section === 'printer' && data && typeof data === 'object' && !Array.isArray(data) && !Object.hasOwn(data, 'autoPrintOrderSlipOnTransfer')) {
+    data = { ...data, autoPrintOrderSlipOnTransfer: false };
+  }
   const spec = fields[section];
   if (!spec || !data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Cấu hình không hợp lệ');
   if (Object.keys(data).length !== Object.keys(spec).length) throw new Error('Thiếu hoặc thừa trường cấu hình');

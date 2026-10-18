@@ -8,6 +8,7 @@
 - Menu, giỏ hàng, bàn, đơn hàng, KDS, thanh toán, ca làm việc và hóa đơn hoạt động theo quyền và cấu hình của website.
 - Mục quản trị bị ẩn và các điều hướng đến `/admin.html` bị chuyển về POS.
 - Kết nối `browser` mở hộp thoại in Android. Kết nối `bluetooth` hoặc `usb` in ESC/POS trực tiếp, xem [hướng dẫn K58](../docs/printing-k58.md). Liên kết HTTPS ngoài hệ thống mở trong trình duyệt thiết bị.
+- Từ bản 1.3.4, hóa đơn tạm tính có QR thanh toán được in cả mã QR qua Bluetooth/USB. Cần cấu hình ngân hàng, số tài khoản và chủ tài khoản trong cài đặt cửa hàng. Ứng dụng tải ảnh QR trước khi gửi dữ liệu in; tải lỗi sẽ báo để thử lại.
 - Cần Internet và website public hoạt động; app không lưu menu hoặc đơn hàng để dùng offline.
 
 ## Mở và tạo APK

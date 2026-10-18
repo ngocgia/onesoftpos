@@ -42,6 +42,7 @@ public final class MainActivity extends Activity {
     private static final String APP_BRIDGE_SCRIPT = "(function(){"
             + "window.onesoftAudio={beep:function(v){OnesoftAudioBridge.beep(v)},speak:function(t,v){OnesoftAudioBridge.speak(String(t),v)}};"
             + "window.onesoftNativePrint=true;"
+            + "window.onesoftNativeReceiptQr=true;"
             + "window.print=function(){var paper=(window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_paper_size)||'80mm';"
             + "var connection=(window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_connection_type)||'browser';"
             + "window.location.href='tgpos://print?paper='+encodeURIComponent(paper)+'&connection='+encodeURIComponent(connection)}"
@@ -199,11 +200,14 @@ public final class MainActivity extends Activity {
                             return true;
                         }
                         String sourceUrl = view.getUrl();
-                        view.evaluateJavascript("window.invoiceModule && window.invoiceModule.receiptText || ''", value -> {
+                        view.evaluateJavascript("({text:window.invoiceModule && window.invoiceModule.receiptText || '',qrUrl:window.invoiceModule && window.invoiceModule.receiptQrUrl || '',footer:window.invoiceModule && window.invoiceModule.receiptFooterText || ''})", value -> {
                             if (!sourceUrl.equals(view.getUrl())) return;
                             try {
                                 Object receipt = new org.json.JSONTokener(value).nextValue();
-                                thermalPrinter.print(receipt instanceof String ? (String) receipt : "", paper, connection);
+                                if (receipt instanceof org.json.JSONObject) {
+                                    org.json.JSONObject data = (org.json.JSONObject) receipt;
+                                    thermalPrinter.print(data.optString("text"), paper, connection, data.optString("qrUrl"), data.optString("footer"));
+                                }
                             } catch (Exception error) { Toast.makeText(MainActivity.this, "Không đọc được dữ liệu hóa đơn", Toast.LENGTH_LONG).show(); }
                         });
                     } else printReceipt(paper);

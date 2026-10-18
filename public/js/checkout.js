@@ -263,7 +263,7 @@ window.checkoutModule = {
         window.api.showToast('Đã thanh toán. Chưa tải lại được danh sách; vui lòng làm mới màn hình.', 'info');
       }
       if (window.invoiceModule) {
-        await window.invoiceModule.showReceipt(order, payRes.payment, payRes.change, { autoPrint: true });
+        await window.invoiceModule.showReceipt(order, payRes.payment, payRes.change, { autoPrint: true, forcePrint: true });
       }
     } catch (err) {
       window.api.showToast('Lỗi thanh toán: ' + err.message, 'error');

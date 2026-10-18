@@ -188,6 +188,7 @@ window.posModule = {
 
     // Send to kitchen button (Dine-in)
     const btnSendKitchen = document.getElementById('btnSendKitchen');
+    document.getElementById('btnPrintOrderSlip')?.addEventListener('click', () => window.invoiceModule.printCartOrderSlip());
     if (btnSendKitchen) {
       btnSendKitchen.addEventListener('click', () => this.sendOrderToKitchen());
     }
@@ -583,6 +584,7 @@ window.posModule = {
     window.appState.addToCart({
       product_id: this.activeModalProduct.id,
       product_name: this.activeModalProduct.name,
+      unit: this.activeModalProduct.unit || 'Món',
       variant_id: variantId,
       variant_name: variantName,
       unit_price: unitPrice,
@@ -704,6 +706,7 @@ window.posModule = {
   },
 
   syncOrderActionButtons(itemCount = window.appState.cart.items.length) {
+    const btnPrintOrderSlip = document.getElementById('btnPrintOrderSlip');
     const btnSendKitchen = document.getElementById('btnSendKitchen');
     const btnPrintDraft = document.getElementById('btnPrintDraftReceipt');
     const btnProceedCheckout = document.getElementById('btnProceedCheckout');
@@ -717,6 +720,10 @@ window.posModule = {
       : window.appState.roleFeatures.POS !== false);
     const isTakeaway = window.appState.cart.orderType === 'TAKEAWAY';
     const canPay = (role === 'SUPER_ADMIN' || window.appState.roleFeatures.PAYMENT !== false) && isTakeaway;
+    if (btnPrintOrderSlip) {
+      btnPrintOrderSlip.style.display = canCreate && !isTakeaway ? 'inline-flex' : 'none';
+      btnPrintOrderSlip.disabled = !(itemCount || window.appState.cart.sentItems?.length) || !!this.sendingOrder;
+    }
 
     if (btnProceedCheckout) {
       btnProceedCheckout.style.display = canPay ? 'flex' : 'none';
@@ -749,6 +756,7 @@ window.posModule = {
     }
 
     this.sendingOrder = true;
+    const storeId = window.api.getCurrentStoreId();
     this.syncOrderActionButtons();
     try {
       const selectedTable = window.appState.cart.selectedTable;
@@ -767,6 +775,7 @@ window.posModule = {
       };
 
       const res = await window.api.post('/orders', payload);
+      const orderSlip = { ...res.order, table_name: selectedTable?.name || selectedTable?.code, order_type: payload.order_type, note: payload.note };
       if (window.appState.cart.orderType === 'DINE_IN' && res.order?.id) {
         window.appState.cart.existingOrderId = res.order.id;
         window.appState.cart.sentItems = [...(window.appState.cart.sentItems || []), ...payload.items];
@@ -787,6 +796,7 @@ window.posModule = {
 
       // Refresh table view
       if (window.tablesModule) window.tablesModule.loadAreasAndTables();
+      if (res.order?.id) await window.invoiceModule?.showOrderSlip(orderSlip, payload.items, { auto: true, storeId });
     } catch (err) {
       window.api.showToast('Lỗi gửi bếp: ' + err.message, 'error');
     } finally {

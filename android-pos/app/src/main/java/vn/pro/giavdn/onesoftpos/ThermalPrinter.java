@@ -14,6 +14,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.hardware.usb.*;
@@ -24,6 +25,9 @@ import android.text.TextPaint;
 import android.widget.Toast;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.InputStream;
+import java.net.URL;
+import javax.net.ssl.HttpsURLConnection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -38,6 +42,8 @@ final class ThermalPrinter {
     private final String usbAction;
     private boolean busy;
     private String text;
+    private String qrUrl;
+    private String footer;
     private int width;
     private UsbDevice waitingDevice;
     private boolean receiverRegistered;
@@ -49,11 +55,13 @@ final class ThermalPrinter {
         usbAction = activity.getPackageName() + ".USB_PRINT_PERMISSION";
     }
 
-    void print(String receipt, String paper, String connection) {
+    void print(String receipt, String paper, String connection, String receiptQrUrl, String receiptFooter) {
         if (closed) return;
         if (busy) { message("Đang xử lý một phiếu in. Vui lòng chờ."); return; }
         if (receipt == null || receipt.trim().isEmpty()) { message("Chưa có dữ liệu hóa đơn"); return; }
         text = receipt;
+        qrUrl = receiptQrUrl;
+        footer = receiptFooter;
         // K80/K85 use a conservative 72mm raster until the exact printhead width is known.
         width = "58mm".equals(paper) ? 384 : 576;
         busy = true;
@@ -208,13 +216,55 @@ final class ThermalPrinter {
     }
 
     private void sendRaster(OutputStream output) throws IOException {
+        Bitmap qr = null;
+        try {
+            // Load before sending any paper, so a failed QR download cannot print a partial bill.
+            if (qrUrl != null && !qrUrl.isEmpty()) {
+                URL url = new URL(qrUrl);
+                if (!"https".equals(url.getProtocol()) || !"img.vietqr.io".equals(url.getHost()) || (url.getPort() != -1 && url.getPort() != 443)) throw new IOException("Địa chỉ QR không hợp lệ");
+                HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(15000);
+                connection.setInstanceFollowRedirects(false);
+                try {
+                    if (connection.getResponseCode() != 200) throw new IOException("Không tải được QR thanh toán");
+                    try (InputStream input = connection.getInputStream()) { qr = BitmapFactory.decodeStream(input); }
+                    if (qr == null || qr.getWidth() < 100 || qr.getHeight() < 100) throw new IOException("Ảnh QR không hợp lệ");
+                } finally { connection.disconnect(); }
+            }
+            output.write(new byte[]{27, 64, 27, 97, 0});
+            sendText(output, text);
+            if (qr != null) {
+                int size = 256; // 32mm at 203dpi, including the QR quiet zone.
+                Bitmap scaled = Bitmap.createScaledBitmap(qr, size, size, false);
+                Bitmap strip = Bitmap.createBitmap(width, 64, Bitmap.Config.ARGB_8888);
+                try {
+                    Canvas canvas = new Canvas(strip);
+                    int[] pixels = new int[width * 64];
+                    for (int top = 0; top < size; top += 64) {
+                        int rows = Math.min(64, size - top);
+                        canvas.drawColor(Color.WHITE);
+                        canvas.drawBitmap(scaled, (width - size) / 2f, -top, null);
+                        strip.getPixels(pixels, 0, width, 0, 0, width, rows);
+                        output.write(EscPosRaster.encode(pixels, width, rows));
+                        output.flush();
+                        try { Thread.sleep(180); } catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new IOException("Đã dừng in", error); }
+                    }
+                } finally { strip.recycle(); if (scaled != qr) scaled.recycle(); }
+                if (footer != null && !footer.isEmpty()) sendText(output, footer);
+            }
+            output.write(new byte[]{27, 100, 4});
+            output.flush();
+        } finally { if (qr != null) qr.recycle(); }
+    }
+
+    private void sendText(OutputStream output, String text) throws IOException {
         TextPaint paint = new TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
         paint.setColor(Color.BLACK);
         paint.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL));
         paint.setTextSize(width == 384 ? 22 : 26);
         StaticLayout layout = StaticLayout.Builder.obtain(text, 0, text.length(), paint, width - 16)
                 .setAlignment(Layout.Alignment.ALIGN_NORMAL).setIncludePad(true).setLineSpacing(3, 1).build();
-        output.write(new byte[]{27, 64, 27, 97, 0});
         // Render in strips so long bills do not allocate a full-height bitmap or overflow printer buffers.
         final int stripHeight = 64;
         Bitmap strip = Bitmap.createBitmap(width, stripHeight, Bitmap.Config.ARGB_8888);
@@ -232,8 +282,6 @@ final class ThermalPrinter {
                 // 64 dots = 8mm at 203dpi. Allow slower 50mm/s printers to drain their buffer.
                 try { Thread.sleep(180); } catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new IOException("Đã dừng in", error); }
             }
-            output.write(new byte[]{27, 100, 4});
-            output.flush();
         } finally { strip.recycle(); }
     }
 

@@ -1800,7 +1800,8 @@ button:active {
   white-space: nowrap;
 }
 
-.btn-print-draft {
+.btn-print-draft,
+.btn-print-order-slip {
   flex: 1;
   min-width: 132px;
   height: 46px;
@@ -1818,6 +1819,7 @@ button:active {
 }
 
 .btn-print-draft:disabled,
+.btn-print-order-slip:disabled,
 .btn-send-kitchen:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -2413,16 +2415,26 @@ textarea.form-input {
 }
 
 .receipt-logo { font-size: 28px; }
-.receipt-title { font-size: 14px; font-weight: bold; margin: 4px 0; }
+.receipt-title { font-size: 1.5em; font-weight: bold; margin: 16px 0 12px; }
+.receipt-header-center h2 { font-size: 1.7em; }
+.receipt-meta { border-top: 1px dashed #888; padding-top: 8px; margin-top: 8px; }
+.receipt-meta p { margin: 2px 0; }
+.receipt-meta .receipt-row { gap: 8px; font-size: .9em; }
+.receipt-meta .receipt-row > :last-child,
+.receipt-totals-box .receipt-row > :last-child { flex-shrink: 0; white-space: nowrap; }
+.receipt-payment-qr { text-align: center; margin: 6px auto; break-inside: avoid; }
+.receipt-payment-qr img { display: block; width: 32mm; max-width: 100%; height: auto; margin: 4px auto; image-rendering: pixelated; }
+.receipt-payment-qr p { font-size: .9em; margin: 2px 0; }
 .receipt-divider { text-align: center; overflow: hidden; margin: 4px 0; }
 .receipt-items-table { width: 100%; border-collapse: collapse; margin: 6px 0; }
-.receipt-items-table th, .receipt-items-table td { padding: 3px 0; }
+.receipt-items-table th, .receipt-items-table td { padding: 4px 2px; border: 1px solid #aaa; vertical-align: top; }
 .text-left { text-align: left; }
 .text-center { text-align: center; }
 .text-right { text-align: right; }
 .receipt-totals-box { margin: 6px 0; }
 .receipt-row { display: flex; justify-content: space-between; padding: 2px 0; }
-.receipt-row.grand-total { font-weight: bold; font-size: 13px; }
+.receipt-row.grand-total { font-weight: bold; font-size: 1.4em; }
+#receiptTotalLabel { font-size: .85em; }
 
 /* ==========================================================================
    Table Action Modal & Action Tiles (Rule 21, 22, 23)
@@ -3576,6 +3588,7 @@ textarea.form-input {
 
   .btn-checkout,
   .btn-send-kitchen,
+  .btn-print-order-slip,
   .pay-method-btn {
     min-height: 48px;
   }

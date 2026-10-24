@@ -48,6 +48,16 @@ Dependencies chỉ được cài lại nếu lockfile đổi hoặc thư viện 
 
 Sau khi chép code, script cập nhật `tmp/restart.txt` để Passenger nạp lại ứng dụng khi có request tiếp theo, không chạy `npm start`/`npm dev` trong Node.js Selector. Cách này không giải phóng một khóa Node.js Selector đã tồn tại. Log mỗi lần triển khai nằm trong GitHub Actions; SHA commit cuối được ghi tại `tmp/deployed-commit.txt` trên hosting.
 
+## Nếu Upload and deploy báo timeout / scp: Connection closed
+
+Lỗi `Timeout, server ... not responding`, `scp: Connection closed` và mã 255 cho biết kết nối SSH/SFTP bị ngắt khi tải archive. Riêng log này chưa xác định được máy chủ quá tải, đường truyền chập chờn hay firewall giới hạn kết nối. Nếu lỗi ở `scp`, bước chép code/restart Passenger phía sau chưa chạy; website có thể vẫn phục vụ bản trước.
+
+Workflow gửi keepalive mỗi 15 giây, thử tải tối đa 3 lần và kiểm tra SHA-256 trước khi chạy deploy. Archive đang tải có đuôi `.upload`; chỉ đổi sang `.tar.gz` sau khi kiểm tra thành công. Chỉ tải tệp được thử lại, không tự chạy lại script sửa ứng dụng đang hoạt động. Tệp `.upload` của lượt lỗi có thể còn trong `$HOME/.onesoft-deploy`; có thể xóa riêng tệp đó sau khi xác nhận không có deployment đang chạy.
+
+Nếu vẫn lỗi sau 3 lần, kiểm tra SSH/SFTP và dung lượng/quota tài khoản trên hosting; đề nghị nhà cung cấp xem log SSH/firewall tại thời điểm lỗi, gồm việc chặn IP runner GitHub Actions. Nếu nhà cung cấp xác nhận máy chủ không hỗ trợ SFTP, mới cân nhắc `scp -O` để dùng giao thức SCP cũ. Không tắt kiểm tra host key để xử lý lỗi timeout.
+
+Sau khi cập nhật workflow lên `master`, chọn **Run workflow** để chạy lại. **Re-run jobs** của lượt cũ dùng workflow ở commit cũ nên không có phần sửa này.
+
 ## Bắt đầu sử dụng
 
 1. Thêm public key vào hosting và tạo đủ năm GitHub Secrets.

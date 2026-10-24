@@ -64,9 +64,26 @@ jobs:
       - name: Upload and deploy
         run: |
           set -euo pipefail
-          SSH_ARGS=(-i "$HOME/.ssh/deploy_key" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 -o ServerAliveInterval=30)
+          SSH_ARGS=(-i "$HOME/.ssh/deploy_key" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 -o ConnectionAttempts=3 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -o TCPKeepAlive=yes)
           ssh "${SSH_ARGS[@]}" -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" 'mkdir -p "$HOME/.onesoft-deploy" && chmod 700 "$HOME/.onesoft-deploy"'
-          scp "${SSH_ARGS[@]}" -P "$SSH_PORT" "$RUNNER_TEMP/application.tar.gz" "$SSH_USER@$SSH_HOST:.onesoft-deploy/$GITHUB_SHA.tar.gz"
+          # Retry only the upload. Never rerun a potentially partially applied deployment.
+          uploaded=false
+          for attempt in 1 2 3; do
+            echo "Uploading application archive (attempt $attempt/3)..."
+            if scp "${SSH_ARGS[@]}" -P "$SSH_PORT" "$RUNNER_TEMP/application.tar.gz" "$SSH_USER@$SSH_HOST:.onesoft-deploy/$GITHUB_SHA.tar.gz.upload"; then
+              uploaded=true
+              break
+            fi
+            if (( attempt < 3 )); then sleep $((attempt * 5)); fi
+          done
+          if [[ "$uploaded" != true ]]; then
+            echo 'Archive upload failed after 3 attempts. Live application code was not changed by this run. Check hosting SSH/SFTP availability, firewall and account limits.' >&2
+            exit 1
+          fi
+          CHECKSUM=$(sha256sum "$RUNNER_TEMP/application.tar.gz" | cut -d ' ' -f 1)
+          # Publish only a complete, verified archive; a truncated upload cannot reach deploy.
+          ssh "${SSH_ARGS[@]}" -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "cd \"\$HOME/.onesoft-deploy\" && printf '%s  %s\\n' '$CHECKSUM' '$GITHUB_SHA.tar.gz.upload' | sha256sum --check --status && mv -- '$GITHUB_SHA.tar.gz.upload' '$GITHUB_SHA.tar.gz'"
           printf -v REMOTE_ARGS '%q ' "$DEPLOY_PATH" "$NODE_ACTIVATE" "$GITHUB_SHA"
           ssh "${SSH_ARGS[@]}" -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "bash -s -- $REMOTE_ARGS" < scripts/deploy-passenger.sh
       - name: Check website

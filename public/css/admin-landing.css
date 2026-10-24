@@ -1,0 +1,9 @@
+.landing-editor-group { padding: 16px; margin-bottom: 12px; }
+.landing-editor-group summary { cursor: pointer; font-weight: 700; }
+.landing-editor-field { display: grid; gap: 6px; margin-top: 16px; }
+.landing-editor-field span { font-size: 13px; overflow-wrap: anywhere; }
+.landing-editor-field input, .landing-editor-field textarea { width: 100%; box-sizing: border-box; font: inherit; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; }
+.landing-editor-field[hidden], .landing-editor-group[hidden], #landingEditor[hidden] { display: none; }
+#landingEditorStatus { margin-bottom: 16px; }
+#landingLeads { display: grid; gap: 12px; margin-top: 16px; }
+#landingLeads article { padding: 16px; overflow-wrap: anywhere; }

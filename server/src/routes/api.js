@@ -13,6 +13,7 @@ const kdsController = require('../controllers/kdsController');
 const shiftController = require('../controllers/shiftController');
 const reportController = require('../controllers/reportController');
 const adminController = require('../controllers/adminController');
+const landing = require('../controllers/landingController');
 const storeStaffController = require('../controllers/storeStaffController');
 const inventoryController = require('../controllers/inventoryController');
 const menuPreferences = require('../controllers/menuPreferencesController');
@@ -130,6 +131,11 @@ router.get('/inventory/transactions', authenticateToken, requireStoreContext(), 
 router.post('/inventory/transactions', authenticateToken, requireStoreContext(), requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), audit('TRANSACTION', 'INVENTORY'), inventoryController.createTransaction);
 
 // 10. Dedicated Super Admin routes
+router.get('/landing', landing.get);
+router.post('/landing/contact', landing.rateLimit, landing.contact);
+router.get('/admin/landing', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), landing.get);
+router.put('/admin/landing', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), audit('UPDATE_SETTINGS', 'LANDING'), landing.put);
+router.get('/admin/landing/leads', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), landing.leads);
 router.get('/admin/dashboard', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), adminController.dashboard);
 router.get('/admin/users', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), adminController.getUsers);
 router.post('/admin/users', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), audit('CREATE', 'USER'), adminController.createUser);

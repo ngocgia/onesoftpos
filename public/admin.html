@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="css/admin-page.css?v=20260919-v3">
   <link rel="stylesheet" href="css/admin-responsive.css?v=20261015-sidebar">
   <link rel="stylesheet" href="css/admin-workflow.css?v=20260919-v3">
+  <link rel="stylesheet" href="css/admin-landing.css?v=20261024">
 </head>
 <body>
   <aside class="sidebar" id="adminSidebar" aria-label="Menu quản trị">
@@ -38,6 +39,7 @@
       <button data-page="inventory"><i class="fa-solid fa-boxes-stacked"></i>Quản lý kho</button>
       <button data-page="audit"><i class="fa-solid fa-clock-rotate-left"></i>Nhật ký hệ thống</button>
       <button data-page="apks"><i class="fa-brands fa-android"></i>Phiên bản APK</button>
+      <button data-page="landing"><i class="fa-solid fa-globe"></i>Trang giới thiệu</button>
     </nav>
     <div class="sidebar-footer">
       <a href="/?mode=pos" class="secondary-link"><i class="fa-solid fa-cash-register"></i>Vào trang bán hàng</a>
@@ -61,6 +63,24 @@
         </div>
       </div>
     </header>
+
+    <section class="page" id="page-landing">
+      <div class="toolbar">
+        <input type="search" id="landingSearch" placeholder="Tìm nội dung cần sửa..." aria-label="Tìm nội dung trang giới thiệu">
+        <a class="btn ghost" href="/" target="_blank" rel="noopener">Xem trang giới thiệu</a>
+        <button class="btn ghost" type="button" onclick="landingAdmin.load()">Tải lại</button>
+      </div>
+      <p id="landingEditorStatus" role="status"></p>
+      <form id="landingEditor" hidden>
+        <div id="landingEditorFields"></div>
+        <button class="btn primary" id="landingSave" type="submit">Lưu nội dung trang giới thiệu</button>
+      </form>
+      <div class="panel-head" style="margin-top:32px">
+        <h2>Yêu cầu tư vấn (100 yêu cầu mới nhất)</h2>
+        <button class="btn ghost" type="button" onclick="landingAdmin.loadLeads()">Làm mới</button>
+      </div>
+      <div id="landingLeads"></div>
+    </section>
 
     <section class="page active" id="page-dashboard">
       <div class="toolbar">
@@ -398,6 +418,7 @@
   <div id="toast"></div>
 
   <script src="js/api.js?v=20260923-admin-loop-fix"></script>
-  <script src="js/admin-page.js?v=20261018-apks"></script>
+  <script src="js/admin-landing.js?v=20261024"></script>
+  <script src="js/admin-page.js?v=20261024-landing"></script>
 </body>
 </html>

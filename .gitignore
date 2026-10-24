@@ -20,3 +20,6 @@ lerna-debug.log*
 
 # Uploaded APK binaries and release metadata (persist separately on the server)
 server/data/apks/
+
+# Generated deployment archives and local visual checks
+/deploy-packages/

@@ -1,0 +1,1990 @@
+[
+  {
+    "key": "content_001",
+    "group": "Thông tin chung",
+    "type": "text",
+    "label": "OneSoft (onesoft.one) - Phát Triển Công Nghệ & Phần Mềm Quản Lý Bán Hàng OneSoft POS",
+    "value": "OneSoft (onesoft.one) - Phát Triển Công Nghệ & Phần Mềm Quản Lý Bán Hàng OneSoft POS"
+  },
+  {
+    "key": "content_002",
+    "group": "Thông tin chung",
+    "type": "text",
+    "label": "Chính thức ra mắt",
+    "value": "Chính thức ra mắt"
+  },
+  {
+    "key": "content_003",
+    "group": "Thông tin chung",
+    "type": "text",
+    "label": "OneSoft POS",
+    "value": "OneSoft POS"
+  },
+  {
+    "key": "content_004",
+    "group": "Thông tin chung",
+    "type": "text",
+    "label": "– Giải pháp quản lý bán hàng siêu tốc cho cửa hàng nhỏ lẻ tại",
+    "value": "– Giải pháp quản lý bán hàng siêu tốc cho cửa hàng nhỏ lẻ tại"
+  },
+  {
+    "key": "content_005",
+    "group": "Thông tin chung",
+    "type": "text",
+    "label": "onesoft.one",
+    "value": "onesoft.one"
+  },
+  {
+    "key": "content_006",
+    "group": "Thông tin chung",
+    "type": "text",
+    "label": "Dùng thử POS ngay",
+    "value": "Dùng thử POS ngay"
+  },
+  {
+    "key": "content_007",
+    "group": "navbar",
+    "type": "text",
+    "label": "1S",
+    "value": "1S"
+  },
+  {
+    "key": "content_008",
+    "group": "navbar",
+    "type": "text",
+    "label": "One",
+    "value": "One"
+  },
+  {
+    "key": "content_009",
+    "group": "navbar",
+    "type": "text",
+    "label": "Soft",
+    "value": "Soft"
+  },
+  {
+    "key": "content_010",
+    "group": "navbar",
+    "type": "text",
+    "label": "onesoft.one",
+    "value": "onesoft.one"
+  },
+  {
+    "key": "content_011",
+    "group": "navbar",
+    "type": "text",
+    "label": "Technology & POS Solutions",
+    "value": "Technology & POS Solutions"
+  },
+  {
+    "key": "content_012",
+    "group": "navbar",
+    "type": "text",
+    "label": "Giới thiệu",
+    "value": "Giới thiệu"
+  },
+  {
+    "key": "content_013",
+    "group": "navbar",
+    "type": "text",
+    "label": "Sản phẩm",
+    "value": "Sản phẩm"
+  },
+  {
+    "key": "content_014",
+    "group": "navbar",
+    "type": "text",
+    "label": "Tính năng",
+    "value": "Tính năng"
+  },
+  {
+    "key": "content_015",
+    "group": "navbar",
+    "type": "text",
+    "label": "Ngành hàng phù hợp",
+    "value": "Ngành hàng phù hợp"
+  },
+  {
+    "key": "content_016",
+    "group": "navbar",
+    "type": "text",
+    "label": "Bảng giá",
+    "value": "Bảng giá"
+  },
+  {
+    "key": "content_017",
+    "group": "navbar",
+    "type": "text",
+    "label": "Liên hệ",
+    "value": "Liên hệ"
+  },
+  {
+    "key": "content_018",
+    "group": "navbar",
+    "type": "text",
+    "label": "Đăng nhập POS",
+    "value": "Đăng nhập POS"
+  },
+  {
+    "key": "content_019",
+    "group": "navbar",
+    "type": "text",
+    "label": "Dùng thử miễn phí",
+    "value": "Dùng thử miễn phí"
+  },
+  {
+    "key": "content_020",
+    "group": "navbar",
+    "type": "text",
+    "label": "Đăng nhập POS",
+    "value": "Đăng nhập POS"
+  },
+  {
+    "key": "content_021",
+    "group": "navbar",
+    "type": "text",
+    "label": "Giới thiệu",
+    "value": "Giới thiệu"
+  },
+  {
+    "key": "content_022",
+    "group": "navbar",
+    "type": "text",
+    "label": "Trải nghiệm",
+    "value": "Trải nghiệm"
+  },
+  {
+    "key": "content_023",
+    "group": "navbar",
+    "type": "text",
+    "label": "Tính năng",
+    "value": "Tính năng"
+  },
+  {
+    "key": "content_024",
+    "group": "navbar",
+    "type": "text",
+    "label": "Ngành hàng phù hợp",
+    "value": "Ngành hàng phù hợp"
+  },
+  {
+    "key": "content_025",
+    "group": "navbar",
+    "type": "text",
+    "label": "Bảng giá",
+    "value": "Bảng giá"
+  },
+  {
+    "key": "content_026",
+    "group": "navbar",
+    "type": "text",
+    "label": "Liên hệ",
+    "value": "Liên hệ"
+  },
+  {
+    "key": "content_027",
+    "group": "navbar",
+    "type": "text",
+    "label": "Dùng thử OneSoft POS miễn phí",
+    "value": "Dùng thử OneSoft POS miễn phí"
+  },
+  {
+    "key": "content_028",
+    "group": "hero",
+    "type": "text",
+    "label": "OneSoft Technology",
+    "value": "OneSoft Technology"
+  },
+  {
+    "key": "content_029",
+    "group": "hero",
+    "type": "text",
+    "label": "Đổi mới công nghệ vì cửa hàng Việt •",
+    "value": "Đổi mới công nghệ vì cửa hàng Việt •"
+  },
+  {
+    "key": "content_030",
+    "group": "hero",
+    "type": "text",
+    "label": "onesoft.one",
+    "value": "onesoft.one"
+  },
+  {
+    "key": "content_031",
+    "group": "hero",
+    "type": "text",
+    "label": "Phát triển công nghệ thực chiến & Giải pháp",
+    "value": "Phát triển công nghệ thực chiến & Giải pháp"
+  },
+  {
+    "key": "content_032",
+    "group": "hero",
+    "type": "text",
+    "label": "OneSoft POS",
+    "value": "OneSoft POS"
+  },
+  {
+    "key": "content_033",
+    "group": "hero",
+    "type": "text",
+    "label": "cho cửa hàng nhỏ lẻ",
+    "value": "cho cửa hàng nhỏ lẻ"
+  },
+  {
+    "key": "content_034",
+    "group": "hero",
+    "type": "text",
+    "label": "OneSoft",
+    "value": "OneSoft"
+  },
+  {
+    "key": "content_035",
+    "group": "hero",
+    "type": "text",
+    "label": "onesoft.one",
+    "value": "onesoft.one"
+  },
+  {
+    "key": "content_036",
+    "group": "hero",
+    "type": "text",
+    "label": ") kiến tạo các sản phẩm phần mềm hiện đại, dễ sử dụng. Khởi đầu với",
+    "value": ") kiến tạo các sản phẩm phần mềm hiện đại, dễ sử dụng. Khởi đầu với"
+  },
+  {
+    "key": "content_037",
+    "group": "hero",
+    "type": "text",
+    "label": "OneSoft POS",
+    "value": "OneSoft POS"
+  },
+  {
+    "key": "content_038",
+    "group": "hero",
+    "type": "text",
+    "label": "– phần mềm tính tiền, quản lý tồn kho, công nợ và thanh toán QR siêu tốc chỉ trong 3 giây ",
+    "value": "– phần mềm tính tiền, quản lý tồn kho, công nợ và thanh toán QR siêu tốc chỉ trong 3 giây dành cho tạp hóa, quán cafe, quán ăn và shop bán lẻ."
+  },
+  {
+    "key": "content_039",
+    "group": "hero",
+    "type": "text",
+    "label": "Dùng thử OneSoft POS miễn phí",
+    "value": "Dùng thử OneSoft POS miễn phí"
+  },
+  {
+    "key": "content_040",
+    "group": "hero",
+    "type": "text",
+    "label": "Trải nghiệm POS trực tiếp bên dưới",
+    "value": "Trải nghiệm POS trực tiếp bên dưới"
+  },
+  {
+    "key": "content_041",
+    "group": "hero",
+    "type": "text",
+    "label": "Bán hàng siêu tốc 3 giây/đơn",
+    "value": "Bán hàng siêu tốc 3 giây/đơn"
+  },
+  {
+    "key": "content_042",
+    "group": "hero",
+    "type": "text",
+    "label": "Dùng ngay trên Điện thoại, Tablet, Laptop",
+    "value": "Dùng ngay trên Điện thoại, Tablet, Laptop"
+  },
+  {
+    "key": "content_043",
+    "group": "hero",
+    "type": "text",
+    "label": "Tự động tạo mã VietQR từng đơn",
+    "value": "Tự động tạo mã VietQR từng đơn"
+  },
+  {
+    "key": "content_044",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "Về Công ty OneSoft • onesoft.one",
+    "value": "Về Công ty OneSoft • onesoft.one"
+  },
+  {
+    "key": "content_045",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "Định hướng phát triển công nghệ thực tiễn, dễ tiếp cận cho mọi quy mô kinh doanh",
+    "value": "Định hướng phát triển công nghệ thực tiễn, dễ tiếp cận cho mọi quy mô kinh doanh"
+  },
+  {
+    "key": "content_046",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "Tại",
+    "value": "Tại"
+  },
+  {
+    "key": "content_047",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "OneSoft",
+    "value": "OneSoft"
+  },
+  {
+    "key": "content_048",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "onesoft.one",
+    "value": "onesoft.one"
+  },
+  {
+    "key": "content_049",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "), chúng tôi tin rằng công nghệ mạnh mẽ nhất không phải là công nghệ phức tạp nhất, mà là ",
+    "value": "), chúng tôi tin rằng công nghệ mạnh mẽ nhất không phải là công nghệ phức tạp nhất, mà là công nghệ giúp người chủ cửa hàng và doanh nghiệp giải quyết bài toán vận hành hàng ngày chỉ bằng vài chạm."
+  },
+  {
+    "key": "content_050",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "Với định hướng lấy",
+    "value": "Với định hướng lấy"
+  },
+  {
+    "key": "content_051",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "Cloud-Native, Mobile-First và Trí tuệ nhân tạo (AI)",
+    "value": "Cloud-Native, Mobile-First và Trí tuệ nhân tạo (AI)"
+  },
+  {
+    "key": "content_052",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "làm nền tảng, OneSoft tập trung nghiên cứu và xây dựng hệ sinh thái phần mềm quản trị tinh",
+    "value": "làm nền tảng, OneSoft tập trung nghiên cứu và xây dựng hệ sinh thái phần mềm quản trị tinh gọn, khởi đầu bằng sản phẩm đã hoàn thiện và đi vào vận hành thực tế:"
+  },
+  {
+    "key": "content_053",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "OneSoft POS",
+    "value": "OneSoft POS"
+  },
+  {
+    "key": "content_054",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "100%",
+    "value": "100%"
+  },
+  {
+    "key": "content_055",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "Làm chủ công nghệ lõi",
+    "value": "Làm chủ công nghệ lõi"
+  },
+  {
+    "key": "content_056",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "3 Giây",
+    "value": "3 Giây"
+  },
+  {
+    "key": "content_057",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "Tốc độ xử lý đơn POS",
+    "value": "Tốc độ xử lý đơn POS"
+  },
+  {
+    "key": "content_058",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "24/7",
+    "value": "24/7"
+  },
+  {
+    "key": "content_059",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "Đồng hành cùng chủ shop",
+    "value": "Đồng hành cùng chủ shop"
+  },
+  {
+    "key": "content_060",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "ĐÃ HOÀN THIỆN & SẴN SÀNG",
+    "value": "ĐÃ HOÀN THIỆN & SẴN SÀNG"
+  },
+  {
+    "key": "content_061",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "onesoft.one/pos",
+    "value": "onesoft.one/pos"
+  },
+  {
+    "key": "content_062",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "1. OneSoft POS – Quản lý Bán hàng Cửa hàng Nhỏ lẻ",
+    "value": "1. OneSoft POS – Quản lý Bán hàng Cửa hàng Nhỏ lẻ"
+  },
+  {
+    "key": "content_063",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "Giải pháp chủ lực của OneSoft giúp các cửa hàng tạp hóa, cafe, quán ăn, shop thời trang tí",
+    "value": "Giải pháp chủ lực của OneSoft giúp các cửa hàng tạp hóa, cafe, quán ăn, shop thời trang tính tiền nhanh, kiểm soát tồn kho, quản lý công nợ và xem báo cáo lãi lỗ từ xa trên điện thoại."
+  },
+  {
+    "key": "content_064",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "Web POS & Mobile App",
+    "value": "Web POS & Mobile App"
+  },
+  {
+    "key": "content_065",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "In hóa đơn nhiệt",
+    "value": "In hóa đơn nhiệt"
+  },
+  {
+    "key": "content_066",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "Mã VietQR động",
+    "value": "Mã VietQR động"
+  },
+  {
+    "key": "content_067",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "Hoạt động cả khi mất mạng",
+    "value": "Hoạt động cả khi mất mạng"
+  },
+  {
+    "key": "content_068",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "Lộ trình tiếp theo",
+    "value": "Lộ trình tiếp theo"
+  },
+  {
+    "key": "content_069",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "2. OneSoft OmniWeb",
+    "value": "2. OneSoft OmniWeb"
+  },
+  {
+    "key": "content_070",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "Tạo website bán hàng trực tuyến đồng bộ tồn kho tự động với OneSoft POS chỉ trong 1 cú cli",
+    "value": "Tạo website bán hàng trực tuyến đồng bộ tồn kho tự động với OneSoft POS chỉ trong 1 cú click."
+  },
+  {
+    "key": "content_071",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "Dịch vụ Công nghệ",
+    "value": "Dịch vụ Công nghệ"
+  },
+  {
+    "key": "content_072",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "3. OneSoft Lab & R&D",
+    "value": "3. OneSoft Lab & R&D"
+  },
+  {
+    "key": "content_073",
+    "group": "about-onesoft",
+    "type": "text",
+    "label": "Tư vấn, thiết kế và phát triển phần mềm, ứng dụng di động & tích hợp AI theo yêu cầu doanh",
+    "value": "Tư vấn, thiết kế và phát triển phần mềm, ứng dụng di động & tích hợp AI theo yêu cầu doanh nghiệp."
+  },
+  {
+    "key": "content_074",
+    "group": "pos-features",
+    "type": "text",
+    "label": "Sức mạnh của OneSoft POS",
+    "value": "Sức mạnh của OneSoft POS"
+  },
+  {
+    "key": "content_075",
+    "group": "pos-features",
+    "type": "text",
+    "label": "Thiết kế đo ni đóng giày cho chủ cửa hàng nhỏ lẻ",
+    "value": "Thiết kế đo ni đóng giày cho chủ cửa hàng nhỏ lẻ"
+  },
+  {
+    "key": "content_076",
+    "group": "pos-features",
+    "type": "text",
+    "label": "Không cần kiến thức kế toán hay công nghệ phức tạp. Nhân viên mới hay cô chú lớn tuổi đều ",
+    "value": "Không cần kiến thức kế toán hay công nghệ phức tạp. Nhân viên mới hay cô chú lớn tuổi đều có thể bán hàng thành thạo chỉ sau 5 phút làm quen."
+  },
+  {
+    "key": "content_077",
+    "group": "pos-features",
+    "type": "text",
+    "label": "1. Tính tiền & In hóa đơn trong 3 giây",
+    "value": "1. Tính tiền & In hóa đơn trong 3 giây"
+  },
+  {
+    "key": "content_078",
+    "group": "pos-features",
+    "type": "text",
+    "label": "Hỗ trợ tít mã vạch siêu nhạy, tìm món theo chữ cái đầu, tự động tính tiền thừa và in hóa đ",
+    "value": "Hỗ trợ tít mã vạch siêu nhạy, tìm món theo chữ cái đầu, tự động tính tiền thừa và in hóa đơn nhiệt khổ K58/K80 tức thì. Vẫn bán hàng bình thường ngay cả khi chập chờn kết nối mạng."
+  },
+  {
+    "key": "content_079",
+    "group": "pos-features",
+    "type": "text",
+    "label": "2. Kiểm soát Tồn kho & Hạn sử dụng",
+    "value": "2. Kiểm soát Tồn kho & Hạn sử dụng"
+  },
+  {
+    "key": "content_080",
+    "group": "pos-features",
+    "type": "text",
+    "label": "Tự động trừ kho ngay khi bán. Quy đổi đơn vị tính linh hoạt (Thùng - Lốc - Lon / Kg - Gram",
+    "value": "Tự động trừ kho ngay khi bán. Quy đổi đơn vị tính linh hoạt (Thùng - Lốc - Lon / Kg - Gram) và gửi cảnh báo khi mặt hàng sắp hết hoặc cận date."
+  },
+  {
+    "key": "content_081",
+    "group": "pos-features",
+    "type": "text",
+    "label": "3. Thanh toán VietQR Động Chống Thất Thoát",
+    "value": "3. Thanh toán VietQR Động Chống Thất Thoát"
+  },
+  {
+    "key": "content_082",
+    "group": "pos-features",
+    "type": "text",
+    "label": "Tự động sinh mã QR chứa sẵn số tiền và nội dung từng đơn hàng trên màn hình hoặc in ra giấ",
+    "value": "Tự động sinh mã QR chứa sẵn số tiền và nội dung từng đơn hàng trên màn hình hoặc in ra giấy. Khách quét là đúng số tiền, xóa bỏ nỗi lo dán đè mã QR giả."
+  },
+  {
+    "key": "content_083",
+    "group": "pos-features",
+    "type": "text",
+    "label": "4. Sổ Công Nợ & Tích Điểm Khách Quen",
+    "value": "4. Sổ Công Nợ & Tích Điểm Khách Quen"
+  },
+  {
+    "key": "content_084",
+    "group": "pos-features",
+    "type": "text",
+    "label": "Thay thế hoàn toàn sổ ghi nợ tay dễ rách, quên. Quản lý lịch sử mua chịu của từng khách hà",
+    "value": "Thay thế hoàn toàn sổ ghi nợ tay dễ rách, quên. Quản lý lịch sử mua chịu của từng khách hàng và nhà cung cấp, nhắc thu nợ lịch sự và tích điểm đổi quà."
+  },
+  {
+    "key": "content_085",
+    "group": "pos-features",
+    "type": "text",
+    "label": "5. Tận dụng mọi thiết bị sẵn có",
+    "value": "5. Tận dụng mọi thiết bị sẵn có"
+  },
+  {
+    "key": "content_086",
+    "group": "pos-features",
+    "type": "text",
+    "label": "Không bắt buộc mua máy POS đắt tiền. Bạn có thể dùng ngay điện thoại thông minh, iPad, lap",
+    "value": "Không bắt buộc mua máy POS đắt tiền. Bạn có thể dùng ngay điện thoại thông minh, iPad, laptop cũ tại nhà để quét mã bán hàng và theo dõi cửa hàng từ xa."
+  },
+  {
+    "key": "content_087",
+    "group": "pos-features",
+    "type": "text",
+    "label": "6. Báo cáo Lãi Lỗ Rõ Ràng Từng Ngày",
+    "value": "6. Báo cáo Lãi Lỗ Rõ Ràng Từng Ngày"
+  },
+  {
+    "key": "content_088",
+    "group": "pos-features",
+    "type": "text",
+    "label": "Cuối ngày biết ngay hôm nay thu bao nhiêu tiền mặt, bao nhiêu chuyển khoản, món nào lãi ca",
+    "value": "Cuối ngày biết ngay hôm nay thu bao nhiêu tiền mặt, bao nhiêu chuyển khoản, món nào lãi cao nhất và nhân viên nào bán ca nào, minh bạch tuyệt đối."
+  },
+  {
+    "key": "content_089",
+    "group": "industries",
+    "type": "text",
+    "label": "Linh hoạt đa ngành hàng",
+    "value": "Linh hoạt đa ngành hàng"
+  },
+  {
+    "key": "content_090",
+    "group": "industries",
+    "type": "text",
+    "label": "OneSoft POS tối ưu riêng cho từng mô hình cửa hàng nhỏ lẻ",
+    "value": "OneSoft POS tối ưu riêng cho từng mô hình cửa hàng nhỏ lẻ"
+  },
+  {
+    "key": "content_091",
+    "group": "industries",
+    "type": "text",
+    "label": "Chọn mô hình kinh doanh của bạn để xem cách OneSoft POS giải quyết triệt để các khó khăn h",
+    "value": "Chọn mô hình kinh doanh của bạn để xem cách OneSoft POS giải quyết triệt để các khó khăn hàng ngày."
+  },
+  {
+    "key": "content_092",
+    "group": "industries",
+    "type": "text",
+    "label": "Tạp hóa & Siêu thị mini",
+    "value": "Tạp hóa & Siêu thị mini"
+  },
+  {
+    "key": "content_093",
+    "group": "industries",
+    "type": "text",
+    "label": "Cafe, Trà sữa & Quán ăn nhỏ",
+    "value": "Cafe, Trà sữa & Quán ăn nhỏ"
+  },
+  {
+    "key": "content_094",
+    "group": "industries",
+    "type": "text",
+    "label": "Shop Thời trang & Mỹ phẩm",
+    "value": "Shop Thời trang & Mỹ phẩm"
+  },
+  {
+    "key": "content_095",
+    "group": "industries",
+    "type": "text",
+    "label": "Điện nước, Vật tư & Nhà thuốc",
+    "value": "Điện nước, Vật tư & Nhà thuốc"
+  },
+  {
+    "key": "content_096",
+    "group": "pricing",
+    "type": "text",
+    "label": "Chi phí siêu tiết kiệm",
+    "value": "Chi phí siêu tiết kiệm"
+  },
+  {
+    "key": "content_097",
+    "group": "pricing",
+    "type": "text",
+    "label": "Bảng giá OneSoft POS – Chỉ từ một ly trà đá mỗi ngày",
+    "value": "Bảng giá OneSoft POS – Chỉ từ một ly trà đá mỗi ngày"
+  },
+  {
+    "key": "content_098",
+    "group": "pricing",
+    "type": "text",
+    "label": "Không phí ẩn, không giới hạn thiết bị đăng nhập. Hỗ trợ khởi tạo danh mục hàng hóa ban đầu",
+    "value": "Không phí ẩn, không giới hạn thiết bị đăng nhập. Hỗ trợ khởi tạo danh mục hàng hóa ban đầu hoàn toàn miễn phí."
+  },
+  {
+    "key": "content_099",
+    "group": "pricing",
+    "type": "text",
+    "label": "Trả theo Tháng",
+    "value": "Trả theo Tháng"
+  },
+  {
+    "key": "content_100",
+    "group": "pricing",
+    "type": "text",
+    "label": "Trả theo Năm",
+    "value": "Trả theo Năm"
+  },
+  {
+    "key": "content_101",
+    "group": "pricing",
+    "type": "text",
+    "label": "Tặng thêm 3 tháng",
+    "value": "Tặng thêm 3 tháng"
+  },
+  {
+    "key": "content_102",
+    "group": "pricing",
+    "type": "text",
+    "label": "Cửa hàng Mới mở",
+    "value": "Cửa hàng Mới mở"
+  },
+  {
+    "key": "content_103",
+    "group": "pricing",
+    "type": "text",
+    "label": "Khởi đầu dễ dàng",
+    "value": "Khởi đầu dễ dàng"
+  },
+  {
+    "key": "content_104",
+    "group": "pricing",
+    "type": "text",
+    "label": "Phù hợp sạp hàng nhỏ, quán nước vỉa hè, shop online mới mở cần tính tiền và quản lý kho cơ",
+    "value": "Phù hợp sạp hàng nhỏ, quán nước vỉa hè, shop online mới mở cần tính tiền và quản lý kho cơ bản."
+  },
+  {
+    "key": "content_105",
+    "group": "pricing",
+    "type": "text",
+    "label": "/ tháng",
+    "value": "/ tháng"
+  },
+  {
+    "key": "content_106",
+    "group": "pricing",
+    "type": "text",
+    "label": "Có gói Dùng thử miễn phí 14 ngày",
+    "value": "Có gói Dùng thử miễn phí 14 ngày"
+  },
+  {
+    "key": "content_107",
+    "group": "pricing",
+    "type": "text",
+    "label": "1 Cửa hàng • Tối đa 3 tài khoản nhân viên",
+    "value": "1 Cửa hàng • Tối đa 3 tài khoản nhân viên"
+  },
+  {
+    "key": "content_108",
+    "group": "pricing",
+    "type": "text",
+    "label": "Quản lý tối đa 1.000 mặt hàng",
+    "value": "Quản lý tối đa 1.000 mặt hàng"
+  },
+  {
+    "key": "content_109",
+    "group": "pricing",
+    "type": "text",
+    "label": "Bán hàng, quét mã vạch, in hóa đơn",
+    "value": "Bán hàng, quét mã vạch, in hóa đơn"
+  },
+  {
+    "key": "content_110",
+    "group": "pricing",
+    "type": "text",
+    "label": "Tạo mã thanh toán VietQR tự động",
+    "value": "Tạo mã thanh toán VietQR tự động"
+  },
+  {
+    "key": "content_111",
+    "group": "pricing",
+    "type": "text",
+    "label": "Báo cáo doanh thu cuối ngày trên điện thoại",
+    "value": "Báo cáo doanh thu cuối ngày trên điện thoại"
+  },
+  {
+    "key": "content_112",
+    "group": "pricing",
+    "type": "text",
+    "label": "Đăng ký dùng thử miễn phí",
+    "value": "Đăng ký dùng thử miễn phí"
+  },
+  {
+    "key": "content_113",
+    "group": "pricing",
+    "type": "text",
+    "label": "85% Chủ cửa hàng chọn",
+    "value": "85% Chủ cửa hàng chọn"
+  },
+  {
+    "key": "content_114",
+    "group": "pricing",
+    "type": "text",
+    "label": "OneSoft POS Pro",
+    "value": "OneSoft POS Pro"
+  },
+  {
+    "key": "content_115",
+    "group": "pricing",
+    "type": "text",
+    "label": "Tối ưu nhất",
+    "value": "Tối ưu nhất"
+  },
+  {
+    "key": "content_116",
+    "group": "pricing",
+    "type": "text",
+    "label": "Trọn bộ tính năng cho tạp hóa, siêu thị mini, quán cafe, quán ăn và shop thời trang chuyên",
+    "value": "Trọn bộ tính năng cho tạp hóa, siêu thị mini, quán cafe, quán ăn và shop thời trang chuyên nghiệp."
+  },
+  {
+    "key": "content_117",
+    "group": "pricing",
+    "type": "text",
+    "label": "/ tháng",
+    "value": "/ tháng"
+  },
+  {
+    "key": "content_118",
+    "group": "pricing",
+    "type": "text",
+    "label": "Tặng kèm 3 tháng khi đăng ký 1 năm",
+    "value": "Tặng kèm 3 tháng khi đăng ký 1 năm"
+  },
+  {
+    "key": "content_119",
+    "group": "pricing",
+    "type": "text",
+    "label": "Không giới hạn",
+    "value": "Không giới hạn"
+  },
+  {
+    "key": "content_120",
+    "group": "pricing",
+    "type": "text",
+    "label": "mặt hàng & hóa đơn",
+    "value": "mặt hàng & hóa đơn"
+  },
+  {
+    "key": "content_121",
+    "group": "pricing",
+    "type": "text",
+    "label": "Không giới hạn",
+    "value": "Không giới hạn"
+  },
+  {
+    "key": "content_122",
+    "group": "pricing",
+    "type": "text",
+    "label": "thiết bị (Điện thoại, PC, POS)",
+    "value": "thiết bị (Điện thoại, PC, POS)"
+  },
+  {
+    "key": "content_123",
+    "group": "pricing",
+    "type": "text",
+    "label": "Quản lý Sổ công nợ & Tích điểm khách hàng",
+    "value": "Quản lý Sổ công nợ & Tích điểm khách hàng"
+  },
+  {
+    "key": "content_124",
+    "group": "pricing",
+    "type": "text",
+    "label": "Quản lý định lượng nguyên vật liệu / quy đổi đơn vị",
+    "value": "Quản lý định lượng nguyên vật liệu / quy đổi đơn vị"
+  },
+  {
+    "key": "content_125",
+    "group": "pricing",
+    "type": "text",
+    "label": "Phân quyền nhân viên thu ngân chặt chẽ",
+    "value": "Phân quyền nhân viên thu ngân chặt chẽ"
+  },
+  {
+    "key": "content_126",
+    "group": "pricing",
+    "type": "text",
+    "label": "Hỗ trợ nhập danh mục hàng hóa từ Excel miễn phí",
+    "value": "Hỗ trợ nhập danh mục hàng hóa từ Excel miễn phí"
+  },
+  {
+    "key": "content_127",
+    "group": "pricing",
+    "type": "text",
+    "label": "Nhận tài khoản POS Pro ngay",
+    "value": "Nhận tài khoản POS Pro ngay"
+  },
+  {
+    "key": "content_128",
+    "group": "pricing",
+    "type": "text",
+    "label": "Chuỗi Cửa hàng & Custom",
+    "value": "Chuỗi Cửa hàng & Custom"
+  },
+  {
+    "key": "content_129",
+    "group": "pricing",
+    "type": "text",
+    "label": "Đa chi nhánh",
+    "value": "Đa chi nhánh"
+  },
+  {
+    "key": "content_130",
+    "group": "pricing",
+    "type": "text",
+    "label": "Dành cho chủ cửa hàng có từ 2 chi nhánh trở lên hoặc cần phát triển tính năng phần mềm riê",
+    "value": "Dành cho chủ cửa hàng có từ 2 chi nhánh trở lên hoặc cần phát triển tính năng phần mềm riêng."
+  },
+  {
+    "key": "content_131",
+    "group": "pricing",
+    "type": "text",
+    "label": "/ tháng",
+    "value": "/ tháng"
+  },
+  {
+    "key": "content_132",
+    "group": "pricing",
+    "type": "text",
+    "label": "Hỗ trợ gói Mua đứt Trọn đời hoặc Thiết kế riêng",
+    "value": "Hỗ trợ gói Mua đứt Trọn đời hoặc Thiết kế riêng"
+  },
+  {
+    "key": "content_133",
+    "group": "pricing",
+    "type": "text",
+    "label": "Mọi tính năng của OneSoft POS Pro",
+    "value": "Mọi tính năng của OneSoft POS Pro"
+  },
+  {
+    "key": "content_134",
+    "group": "pricing",
+    "type": "text",
+    "label": "Quản lý điều chuyển kho liên chi nhánh",
+    "value": "Quản lý điều chuyển kho liên chi nhánh"
+  },
+  {
+    "key": "content_135",
+    "group": "pricing",
+    "type": "text",
+    "label": "Tích hợp xuất Hóa đơn điện tử khởi tạo từ máy tính tiền",
+    "value": "Tích hợp xuất Hóa đơn điện tử khởi tạo từ máy tính tiền"
+  },
+  {
+    "key": "content_136",
+    "group": "pricing",
+    "type": "text",
+    "label": "Tư vấn & Phát triển tính năng riêng bởi OneSoft",
+    "value": "Tư vấn & Phát triển tính năng riêng bởi OneSoft"
+  },
+  {
+    "key": "content_137",
+    "group": "pricing",
+    "type": "text",
+    "label": "Kỹ thuật viên hỗ trợ ưu tiên 24/7 qua Zalo/UltraViewer",
+    "value": "Kỹ thuật viên hỗ trợ ưu tiên 24/7 qua Zalo/UltraViewer"
+  },
+  {
+    "key": "content_138",
+    "group": "pricing",
+    "type": "text",
+    "label": "Liên hệ OneSoft tư vấn",
+    "value": "Liên hệ OneSoft tư vấn"
+  },
+  {
+    "key": "content_139",
+    "group": "contact",
+    "type": "text",
+    "label": "Đồng hành cùng cửa hàng Việt",
+    "value": "Đồng hành cùng cửa hàng Việt"
+  },
+  {
+    "key": "content_140",
+    "group": "contact",
+    "type": "text",
+    "label": "Kích hoạt dùng thử",
+    "value": "Kích hoạt dùng thử"
+  },
+  {
+    "key": "content_141",
+    "group": "contact",
+    "type": "text",
+    "label": "OneSoft POS",
+    "value": "OneSoft POS"
+  },
+  {
+    "key": "content_142",
+    "group": "contact",
+    "type": "text",
+    "label": "miễn phí ngay hôm nay",
+    "value": "miễn phí ngay hôm nay"
+  },
+  {
+    "key": "content_143",
+    "group": "contact",
+    "type": "text",
+    "label": "Để lại số điện thoại của bạn, đội ngũ",
+    "value": "Để lại số điện thoại của bạn, đội ngũ"
+  },
+  {
+    "key": "content_144",
+    "group": "contact",
+    "type": "text",
+    "label": "OneSoft (`onesoft.one`)",
+    "value": "OneSoft (`onesoft.one`)"
+  },
+  {
+    "key": "content_145",
+    "group": "contact",
+    "type": "text",
+    "label": "sẽ hỗ trợ tạo tài khoản cửa hàng, nhập sẵn danh mục hàng hóa mẫu và hướng dẫn sử dụng tận ",
+    "value": "sẽ hỗ trợ tạo tài khoản cửa hàng, nhập sẵn danh mục hàng hóa mẫu và hướng dẫn sử dụng tận tình trong 10 phút."
+  },
+  {
+    "key": "content_146",
+    "group": "contact",
+    "type": "text",
+    "label": "Website Chính thức",
+    "value": "Website Chính thức"
+  },
+  {
+    "key": "content_147",
+    "group": "contact",
+    "type": "text",
+    "label": "https://onesoft.one",
+    "value": "https://onesoft.one"
+  },
+  {
+    "key": "content_148",
+    "group": "contact",
+    "type": "text",
+    "label": "Hotline / Zalo Hỗ trợ Kỹ thuật & Tư vấn",
+    "value": "Hotline / Zalo Hỗ trợ Kỹ thuật & Tư vấn"
+  },
+  {
+    "key": "content_149",
+    "group": "contact",
+    "type": "text",
+    "label": "0909 111 888 • Hỗ trợ 24/7",
+    "value": "0909 111 888 • Hỗ trợ 24/7"
+  },
+  {
+    "key": "content_150",
+    "group": "contact",
+    "type": "text",
+    "label": "Email Liên hệ Hợp tác Công nghệ",
+    "value": "Email Liên hệ Hợp tác Công nghệ"
+  },
+  {
+    "key": "content_151",
+    "group": "contact",
+    "type": "text",
+    "label": "contact@onesoft.one",
+    "value": "contact@onesoft.one"
+  },
+  {
+    "key": "content_152",
+    "group": "contact",
+    "type": "text",
+    "label": "Đăng ký Dùng thử OneSoft POS / Tư vấn Giải pháp",
+    "value": "Đăng ký Dùng thử OneSoft POS / Tư vấn Giải pháp"
+  },
+  {
+    "key": "content_153",
+    "group": "contact",
+    "type": "text",
+    "label": "Miễn phí 100% trải nghiệm 14 ngày • Không cần thẻ ngân hàng",
+    "value": "Miễn phí 100% trải nghiệm 14 ngày • Không cần thẻ ngân hàng"
+  },
+  {
+    "key": "content_154",
+    "group": "contact",
+    "type": "text",
+    "label": "Họ tên Chủ cửa hàng / Anh Chị *",
+    "value": "Họ tên Chủ cửa hàng / Anh Chị *"
+  },
+  {
+    "key": "content_155",
+    "group": "contact",
+    "type": "text",
+    "label": "Vui lòng nhập tên của bạn.",
+    "value": "Vui lòng nhập tên của bạn."
+  },
+  {
+    "key": "content_156",
+    "group": "contact",
+    "type": "text",
+    "label": "Số điện thoại (Zalo) *",
+    "value": "Số điện thoại (Zalo) *"
+  },
+  {
+    "key": "content_157",
+    "group": "contact",
+    "type": "text",
+    "label": "Vui lòng nhập số điện thoại hợp lệ (9-11 số).",
+    "value": "Vui lòng nhập số điện thoại hợp lệ (9-11 số)."
+  },
+  {
+    "key": "content_158",
+    "group": "contact",
+    "type": "text",
+    "label": "Tên Cửa hàng / Đơn vị *",
+    "value": "Tên Cửa hàng / Đơn vị *"
+  },
+  {
+    "key": "content_159",
+    "group": "contact",
+    "type": "text",
+    "label": "Vui lòng nhập tên cửa hàng hoặc đơn vị.",
+    "value": "Vui lòng nhập tên cửa hàng hoặc đơn vị."
+  },
+  {
+    "key": "content_160",
+    "group": "contact",
+    "type": "text",
+    "label": "Ngành hàng kinh doanh",
+    "value": "Ngành hàng kinh doanh"
+  },
+  {
+    "key": "content_161",
+    "group": "contact",
+    "type": "text",
+    "label": "Tạp hóa & Siêu thị mini",
+    "value": "Tạp hóa & Siêu thị mini"
+  },
+  {
+    "key": "content_162",
+    "group": "contact",
+    "type": "text",
+    "label": "Quán Cafe, Trà sữa, Quán ăn",
+    "value": "Quán Cafe, Trà sữa, Quán ăn"
+  },
+  {
+    "key": "content_163",
+    "group": "contact",
+    "type": "text",
+    "label": "Shop Thời trang, Mỹ phẩm, Phụ kiện",
+    "value": "Shop Thời trang, Mỹ phẩm, Phụ kiện"
+  },
+  {
+    "key": "content_164",
+    "group": "contact",
+    "type": "text",
+    "label": "Cửa hàng Điện nước, Vật tư, Nhà thuốc",
+    "value": "Cửa hàng Điện nước, Vật tư, Nhà thuốc"
+  },
+  {
+    "key": "content_165",
+    "group": "contact",
+    "type": "text",
+    "label": "Cần tư vấn Phát triển phần mềm riêng",
+    "value": "Cần tư vấn Phát triển phần mềm riêng"
+  },
+  {
+    "key": "content_166",
+    "group": "contact",
+    "type": "text",
+    "label": "Gói dịch vụ quan tâm",
+    "value": "Gói dịch vụ quan tâm"
+  },
+  {
+    "key": "content_167",
+    "group": "contact",
+    "type": "text",
+    "label": "Gói OneSoft POS Pro (Phổ biến nhất)",
+    "value": "Gói OneSoft POS Pro (Phổ biến nhất)"
+  },
+  {
+    "key": "content_168",
+    "group": "contact",
+    "type": "text",
+    "label": "Gói Cửa Hàng Mới Mở",
+    "value": "Gói Cửa Hàng Mới Mở"
+  },
+  {
+    "key": "content_169",
+    "group": "contact",
+    "type": "text",
+    "label": "Gói Chuỗi Cửa Hàng / Thiết Kế Riêng",
+    "value": "Gói Chuỗi Cửa Hàng / Thiết Kế Riêng"
+  },
+  {
+    "key": "content_170",
+    "group": "contact",
+    "type": "text",
+    "label": "Ghi chú thêm (Không bắt buộc)",
+    "value": "Ghi chú thêm (Không bắt buộc)"
+  },
+  {
+    "key": "content_171",
+    "group": "contact",
+    "type": "text",
+    "label": "Đăng ký thành công tại onesoft.one!",
+    "value": "Đăng ký thành công tại onesoft.one!"
+  },
+  {
+    "key": "content_172",
+    "group": "contact",
+    "type": "text",
+    "label": "Cảm ơn bạn! Chuyên viên OneSoft sẽ liên hệ qua số điện thoại/Zalo của bạn trong ít phút để",
+    "value": "Cảm ơn bạn! Chuyên viên OneSoft sẽ liên hệ qua số điện thoại/Zalo của bạn trong ít phút để cấp tài khoản dùng thử"
+  },
+  {
+    "key": "content_173",
+    "group": "contact",
+    "type": "text",
+    "label": "OneSoft POS",
+    "value": "OneSoft POS"
+  },
+  {
+    "key": "content_174",
+    "group": "contact",
+    "type": "text",
+    "label": "ngay.",
+    "value": "ngay."
+  },
+  {
+    "key": "content_175",
+    "group": "contact",
+    "type": "text",
+    "label": "Nhận Tài Khoản Dùng Thử OneSoft POS Ngay",
+    "value": "Nhận Tài Khoản Dùng Thử OneSoft POS Ngay"
+  },
+  {
+    "key": "content_176",
+    "group": "footer",
+    "type": "text",
+    "label": "1S",
+    "value": "1S"
+  },
+  {
+    "key": "content_177",
+    "group": "footer",
+    "type": "text",
+    "label": "One",
+    "value": "One"
+  },
+  {
+    "key": "content_178",
+    "group": "footer",
+    "type": "text",
+    "label": "Soft",
+    "value": "Soft"
+  },
+  {
+    "key": "content_179",
+    "group": "footer",
+    "type": "text",
+    "label": "onesoft.one",
+    "value": "onesoft.one"
+  },
+  {
+    "key": "content_180",
+    "group": "footer",
+    "type": "text",
+    "label": "Công ty phát triển giải pháp công nghệ & phần mềm thực chiến. Đồng hành chuyển đổi số cho ",
+    "value": "Công ty phát triển giải pháp công nghệ & phần mềm thực chiến. Đồng hành chuyển đổi số cho hàng ngàn cửa hàng nhỏ lẻ và doanh nghiệp Việt Nam."
+  },
+  {
+    "key": "content_181",
+    "group": "footer",
+    "type": "text",
+    "label": "Sản phẩm & Dịch vụ",
+    "value": "Sản phẩm & Dịch vụ"
+  },
+  {
+    "key": "content_182",
+    "group": "footer",
+    "type": "text",
+    "label": "Phần mềm OneSoft POS",
+    "value": "Phần mềm OneSoft POS"
+  },
+  {
+    "key": "content_183",
+    "group": "footer",
+    "type": "text",
+    "label": "Quản lý Kho & Mã vạch",
+    "value": "Quản lý Kho & Mã vạch"
+  },
+  {
+    "key": "content_184",
+    "group": "footer",
+    "type": "text",
+    "label": "Thanh toán VietQR Động",
+    "value": "Thanh toán VietQR Động"
+  },
+  {
+    "key": "content_185",
+    "group": "footer",
+    "type": "text",
+    "label": "Phát triển Phần mềm theo yêu cầu",
+    "value": "Phát triển Phần mềm theo yêu cầu"
+  },
+  {
+    "key": "content_186",
+    "group": "footer",
+    "type": "text",
+    "label": "Giải pháp Cửa hàng",
+    "value": "Giải pháp Cửa hàng"
+  },
+  {
+    "key": "content_187",
+    "group": "footer",
+    "type": "text",
+    "label": "POS cho Tạp hóa & Siêu thị mini",
+    "value": "POS cho Tạp hóa & Siêu thị mini"
+  },
+  {
+    "key": "content_188",
+    "group": "footer",
+    "type": "text",
+    "label": "POS cho Quán Cafe, Trà sữa, Quán ăn",
+    "value": "POS cho Quán Cafe, Trà sữa, Quán ăn"
+  },
+  {
+    "key": "content_189",
+    "group": "footer",
+    "type": "text",
+    "label": "POS cho Shop Thời trang & Mỹ phẩm",
+    "value": "POS cho Shop Thời trang & Mỹ phẩm"
+  },
+  {
+    "key": "content_190",
+    "group": "footer",
+    "type": "text",
+    "label": "POS cho Cửa hàng Điện nước, Vật tư",
+    "value": "POS cho Cửa hàng Điện nước, Vật tư"
+  },
+  {
+    "key": "content_191",
+    "group": "footer",
+    "type": "text",
+    "label": "Kết nối với OneSoft",
+    "value": "Kết nối với OneSoft"
+  },
+  {
+    "key": "content_192",
+    "group": "footer",
+    "type": "text",
+    "label": "Website:",
+    "value": "Website:"
+  },
+  {
+    "key": "content_193",
+    "group": "footer",
+    "type": "text",
+    "label": "https://onesoft.one",
+    "value": "https://onesoft.one"
+  },
+  {
+    "key": "content_194",
+    "group": "footer",
+    "type": "text",
+    "label": "Email:",
+    "value": "Email:"
+  },
+  {
+    "key": "content_195",
+    "group": "footer",
+    "type": "text",
+    "label": "contact@onesoft.one",
+    "value": "contact@onesoft.one"
+  },
+  {
+    "key": "content_196",
+    "group": "footer",
+    "type": "text",
+    "label": "Hỗ trợ kỹ thuật:",
+    "value": "Hỗ trợ kỹ thuật:"
+  },
+  {
+    "key": "content_197",
+    "group": "footer",
+    "type": "text",
+    "label": "Trực tuyến 24/7",
+    "value": "Trực tuyến 24/7"
+  },
+  {
+    "key": "content_198",
+    "group": "footer",
+    "type": "text",
+    "label": "© 2026 Bản quyền thuộc về",
+    "value": "© 2026 Bản quyền thuộc về"
+  },
+  {
+    "key": "content_199",
+    "group": "footer",
+    "type": "text",
+    "label": "OneSoft",
+    "value": "OneSoft"
+  },
+  {
+    "key": "content_200",
+    "group": "footer",
+    "type": "text",
+    "label": "onesoft.one",
+    "value": "onesoft.one"
+  },
+  {
+    "key": "content_201",
+    "group": "footer",
+    "type": "text",
+    "label": "). Bảo lưu mọi quyền.",
+    "value": "). Bảo lưu mọi quyền."
+  },
+  {
+    "key": "content_202",
+    "group": "footer",
+    "type": "text",
+    "label": "Hệ thống Cloud OneSoft POS hoạt động ổn định 99.99%",
+    "value": "Hệ thống Cloud OneSoft POS hoạt động ổn định 99.99%"
+  },
+  {
+    "key": "content_203",
+    "group": "footer",
+    "type": "text",
+    "label": "Quản trị",
+    "value": "Quản trị"
+  },
+  {
+    "key": "content_204",
+    "group": "Thông tin chung",
+    "type": "link",
+    "label": "Liên kết: onesoft.one",
+    "value": "https://onesoft.one"
+  },
+  {
+    "key": "content_205",
+    "group": "Thông tin chung",
+    "type": "link",
+    "label": "Liên kết: Dùng thử POS ngay",
+    "value": "#pos-live-demo"
+  },
+  {
+    "key": "content_206",
+    "group": "navbar",
+    "type": "link",
+    "label": "Liên kết: 1S\n                    \n                    \n                    ",
+    "value": "#"
+  },
+  {
+    "key": "content_207",
+    "group": "navbar",
+    "type": "link",
+    "label": "Liên kết: Giới thiệu",
+    "value": "#about-onesoft"
+  },
+  {
+    "key": "content_208",
+    "group": "navbar",
+    "type": "link",
+    "label": "Liên kết: Sản phẩm",
+    "value": "#pos-live-demo"
+  },
+  {
+    "key": "content_209",
+    "group": "navbar",
+    "type": "link",
+    "label": "Liên kết: Tính năng",
+    "value": "#pos-features"
+  },
+  {
+    "key": "content_210",
+    "group": "navbar",
+    "type": "link",
+    "label": "Liên kết: Ngành hàng phù hợp",
+    "value": "#industries"
+  },
+  {
+    "key": "content_211",
+    "group": "navbar",
+    "type": "link",
+    "label": "Liên kết: Bảng giá",
+    "value": "#pricing"
+  },
+  {
+    "key": "content_212",
+    "group": "navbar",
+    "type": "link",
+    "label": "Liên kết: Liên hệ",
+    "value": "#contact"
+  },
+  {
+    "key": "content_213",
+    "group": "navbar",
+    "type": "link",
+    "label": "Liên kết: Đăng nhập POS",
+    "value": "/?mode=pos"
+  },
+  {
+    "key": "content_214",
+    "group": "navbar",
+    "type": "link",
+    "label": "Liên kết: Dùng thử miễn phí",
+    "value": "#contact"
+  },
+  {
+    "key": "content_215",
+    "group": "navbar",
+    "type": "link",
+    "label": "Liên kết: Đăng nhập POS",
+    "value": "/?mode=pos"
+  },
+  {
+    "key": "content_216",
+    "group": "navbar",
+    "type": "link",
+    "label": "Liên kết: Giới thiệu",
+    "value": "#about-onesoft"
+  },
+  {
+    "key": "content_217",
+    "group": "navbar",
+    "type": "link",
+    "label": "Liên kết: Trải nghiệm",
+    "value": "#pos-live-demo"
+  },
+  {
+    "key": "content_218",
+    "group": "navbar",
+    "type": "link",
+    "label": "Liên kết: Tính năng",
+    "value": "#pos-features"
+  },
+  {
+    "key": "content_219",
+    "group": "navbar",
+    "type": "link",
+    "label": "Liên kết: Ngành hàng phù hợp",
+    "value": "#industries"
+  },
+  {
+    "key": "content_220",
+    "group": "navbar",
+    "type": "link",
+    "label": "Liên kết: Bảng giá",
+    "value": "#pricing"
+  },
+  {
+    "key": "content_221",
+    "group": "navbar",
+    "type": "link",
+    "label": "Liên kết: Liên hệ",
+    "value": "#contact"
+  },
+  {
+    "key": "content_222",
+    "group": "navbar",
+    "type": "link",
+    "label": "Liên kết: Dùng thử OneSoft POS miễn phí",
+    "value": "#contact"
+  },
+  {
+    "key": "content_223",
+    "group": "hero",
+    "type": "link",
+    "label": "Liên kết: onesoft.one",
+    "value": "https://onesoft.one"
+  },
+  {
+    "key": "content_224",
+    "group": "hero",
+    "type": "link",
+    "label": "Liên kết: Dùng thử OneSoft POS miễn phí",
+    "value": "#contact"
+  },
+  {
+    "key": "content_225",
+    "group": "hero",
+    "type": "link",
+    "label": "Liên kết: Trải nghiệm POS trực tiếp bên dưới",
+    "value": "#pos-live-demo"
+  },
+  {
+    "key": "content_226",
+    "group": "about-onesoft",
+    "type": "link",
+    "label": "Liên kết: onesoft.one",
+    "value": "https://onesoft.one"
+  },
+  {
+    "key": "content_227",
+    "group": "pricing",
+    "type": "link",
+    "label": "Liên kết: Đăng ký dùng thử miễn phí",
+    "value": "#contact"
+  },
+  {
+    "key": "content_228",
+    "group": "pricing",
+    "type": "link",
+    "label": "Liên kết: Nhận tài khoản POS Pro ngay",
+    "value": "#contact"
+  },
+  {
+    "key": "content_229",
+    "group": "pricing",
+    "type": "link",
+    "label": "Liên kết: Liên hệ OneSoft tư vấn",
+    "value": "#contact"
+  },
+  {
+    "key": "content_230",
+    "group": "contact",
+    "type": "link",
+    "label": "Liên kết: https://onesoft.one",
+    "value": "https://onesoft.one"
+  },
+  {
+    "key": "content_231",
+    "group": "footer",
+    "type": "link",
+    "label": "Liên kết: 1S\n                        \n                        OneSoft\n     ",
+    "value": "https://onesoft.one"
+  },
+  {
+    "key": "content_232",
+    "group": "footer",
+    "type": "link",
+    "label": "Liên kết: Phần mềm OneSoft POS",
+    "value": "#pos-live-demo"
+  },
+  {
+    "key": "content_233",
+    "group": "footer",
+    "type": "link",
+    "label": "Liên kết: Quản lý Kho & Mã vạch",
+    "value": "#pos-features"
+  },
+  {
+    "key": "content_234",
+    "group": "footer",
+    "type": "link",
+    "label": "Liên kết: Thanh toán VietQR Động",
+    "value": "#pos-features"
+  },
+  {
+    "key": "content_235",
+    "group": "footer",
+    "type": "link",
+    "label": "Liên kết: Phát triển Phần mềm theo yêu cầu",
+    "value": "#about-onesoft"
+  },
+  {
+    "key": "content_236",
+    "group": "footer",
+    "type": "link",
+    "label": "Liên kết: POS cho Tạp hóa & Siêu thị mini",
+    "value": "#industries"
+  },
+  {
+    "key": "content_237",
+    "group": "footer",
+    "type": "link",
+    "label": "Liên kết: POS cho Quán Cafe, Trà sữa, Quán ăn",
+    "value": "#industries"
+  },
+  {
+    "key": "content_238",
+    "group": "footer",
+    "type": "link",
+    "label": "Liên kết: POS cho Shop Thời trang & Mỹ phẩm",
+    "value": "#industries"
+  },
+  {
+    "key": "content_239",
+    "group": "footer",
+    "type": "link",
+    "label": "Liên kết: POS cho Cửa hàng Điện nước, Vật tư",
+    "value": "#industries"
+  },
+  {
+    "key": "content_240",
+    "group": "footer",
+    "type": "link",
+    "label": "Liên kết: https://onesoft.one",
+    "value": "https://onesoft.one"
+  },
+  {
+    "key": "content_241",
+    "group": "footer",
+    "type": "link",
+    "label": "Liên kết: onesoft.one",
+    "value": "https://onesoft.one"
+  },
+  {
+    "key": "content_242",
+    "group": "footer",
+    "type": "link",
+    "label": "Liên kết: Quản trị",
+    "value": "/admin.html"
+  },
+  {
+    "key": "content_243",
+    "group": "contact",
+    "type": "placeholder",
+    "label": "Ví dụ: Anh Minh / Chị Lan",
+    "value": "Ví dụ: Anh Minh / Chị Lan"
+  },
+  {
+    "key": "content_244",
+    "group": "contact",
+    "type": "placeholder",
+    "label": "0901 234 567",
+    "value": "0901 234 567"
+  },
+  {
+    "key": "content_245",
+    "group": "contact",
+    "type": "placeholder",
+    "label": "VD: Tạp hóa Minh Tâm / Cafe Mộc",
+    "value": "VD: Tạp hóa Minh Tâm / Cafe Mộc"
+  },
+  {
+    "key": "content_246",
+    "group": "contact",
+    "type": "placeholder",
+    "label": "Ví dụ: Mình muốn dùng trên điện thoại và kết nối máy in hóa đơn sẵn có...",
+    "value": "Ví dụ: Mình muốn dùng trên điện thoại và kết nối máy in hóa đơn sẵn có..."
+  },
+  {
+    "key": "industry.grocery.badge",
+    "group": "Ngành hàng: grocery",
+    "type": "text",
+    "label": "badge",
+    "value": "Giải pháp cho Tạp hóa & Siêu thị mini"
+  },
+  {
+    "key": "industry.grocery.title",
+    "group": "Ngành hàng: grocery",
+    "type": "text",
+    "label": "title",
+    "value": "Không cần nhớ giá hàng ngàn mặt hàng, quét mã vạch tính tiền cực nhanh"
+  },
+  {
+    "key": "industry.grocery.desc",
+    "group": "Ngành hàng: grocery",
+    "type": "text",
+    "label": "desc",
+    "value": "Cửa hàng tạp hóa có từ vài trăm đến hàng ngàn mã hàng lớn nhỏ. OneSoft POS giúp bạn quản lý giá bán lẻ, giá sỉ, quy đổi từ Thùng ra Lốc/Lon tự động và cảnh báo hàng cận hạn sử dụng."
+  },
+  {
+    "key": "industry.grocery.bullets.0",
+    "group": "Ngành hàng: grocery",
+    "type": "text",
+    "label": "bullets 1",
+    "value": "Tích hợp sẵn danh mục hàng ngàn mã vạch hàng tiêu dùng phổ biến tại Việt Nam"
+  },
+  {
+    "key": "industry.grocery.bullets.1",
+    "group": "Ngành hàng: grocery",
+    "type": "text",
+    "label": "bullets 2",
+    "value": "Bán hàng bằng camera điện thoại hoặc súng bắn mã vạch không dây siêu nhạy"
+  },
+  {
+    "key": "industry.grocery.bullets.2",
+    "group": "Ngành hàng: grocery",
+    "type": "text",
+    "label": "bullets 3",
+    "value": "Quản lý sổ mua chịu của khách hàng xóm rõ ràng tới từng gói mì, chai dầu ăn"
+  },
+  {
+    "key": "industry.grocery.statLabel",
+    "group": "Ngành hàng: grocery",
+    "type": "text",
+    "label": "statLabel",
+    "value": "Thời gian thanh toán trung bình cho giỏ hàng 10 món"
+  },
+  {
+    "key": "industry.grocery.statValue",
+    "group": "Ngành hàng: grocery",
+    "type": "text",
+    "label": "statValue",
+    "value": "Chỉ 4.5 Giây"
+  },
+  {
+    "key": "industry.fnb.badge",
+    "group": "Ngành hàng: fnb",
+    "type": "text",
+    "label": "badge",
+    "value": "Giải pháp cho Quán Cafe, Trà sữa & Quán ăn nhỏ"
+  },
+  {
+    "key": "industry.fnb.title",
+    "group": "Ngành hàng: fnb",
+    "type": "text",
+    "label": "title",
+    "value": "Order tại bàn hoặc tại quầy, in tem dán cốc & quản lý nguyên liệu chặt chẽ"
+  },
+  {
+    "key": "industry.fnb.desc",
+    "group": "Ngành hàng: fnb",
+    "type": "text",
+    "label": "desc",
+    "value": "Giờ cao điểm không còn sợ nhầm món, quên thu tiền hay thất thoát nguyên vật liệu. Nhân viên chọn món kèm topping (ít đá, 50% đường, thêm trân châu) và in phiếu chế biến tức thì."
+  },
+  {
+    "key": "industry.fnb.bullets.0",
+    "group": "Ngành hàng: fnb",
+    "type": "text",
+    "label": "bullets 1",
+    "value": "Quản lý sơ đồ bàn trực quan, gộp bàn, chuyển bàn, tách hóa đơn dễ dàng"
+  },
+  {
+    "key": "industry.fnb.bullets.1",
+    "group": "Ngành hàng: fnb",
+    "type": "text",
+    "label": "bullets 2",
+    "value": "Hỗ trợ in bill tính tiền và in tem nhãn dán ly trà sữa/cafe tự động"
+  },
+  {
+    "key": "industry.fnb.bullets.2",
+    "group": "Ngành hàng: fnb",
+    "type": "text",
+    "label": "bullets 3",
+    "value": "Tự động trừ định lượng đường, sữa, trà, cà phê trong kho sau mỗi ly bán ra"
+  },
+  {
+    "key": "industry.fnb.statLabel",
+    "group": "Ngành hàng: fnb",
+    "type": "text",
+    "label": "statLabel",
+    "value": "Giảm tỷ lệ nhầm lẫn món giờ cao điểm"
+  },
+  {
+    "key": "industry.fnb.statValue",
+    "group": "Ngành hàng: fnb",
+    "type": "text",
+    "label": "statValue",
+    "value": "Triệt để 100%"
+  },
+  {
+    "key": "industry.fashion.badge",
+    "group": "Ngành hàng: fashion",
+    "type": "text",
+    "label": "badge",
+    "value": "Giải pháp cho Shop Thời trang, Mỹ phẩm & Phụ kiện"
+  },
+  {
+    "key": "industry.fashion.title",
+    "group": "Ngành hàng: fashion",
+    "type": "text",
+    "label": "title",
+    "value": "Quản lý chi tiết tới từng Size, Màu sắc, Mẫu mã và Tích điểm khách VIP"
+  },
+  {
+    "key": "industry.fashion.desc",
+    "group": "Ngành hàng: fashion",
+    "type": "text",
+    "label": "desc",
+    "value": "Tra cứu tồn kho theo màu sắc và kích cỡ ngay khi tư vấn cho khách. Tự động lưu lịch sử mua sắm, gửi ưu đãi sinh nhật và phân hạng thành viên giúp khách quay lại mua nhiều lần."
+  },
+  {
+    "key": "industry.fashion.bullets.0",
+    "group": "Ngành hàng: fashion",
+    "type": "text",
+    "label": "bullets 1",
+    "value": "In tem mã vạch gắn lên quần áo, mỹ phẩm ngay từ phần mềm OneSoft POS"
+  },
+  {
+    "key": "industry.fashion.bullets.1",
+    "group": "Ngành hàng: fashion",
+    "type": "text",
+    "label": "bullets 2",
+    "value": "Kiểm kho nhanh bằng điện thoại cuối ngày, phát hiện lệch kho tức thì"
+  },
+  {
+    "key": "industry.fashion.bullets.2",
+    "group": "Ngành hàng: fashion",
+    "type": "text",
+    "label": "bullets 3",
+    "value": "Báo cáo mẫu nào đang bán chạy để nhập thêm, mẫu nào tồn lâu cần xả hàng"
+  },
+  {
+    "key": "industry.fashion.statLabel",
+    "group": "Ngành hàng: fashion",
+    "type": "text",
+    "label": "statLabel",
+    "value": "Tăng tỷ lệ khách hàng cũ quay lại mua sắm"
+  },
+  {
+    "key": "industry.fashion.statValue",
+    "group": "Ngành hàng: fashion",
+    "type": "text",
+    "label": "statValue",
+    "value": "+38% Doanh thu"
+  },
+  {
+    "key": "industry.hardware.badge",
+    "group": "Ngành hàng: hardware",
+    "type": "text",
+    "label": "badge",
+    "value": "Giải pháp cho Cửa hàng Điện nước, Vật tư & Nhà thuốc"
+  },
+  {
+    "key": "industry.hardware.title",
+    "group": "Ngành hàng: hardware",
+    "type": "text",
+    "label": "title",
+    "value": "Bán theo nhiều đơn vị tính (Mét, Cuộn, Hộp, Viên) và Quản lý công nợ công trình"
+  },
+  {
+    "key": "industry.hardware.desc",
+    "group": "Ngành hàng: hardware",
+    "type": "text",
+    "label": "desc",
+    "value": "Đặc thù ngành điện nước, vật liệu xây dựng và nhà thuốc là bán lẻ theo nhiều đơn vị quy đổi và thường xuyên có công nợ theo đợt giao hàng. OneSoft POS xử lý mượt mà mọi nghiệp vụ này."
+  },
+  {
+    "key": "industry.hardware.bullets.0",
+    "group": "Ngành hàng: hardware",
+    "type": "text",
+    "label": "bullets 1",
+    "value": "Nhớ giá bán riêng cho từng khách thợ quen, đại lý hoặc khách mua lẻ"
+  },
+  {
+    "key": "industry.hardware.bullets.1",
+    "group": "Ngành hàng: hardware",
+    "type": "text",
+    "label": "bullets 2",
+    "value": "Theo dõi công nợ theo từng công trình, lịch sử trả góp từng đợt minh bạch"
+  },
+  {
+    "key": "industry.hardware.bullets.2",
+    "group": "Ngành hàng: hardware",
+    "type": "text",
+    "label": "bullets 3",
+    "value": "Tìm kiếm thuốc, linh kiện cực nhanh theo tên hoạt chất hoặc công dụng"
+  },
+  {
+    "key": "industry.hardware.statLabel",
+    "group": "Ngành hàng: hardware",
+    "type": "text",
+    "label": "statLabel",
+    "value": "Tiết kiệm thời gian cộng sổ công nợ cuối tháng"
+  },
+  {
+    "key": "industry.hardware.statValue",
+    "group": "Ngành hàng: hardware",
+    "type": "text",
+    "label": "statValue",
+    "value": "90% Thời gian"
+  },
+  {
+    "key": "price.monthly.basic",
+    "group": "Bảng giá",
+    "type": "text",
+    "label": "basic / tháng",
+    "value": "129.000₫"
+  },
+  {
+    "key": "price.monthly.pro",
+    "group": "Bảng giá",
+    "type": "text",
+    "label": "pro / tháng",
+    "value": "199.000₫"
+  },
+  {
+    "key": "price.monthly.chain",
+    "group": "Bảng giá",
+    "type": "text",
+    "label": "chain / tháng",
+    "value": "349.000₫"
+  },
+  {
+    "key": "price.yearly.basic",
+    "group": "Bảng giá",
+    "type": "text",
+    "label": "basic / năm",
+    "value": "99.000₫"
+  },
+  {
+    "key": "price.yearly.pro",
+    "group": "Bảng giá",
+    "type": "text",
+    "label": "pro / năm",
+    "value": "169.000₫"
+  },
+  {
+    "key": "price.yearly.chain",
+    "group": "Bảng giá",
+    "type": "text",
+    "label": "chain / năm",
+    "value": "299.000₫"
+  }
+]

@@ -240,7 +240,7 @@ function bindGlobalEvents() {
       if (confirm('Bạn có muốn đăng xuất khỏi hệ thống?')) {
         window.api.removeToken();
         window.api.setCurrentStoreId('');
-        window.location.replace('/');
+        window.location.replace('/?mode=pos');
       }
     });
   }

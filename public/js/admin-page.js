@@ -254,7 +254,7 @@ const adminApp = {
   },
   async init() {
     if (!window.api.getToken()) {
-      location.replace("/");
+      location.replace("/?mode=pos");
       return;
     }
     let me;
@@ -264,7 +264,7 @@ const adminApp = {
       this.toast(e.message, true);
       if (e.status === 401 || e.status === 403) {
         window.api.removeToken();
-        setTimeout(() => location.replace("/"), 900);
+        setTimeout(() => location.replace("/?mode=pos"), 900);
       }
       return;
     }
@@ -273,7 +273,7 @@ const adminApp = {
       this.me = me.user;
       if (!["SUPER_ADMIN", "ADMIN"].includes(this.me.role)) {
         this.toast("Trang này chỉ dành cho ADMIN hoặc SUPER_ADMIN", true);
-        setTimeout(() => location.replace("/"), 900);
+        setTimeout(() => location.replace("/?mode=pos"), 900);
         return;
       }
       this.stores = me.stores || [];
@@ -308,7 +308,7 @@ const adminApp = {
       .forEach((btn) => (btn.onclick = () => this.showPage(btn.dataset.page)));
     document.getElementById("logoutBtn").onclick = () => {
       window.api.removeToken();
-      location.href = "/";
+      location.href = "/?mode=pos";
     };
     document.getElementById("modalClose").onclick = document.getElementById(
       "modalCancel",
@@ -393,6 +393,7 @@ const adminApp = {
     if (page === "tables") await this.prepareTableManagement();
     if (page === "inventory") await this.prepareInventory();
     if (page === "audit") await this.loadAudit();
+    if (page === "landing") await window.landingAdmin.load();
     if (page === "apks") {
       try { await this.loadApks(); } catch (error) { this.toast(error.message, true); }
     }

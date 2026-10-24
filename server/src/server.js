@@ -27,6 +27,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOpti
 
 // Serve static frontend files
 const publicPath = path.join(__dirname, '../../public');
+app.use(require('./routes/siteEntry'));
 app.use(express.static(publicPath));
 
 // Mount REST API

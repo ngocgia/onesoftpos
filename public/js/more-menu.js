@@ -522,7 +522,7 @@ window.moreMenuModule = {
     if (confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống Thích Gà POS?')) {
       window.api?.removeToken();
       window.api?.setCurrentStoreId('');
-      window.location.replace('/');
+      window.location.replace('/?mode=pos');
     }
   }
 };

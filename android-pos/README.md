@@ -11,6 +11,22 @@
 - Từ bản 1.3.4, hóa đơn tạm tính có QR thanh toán được in cả mã QR qua Bluetooth/USB. Cần cấu hình ngân hàng, số tài khoản và chủ tài khoản trong cài đặt cửa hàng. Ứng dụng tải ảnh QR trước khi gửi dữ liệu in; tải lỗi sẽ báo để thử lại.
 - Cần Internet và website public hoạt động; app không lưu menu hoặc đơn hàng để dùng offline.
 
+## In qua RawBT trên máy iPOS
+
+APK **1.3.6** sửa tùy chọn **Tự động cắt giấy**: website truyền `receipt_auto_cut_paper` sang Android, bộ in thêm đúng một lệnh `GS V 66 0` sau nội dung, QR, lời cuối và đẩy giấy. Lệnh dùng chung cho USB/Bluetooth và dữ liệu chuyển sang RawBT. Tắt tùy chọn thì chỉ đẩy giấy, không gửi lệnh cắt. Cần cập nhật cả website và APK. Máy phải có dao cắt hỗ trợ ESC/POS; hộp thoại in Android/trình duyệt vẫn do driver điều khiển. Nếu RawBT cũng được cấu hình tự thêm lệnh cắt, chỉ bật cắt ở một nơi để tránh cắt hai lần. Tham khảo [lệnh GS V của Epson](https://download4.epson.biz/sec_pubs/pos/reference_en/escpos/gs_cv.html).
+
+Từ APK **1.3.5**, vào **Nhiều hơn → Cài đặt máy in → RawBT**, chọn K58/K80/K85, lưu và bấm in thử. Phải cập nhật cả website/backend và APK; APK cũ sẽ báo cần cập nhật khi chọn RawBT.
+
+Trước tiên mở RawBT trên máy, kiểm tra kết nối máy in đã cấu hình và in thử ngay trong RawBT. App chuyển dữ liệu ESC/POS sang đúng gói `ru.a402d.rawbtprinter` qua `rawbt:base64,` theo [ví dụ của tác giả RawBT](https://github.com/402d/DemoRawBtPrinter). Không cần chọn lại kết nối USB/Bluetooth bên POS khi đã chọn RawBT. Nội dung tiếng Việt và QR được dựng thành raster như luồng in trực tiếp.
+
+Nếu không mở được RawBT, app hiện thông báo để cài/bật và cấu hình RawBT. Thông báo “Đã chuyển phiếu” chỉ xác nhận đã mở ứng dụng nhận, không xác nhận giấy đã in; kiểm tra lỗi kết nối trong RawBT. Phiếu vượt 180.000 byte raster bị từ chối trước khi gửi để tránh vượt giới hạn Intent Android; với phiếu dài hãy dùng USB/Bluetooth trực tiếp. Chưa xác minh trên phần cứng iPOS thực tế.
+
+## Khoảng cách giao diện trên máy iPOS
+
+Vào **Nhiều hơn → Giao diện máy POS**. Mặc định giao diện tự chừa vùng thanh hệ thống trên cả màn hình dọc và ngang. Nếu firmware của máy báo sai kích thước thanh trạng thái/điều hướng, nhập khoảng cách thêm ở cạnh trên, dưới, trái hoặc phải (0–160 px). Có thể bắt đầu bằng **Gợi ý máy iPOS: trên 32, dưới 64**, điều chỉnh theo máy rồi bấm **Lưu giao diện**. **Về mặc định** đưa các ô về 0 và bật tự động; bấm lưu để áp dụng.
+
+Thiết lập lưu trong WebView trên từng máy, dùng chung cho nhân viên trên máy đó, không đồng bộ sang máy khác. Xóa dữ liệu ứng dụng sẽ xóa thiết lập. Thay đổi này nằm trong website POS; sau khi cập nhật các tệp web lên máy chủ, đóng/mở lại app để tải giao diện mới, không cần tạo APK mới. CSS tương thích với các biến inset và quy tắc được APK hiện tại chèn vào trang.
+
 ## Mở và tạo APK
 
 1. Cài Android Studio, Android SDK Platform 36 và JDK 17.

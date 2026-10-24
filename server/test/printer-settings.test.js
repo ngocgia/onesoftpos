@@ -182,6 +182,45 @@ test('direct thermal printing requires updated Android bridge and rejects A4', a
   assert.equal(h.prints(), 1);
 });
 
+test('RawBT never silently falls back on older APKs, supports receipts with QR and rejects A4', async () => {
+  const h = harness();
+  h.settings.set('11', { paperSize: 'K80', connectionType: 'rawbt' });
+  await h.window.invoiceModule.showReceipt({ isDraft: true, order_code: 'RAWBT' });
+  h.window.onesoftNativePrint = true;
+  await h.window.invoiceModule.printReceipt();
+  assert.equal(h.prints(), 0);
+  assert.match(h.toasts.at(-1).message, /cập nhật APK/);
+  h.window.onesoftNativeRawBt = true;
+  h.window.invoiceModule.receiptQrUrl = 'https://img.vietqr.io/image/test.png';
+  await h.window.invoiceModule.printReceipt();
+  assert.equal(h.prints(), 1);
+  assert.equal(h.window.appState.storeSettings.receipt_connection_type, 'rawbt');
+  h.settings.set('11', { paperSize: 'A4', connectionType: 'rawbt' });
+  await h.window.invoiceModule.printReceipt();
+  assert.equal(h.prints(), 1);
+  assert.match(h.toasts.at(-1).message, /K58, K80 hoặc K85/);
+});
+
+test('automatic cutter setting reaches the Android bridge and follows the latest saved preference', async () => {
+  const h = harness();
+  h.window.onesoftNativePrint = true;
+  h.window.onesoftNativeRawBt = true;
+  h.settings.set('11', { paperSize: 'K80', connectionType: 'rawbt', autoCutPaper: true });
+  await h.window.invoiceModule.showReceipt({ isDraft: true, order_code: 'CUT' });
+  await h.window.invoiceModule.printReceipt();
+  assert.equal(h.window.appState.storeSettings.receipt_auto_cut_paper, true);
+  h.settings.set('11', { paperSize: 'K80', connectionType: 'rawbt', autoCutPaper: false });
+  await h.window.invoiceModule.printReceipt();
+  assert.equal(h.window.appState.storeSettings.receipt_auto_cut_paper, false);
+  assert.equal(h.prints(), 2);
+});
+
+test('RawBT configuration persists through the printer settings API', () => {
+  const { validate } = require('../src/controllers/menuPreferencesController');
+  const settings = { paperSize: 'K80', connectionType: 'rawbt', ipAddress: '', autoPrintOnPayment: false, autoCutPaper: false, printKitchenSeparate: false };
+  assert.equal(validate('printer', settings).connectionType, 'rawbt');
+});
+
 test('test print uses the actual receipt and transport, includes Vietnamese accents', async () => {
   const h = harness();
   await h.window.moreMenuModule.openPrinterModal();

@@ -1,0 +1,91 @@
+/* Reserve system-bar space at every screen width, including landscape POS.
+   Separate variables also support older APKs which inject --safe-* inline. */
+:root {
+  --pos-system-top: max(env(safe-area-inset-top, 0px), var(--android-inset-top, 0px));
+  --pos-system-bottom: max(env(safe-area-inset-bottom, 0px), var(--android-inset-bottom, 0px));
+  --pos-system-left: max(env(safe-area-inset-left, 0px), var(--android-inset-left, 0px));
+  --pos-system-right: max(env(safe-area-inset-right, 0px), var(--android-inset-right, 0px));
+  --pos-top: calc(var(--pos-system-top) + var(--pos-extra-top, 0px));
+  --pos-bottom: calc(var(--pos-system-bottom) + var(--pos-extra-bottom, 0px));
+  --pos-left: calc(var(--pos-system-left) + var(--pos-extra-left, 0px));
+  --pos-right: calc(var(--pos-system-right) + var(--pos-extra-right, 0px));
+  --pos-header: 74px;
+  --pos-nav: 64px;
+}
+
+@media (max-width: 520px) {
+  :root { --pos-header: 58px; }
+}
+@media (orientation: landscape) and (min-width: 700px) and (max-height: 520px) {
+  :root { --pos-header: 50px; --pos-nav: 54px; }
+}
+
+html:root {
+  --header-height: var(--pos-header) !important;
+  --bottom-nav-height: var(--pos-nav) !important;
+}
+body { padding-left: 0; padding-right: 0; }
+body .app-container {
+  padding: var(--pos-top) var(--pos-right) 0 var(--pos-left);
+}
+body .top-header {
+  height: var(--pos-header);
+  min-height: var(--pos-header) !important;
+  flex-shrink: 0;
+  padding-top: 0 !important;
+}
+body .main-content {
+  min-height: 0;
+  margin-bottom: calc(var(--pos-nav) + var(--pos-bottom)) !important;
+}
+body .bottom-nav-bar {
+  bottom: var(--pos-bottom);
+  left: var(--pos-left);
+  right: var(--pos-right);
+  height: var(--pos-nav) !important;
+  min-height: var(--pos-nav) !important;
+  padding-bottom: 0 !important;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+body .modal-overlay {
+  top: var(--pos-top);
+  bottom: var(--pos-bottom);
+  left: var(--pos-left);
+  right: var(--pos-right);
+  padding-top: 0;
+}
+body .modal-overlay > .modal-dialog,
+body .modal-overlay > .modal-sheet-dialog {
+  max-height: 100%;
+}
+body .pos-cart-panel {
+  bottom: calc(var(--pos-nav) + var(--pos-bottom));
+  left: var(--pos-left);
+  right: var(--pos-right);
+  max-height: calc(100vh - var(--pos-top) - var(--pos-bottom) - var(--pos-header) - var(--pos-nav) - 10px);
+}
+@media (min-width: 1024px) {
+  body .pos-cart-panel { max-height: 100%; }
+}
+@media (orientation: landscape) and (min-width: 700px) and (max-height: 520px) {
+  body .pos-cart-panel {
+    top: calc(var(--pos-top) + var(--pos-header));
+    left: auto;
+  }
+}
+body .toast-container { top: calc(var(--pos-top) + var(--pos-header) + 8px); }
+#deviceDisplayModal .modal-header,
+#deviceDisplayModal .modal-footer { flex-shrink: 0; }
+#deviceDisplayModal .modal-footer { display: flex; gap: 8px; justify-content: flex-end; }
+#deviceDisplayModal .modal-body { overflow-y: auto; min-height: 0; }
+.device-display-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.device-display-grid label { display: grid; gap: 6px; }
+@media print {
+  body .app-container { padding: 0; }
+}

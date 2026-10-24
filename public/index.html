@@ -20,6 +20,8 @@
   <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="css/main.css?v=20261010-spacing-fix">
+  <link rel="stylesheet" href="css/device-display.css?v=20261024">
+  <script src="js/device-display.js?v=20261024"></script>
 </head>
 
 <body class="theme-light">
@@ -453,6 +455,14 @@
             <div class="more-menu-group">
               <h2 class="more-menu-group-title">Cửa hàng</h2>
               <div class="more-menu-card">
+
+                <button type="button" class="more-menu-item" id="menuItemDeviceDisplay" style="width:100%;text-align:left">
+                  <span class="more-item-left">
+                    <span class="more-item-icon"><i class="fa-solid fa-display"></i></span>
+                    <span class="more-item-label">Giao diện máy POS</span>
+                  </span>
+                  <i class="fa-solid fa-chevron-right more-item-arrow"></i>
+                </button>
 
                 <div class="more-menu-item" id="menuItemPrinter">
                   <div class="more-item-left">
@@ -1602,6 +1612,7 @@
         <div class="form-group">
           <label>Cổng kết nối máy in:</label>
           <select id="printerConnectionType" class="form-input">
+            <option value="rawbt">RawBT (máy Android/iPOS đã cấu hình RawBT)</option>
             <option value="browser">Trình duyệt (Web Print / Hộp thoại in Windows)</option>
             <option value="lan">Mạng LAN / Wi-Fi (Máy in qua địa chỉ IP)</option>
             <option value="bluetooth">Máy in không dây Bluetooth</option>
@@ -1630,7 +1641,7 @@
         <div class="setting-switch-row">
           <div class="setting-switch-label">
             <span class="setting-switch-title">Tự động cắt giấy</span>
-            <span class="setting-switch-desc">Áp dụng cho máy in K80 hỗ trợ dao cắt tự động</span>
+            <span class="setting-switch-desc">Cần máy in có dao cắt. In USB/Bluetooth/RawBT cần APK 1.3.6 trở lên; in qua hộp thoại phụ thuộc driver.</span>
           </div>
           <input type="checkbox" id="printerAutoCut" checked>
         </div>
@@ -2279,6 +2290,34 @@
 
 
   <!-- TOAST NOTIFICATION CONTAINER -->
+  <div class="modal-overlay" id="deviceDisplayModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="deviceDisplayTitle">
+    <form class="modal-dialog" id="deviceDisplayForm">
+      <div class="modal-header">
+        <h3 id="deviceDisplayTitle">Giao diện máy POS</h3>
+        <button type="button" class="btn-close-modal" data-close-display aria-label="Đóng">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Chừa khoảng trống để thanh giờ, pin và nút điều hướng của máy không che chức năng.</p>
+        <label class="setting-switch-row">
+          <span>Tự động tránh thanh hệ thống</span>
+          <input type="checkbox" name="auto" checked>
+        </label>
+        <p class="text-muted">Khoảng cách thêm ở mỗi cạnh (px). Nếu máy vẫn che nút, tăng cạnh tương ứng. Thiết lập chỉ lưu trên máy này.</p>
+        <div class="device-display-grid">
+          <label>Phía trên<input class="form-input" type="number" name="top" min="0" max="160" step="1" required></label>
+          <label>Phía dưới<input class="form-input" type="number" name="bottom" min="0" max="160" step="1" required></label>
+          <label>Bên trái<input class="form-input" type="number" name="left" min="0" max="160" step="1" required></label>
+          <label>Bên phải<input class="form-input" type="number" name="right" min="0" max="160" step="1" required></label>
+        </div>
+        <button type="button" class="btn-secondary" id="deviceDisplayPreset">Gợi ý máy iPOS: trên 32, dưới 64</button>
+        <p id="deviceDisplayStatus" role="status" class="text-danger"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="deviceDisplayReset">Về mặc định</button>
+        <button type="submit" class="btn-primary">Lưu giao diện</button>
+      </div>
+    </form>
+  </div>
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- SCRIPTS (Vanilla ES6 Modules) -->
@@ -2291,7 +2330,7 @@
   <script src="js/completed-items.js?v=20260923-table-first"></script>
   <script src="js/orders.js?v=20261010-history-printer"></script>
   <script src="js/checkout.js?v=20261010-store-printer"></script>
-  <script src="js/invoice.js?v=20261010-history-printer"></script>
+  <script src="js/invoice.js?v=20261024-paper-cut"></script>
   <script src="js/shifts.js"></script>
   <script src="js/admin.js?v=20260923-pos-store-fields"></script>
   <script src="js/more-menu.js?v=20261010-store-printer"></script>

@@ -87,6 +87,7 @@ window.invoiceModule = {
     window.appState.storeSettings ||= {};
     window.appState.storeSettings.receipt_paper_size = { K58: '58mm', K80: '80mm', K85: '85mm', A4: 'A4' }[settings.paperSize] || '80mm';
     window.appState.storeSettings.receipt_connection_type = settings.connectionType || 'browser';
+    window.appState.storeSettings.receipt_auto_cut_paper = settings.autoCutPaper !== false;
     let style = document.getElementById('receiptPrintSettings');
     if (!style) {
       style = document.createElement('style');
@@ -140,6 +141,10 @@ window.invoiceModule = {
       const settings = await this.loadPrinterSettings(storeId);
       this.applyPrinterSettings(settings);
       if (auto && !(this.receiptKind === 'orderSlip' ? settings.autoPrintOrderSlipOnTransfer : settings.autoPrintOnPayment)) return;
+      if (settings.connectionType === 'rawbt') {
+        if (!window.onesoftNativeRawBt) throw new Error('In RawBT cần cài ứng dụng Android Onesoft POS bản hỗ trợ RawBT; vui lòng cập nhật APK');
+        if (settings.paperSize === 'A4') throw new Error('In RawBT chỉ hỗ trợ K58, K80 hoặc K85');
+      }
       if (['bluetooth', 'usb'].includes(settings.connectionType) && !window.onesoftNativePrint) {
         if (settings.connectionType === 'bluetooth') throw new Error('In Bluetooth trực tiếp cần ứng dụng Android Onesoft POS bản mới');
       }

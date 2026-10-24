@@ -12,6 +12,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ActivityNotFoundException;
+import android.net.Uri;
+import android.util.Base64;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -24,6 +27,7 @@ import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.widget.Toast;
 import java.io.IOException;
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.io.InputStream;
 import java.net.URL;
@@ -45,6 +49,7 @@ final class ThermalPrinter {
     private String qrUrl;
     private String footer;
     private int width;
+    private boolean autoCut;
     private UsbDevice waitingDevice;
     private boolean receiverRegistered;
     private volatile boolean closed;
@@ -55,18 +60,57 @@ final class ThermalPrinter {
         usbAction = activity.getPackageName() + ".USB_PRINT_PERMISSION";
     }
 
-    void print(String receipt, String paper, String connection, String receiptQrUrl, String receiptFooter) {
+    void print(String receipt, String paper, String connection, String receiptQrUrl, String receiptFooter, boolean cutPaper) {
         if (closed) return;
         if (busy) { message("Đang xử lý một phiếu in. Vui lòng chờ."); return; }
         if (receipt == null || receipt.trim().isEmpty()) { message("Chưa có dữ liệu hóa đơn"); return; }
         text = receipt;
         qrUrl = receiptQrUrl;
         footer = receiptFooter;
+        autoCut = cutPaper;
         // K80/K85 use a conservative 72mm raster until the exact printhead width is known.
         width = "58mm".equals(paper) ? 384 : 576;
         busy = true;
-        if ("bluetooth".equals(connection)) chooseBluetooth();
+        if ("rawbt".equals(connection)) sendRawBt();
+        else if ("bluetooth".equals(connection)) chooseBluetooth();
         else chooseUsb();
+    }
+
+    private void sendRawBt() {
+        message("Đang chuẩn bị phiếu in qua RawBT...");
+        worker.execute(() -> {
+            try {
+                // Keep the encoded URI comfortably below Android's Binder transaction limit.
+                ByteArrayOutputStream data = new ByteArrayOutputStream();
+                OutputStream limited = new OutputStream() {
+                    @Override public void write(int value) throws IOException {
+                        if (data.size() >= 180000) throw new IOException("Phiếu quá dài để gửi qua RawBT. Hãy dùng kết nối USB/Bluetooth trực tiếp.");
+                        data.write(value);
+                    }
+                    @Override public void write(byte[] value, int offset, int length) throws IOException {
+                        if (length > 180000 - data.size()) throw new IOException("Phiếu quá dài để gửi qua RawBT. Hãy dùng kết nối USB/Bluetooth trực tiếp.");
+                        data.write(value, offset, length);
+                    }
+                };
+                sendRaster(limited);
+                String encoded = Base64.encodeToString(data.toByteArray(), Base64.NO_WRAP);
+                activity.runOnUiThread(() -> {
+                    try {
+                        if (closed || activity.isFinishing() || activity.isDestroyed()) return;
+                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("rawbt:base64," + encoded));
+                        intent.setPackage("ru.a402d.rawbtprinter");
+                        activity.startActivity(intent);
+                        message("Đã chuyển phiếu sang RawBT. Kiểm tra trạng thái trong RawBT và giấy in.");
+                    } catch (ActivityNotFoundException error) {
+                        message("Không mở được RawBT. Hãy cài/bật RawBT, cấu hình máy in và in thử trong RawBT trước.");
+                    } catch (Exception error) {
+                        message("Không gửi được phiếu sang RawBT: " + error.getMessage());
+                    } finally { busy = false; }
+                });
+            } catch (Exception error) {
+                activity.runOnUiThread(() -> stop("In RawBT thất bại: " + error.getMessage()));
+            }
+        });
     }
 
     private void message(String message) {
@@ -253,7 +297,7 @@ final class ThermalPrinter {
                 } finally { strip.recycle(); if (scaled != qr) scaled.recycle(); }
                 if (footer != null && !footer.isEmpty()) sendText(output, footer);
             }
-            output.write(new byte[]{27, 100, 4});
+            output.write(EscPosRaster.finish(autoCut));
             output.flush();
         } finally { if (qr != null) qr.recycle(); }
     }

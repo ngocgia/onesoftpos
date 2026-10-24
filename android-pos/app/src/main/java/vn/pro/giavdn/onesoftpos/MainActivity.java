@@ -42,10 +42,12 @@ public final class MainActivity extends Activity {
     private static final String APP_BRIDGE_SCRIPT = "(function(){"
             + "window.onesoftAudio={beep:function(v){OnesoftAudioBridge.beep(v)},speak:function(t,v){OnesoftAudioBridge.speak(String(t),v)}};"
             + "window.onesoftNativePrint=true;"
+            + "window.onesoftNativeRawBt=true;"
             + "window.onesoftNativeReceiptQr=true;"
             + "window.print=function(){var paper=(window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_paper_size)||'80mm';"
             + "var connection=(window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_connection_type)||'browser';"
-            + "window.location.href='tgpos://print?paper='+encodeURIComponent(paper)+'&connection='+encodeURIComponent(connection)}"
+            + "var cut=!(window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_auto_cut_paper===false);"
+            + "window.location.href='tgpos://print?paper='+encodeURIComponent(paper)+'&connection='+encodeURIComponent(connection)+'&cut='+(cut?'1':'0')}"
             + "})()";
 
     private WebView webView;
@@ -194,7 +196,8 @@ public final class MainActivity extends Activity {
                     if (!isAppHost(Uri.parse(view.getUrl()))) return true;
                     String paper = uri.getQueryParameter("paper");
                     String connection = uri.getQueryParameter("connection");
-                    if ("bluetooth".equals(connection) || "usb".equals(connection)) {
+                    boolean autoCut = !"0".equals(uri.getQueryParameter("cut"));
+                    if ("bluetooth".equals(connection) || "usb".equals(connection) || "rawbt".equals(connection)) {
                         if (!"58mm".equals(paper) && !"80mm".equals(paper) && !"85mm".equals(paper)) {
                             Toast.makeText(MainActivity.this, "Chọn khổ K58, K80 hoặc K85 để in nhiệt", Toast.LENGTH_LONG).show();
                             return true;
@@ -206,8 +209,9 @@ public final class MainActivity extends Activity {
                                 Object receipt = new org.json.JSONTokener(value).nextValue();
                                 if (receipt instanceof org.json.JSONObject) {
                                     org.json.JSONObject data = (org.json.JSONObject) receipt;
-                                    thermalPrinter.print(data.optString("text"), paper, connection, data.optString("qrUrl"), data.optString("footer"));
+                                    thermalPrinter.print(data.optString("text"), paper, connection, data.optString("qrUrl"), data.optString("footer"), autoCut);
                                 }
+                                else Toast.makeText(MainActivity.this, "Chưa đọc được dữ liệu hóa đơn. Hãy mở lại phiếu.", Toast.LENGTH_LONG).show();
                             } catch (Exception error) { Toast.makeText(MainActivity.this, "Không đọc được dữ liệu hóa đơn", Toast.LENGTH_LONG).show(); }
                         });
                     } else printReceipt(paper);

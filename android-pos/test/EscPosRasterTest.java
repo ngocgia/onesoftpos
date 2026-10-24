@@ -4,6 +4,8 @@ import java.util.Arrays;
 
 public final class EscPosRasterTest {
     public static void main(String[] args) {
+        if (!Arrays.equals(EscPosRaster.finish(true), new byte[]{27, 100, 4, 29, 86, 66, 0})) throw new AssertionError("Feed then cut command");
+        if (!Arrays.equals(EscPosRaster.finish(false), new byte[]{27, 100, 4})) throw new AssertionError("Disabled cutter must only feed");
         int[] pixels = new int[384 * 64];
         Arrays.fill(pixels, 0xffffffff);
         pixels[0] = pixels[7] = pixels[8] = pixels[pixels.length - 1] = 0xff000000;
@@ -17,6 +19,6 @@ public final class EscPosRasterTest {
         boolean rejected = false;
         try { EscPosRaster.encode(new int[8], 7, 1); } catch (IllegalArgumentException expected) { rejected = true; }
         if (!rejected) throw new AssertionError("Invalid dimensions accepted");
-        System.out.println("ESC/POS raster tests passed: K58, K80, bit order, final strip, invalid dimensions");
+        System.out.println("ESC/POS tests passed: K58, K80, bit order, final strip, invalid dimensions, cutter enabled/disabled");
     }
 }

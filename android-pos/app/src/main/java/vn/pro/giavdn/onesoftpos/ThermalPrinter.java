@@ -52,6 +52,8 @@ final class ThermalPrinter {
     private String footer;
     private int width;
     private boolean autoCut;
+    private byte[] renderedRaster;
+    private boolean paceOutput;
     private UsbDevice waitingDevice;
     private boolean receiverRegistered;
     private volatile boolean closed;
@@ -64,13 +66,21 @@ final class ThermalPrinter {
     }
 
     void print(String receipt, String paper, String connection, String receiptQrUrl, String receiptFooter, boolean cutPaper, String ipAddress) {
+        print(receipt, paper, connection, receiptQrUrl, receiptFooter, cutPaper, ipAddress, null);
+    }
+
+    boolean isBusy() { return busy; }
+
+    void print(String receipt, String paper, String connection, String receiptQrUrl, String receiptFooter, boolean cutPaper, String ipAddress, byte[] rendered) {
         if (closed) return;
         if (busy) { message("Đang xử lý một phiếu in. Vui lòng chờ."); return; }
-        if (receipt == null || receipt.trim().isEmpty()) { message("Chưa có dữ liệu hóa đơn"); return; }
+        if ((receipt == null || receipt.trim().isEmpty()) && rendered == null) { message("Chưa có dữ liệu hóa đơn"); return; }
         text = receipt;
         qrUrl = receiptQrUrl;
         footer = receiptFooter;
         autoCut = cutPaper;
+        renderedRaster = rendered;
+        paceOutput = "usb".equals(connection) || "bluetooth".equals(connection);
         // K80/K85 use a conservative 72mm raster until the exact printhead width is known.
         width = "58mm".equals(paper) ? 384 : 576;
         busy = true;
@@ -287,6 +297,19 @@ final class ThermalPrinter {
     }
 
     private void sendRaster(OutputStream output) throws IOException {
+        if (renderedRaster != null) {
+            output.write(new byte[]{27, 64, 27, 97, 0});
+            // TCP applies backpressure; RawBT manages its own printer buffers.
+            // USB/Bluetooth retain conservative pacing for slower legacy devices.
+            for (int offset = 0; offset < renderedRaster.length; offset += 4608) {
+                output.write(renderedRaster, offset, Math.min(4608, renderedRaster.length - offset));
+                output.flush();
+                pauseForPrinter();
+            }
+            output.write(EscPosRaster.finish(autoCut));
+            output.flush();
+            return;
+        }
         Bitmap qr = null;
         try {
             // Load before sending any paper, so a failed QR download cannot print a partial bill.
@@ -319,7 +342,7 @@ final class ThermalPrinter {
                         strip.getPixels(pixels, 0, width, 0, 0, width, rows);
                         output.write(EscPosRaster.encode(pixels, width, rows));
                         output.flush();
-                        try { Thread.sleep(180); } catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new IOException("Đã dừng in", error); }
+                        pauseForPrinter();
                     }
                 } finally { strip.recycle(); if (scaled != qr) scaled.recycle(); }
                 if (footer != null && !footer.isEmpty()) sendText(output, footer);
@@ -351,9 +374,15 @@ final class ThermalPrinter {
                 output.write(command);
                 output.flush();
                 // 64 dots = 8mm at 203dpi. Allow slower 50mm/s printers to drain their buffer.
-                try { Thread.sleep(180); } catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new IOException("Đã dừng in", error); }
+                pauseForPrinter();
             }
         } finally { strip.recycle(); }
+    }
+
+    private void pauseForPrinter() throws IOException {
+        if (!paceOutput) return;
+        try { Thread.sleep(180); }
+        catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new IOException("Đã dừng in", error); }
     }
 
     void close() {

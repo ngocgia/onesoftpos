@@ -259,6 +259,19 @@ test('Android bridge includes IP, LAN capability and cutter flag in its print re
   assert.equal(url.searchParams.get('cut'), '0');
 });
 
+test('Android freezes receipt layout synchronously before order-slip content can be restored', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../../android-pos/app/src/main/java/vn/pro/giavdn/onesoftpos/MainActivity.java'), 'utf8');
+  const region = source.split('private static final String APP_BRIDGE_SCRIPT =')[1].split('private WebView')[0];
+  const script = [...region.matchAll(/"(?:\\.|[^"\\])*"/g)].map(match => JSON.parse(match[0])).join('');
+  let content = 'PHIẾU ĐẶT ĐỒ';
+  const window = { appState: { storeSettings: {} }, location: {}, onesoftBuildReceiptSnapshot: () => ({ html: '<table>' + content + '</table>', text: content, storeId: '11' }) };
+  vm.runInNewContext(script, { window });
+  window.print();
+  content = 'HÓA ĐƠN CŨ';
+  assert.equal(window.onesoftPendingReceipt.text, 'PHIẾU ĐẶT ĐỒ');
+  assert.equal(window.onesoftPendingReceipt.html, '<table>PHIẾU ĐẶT ĐỒ</table>');
+});
+
 test('RawBT configuration persists through the printer settings API', () => {
   const { validate } = require('../src/controllers/menuPreferencesController');
   const settings = { paperSize: 'K80', connectionType: 'rawbt', ipAddress: '', autoPrintOnPayment: false, autoCutPaper: false, printKitchenSeparate: false };

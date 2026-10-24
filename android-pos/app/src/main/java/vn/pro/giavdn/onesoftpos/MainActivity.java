@@ -46,6 +46,7 @@ public final class MainActivity extends Activity {
             + "window.onesoftNativeLanPrint=true;"
             + "window.onesoftNativeReceiptQr=true;"
             + "window.print=function(){var paper=(window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_paper_size)||'80mm';"
+            + "try{if(window.onesoftBuildReceiptSnapshot)window.onesoftPendingReceipt=window.onesoftBuildReceiptSnapshot()}catch(e){alert('Không chuẩn bị được hóa đơn: '+e.message);return;}"
             + "var connection=(window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_connection_type)||'browser';"
             + "var cut=!(window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_auto_cut_paper===false);"
             + "var ip=(window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_ip_address)||'';"
@@ -55,6 +56,8 @@ public final class MainActivity extends Activity {
     private WebView webView;
     private ThermalPrinter thermalPrinter;
     private NativeSpeaker nativeSpeaker;
+    private ReceiptRenderer receiptRenderer;
+    private String receiptSnapshotScript;
     private ProgressBar progress;
     private LinearLayout errorView;
     private boolean loadFailed;
@@ -70,7 +73,15 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        WebView.enableSlowWholeDocumentDraw();
         thermalPrinter = new ThermalPrinter(this);
+        receiptRenderer = new ReceiptRenderer(this);
+        try (java.io.InputStream input = getAssets().open("receipt-snapshot.js")) {
+            java.io.ByteArrayOutputStream script = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[4096]; int count;
+            while ((count = input.read(buffer)) != -1) script.write(buffer, 0, count);
+            receiptSnapshotScript = script.toString("UTF-8");
+        } catch (Exception error) { receiptSnapshotScript = "void 0"; }
         nativeSpeaker = new NativeSpeaker(this);
         setVolumeControlStream(android.media.AudioManager.STREAM_MUSIC);
         if (Build.VERSION.SDK_INT >= 33) {
@@ -196,6 +207,10 @@ public final class MainActivity extends Activity {
                 Uri uri = request.getUrl();
                 if ("tgpos".equals(uri.getScheme()) && "print".equals(uri.getHost())) {
                     if (!isAppHost(Uri.parse(view.getUrl()))) return true;
+                    if (receiptRenderer.isBusy() || thermalPrinter.isBusy()) {
+                        Toast.makeText(MainActivity.this, "Đang xử lý phiếu in. Vui lòng chờ.", Toast.LENGTH_LONG).show();
+                        return true;
+                    }
                     String paper = uri.getQueryParameter("paper");
                     String connection = uri.getQueryParameter("connection");
                     boolean autoCut = !"0".equals(uri.getQueryParameter("cut"));
@@ -208,14 +223,26 @@ public final class MainActivity extends Activity {
                         String sourceUrl = view.getUrl();
                         // Older website builds don't fill receipt_ip_address. Read the
                         // same-store saved preference as a compatibility fallback.
-                        view.evaluateJavascript("(function(){var saved=window.menuPersistence&&typeof window.menuPersistence.read==='function'?window.menuPersistence.read('printer',{}):{};return {text:window.invoiceModule&&window.invoiceModule.receiptText||'',qrUrl:window.invoiceModule&&window.invoiceModule.receiptQrUrl||'',footer:window.invoiceModule&&window.invoiceModule.receiptFooterText||'',ip:window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_ip_address||saved.ipAddress||''}})()", value -> {
+                        view.evaluateJavascript("(function(){var saved=window.menuPersistence&&typeof window.menuPersistence.read==='function'?window.menuPersistence.read('printer',{}):{};return window.onesoftPendingReceipt||{text:window.invoiceModule&&window.invoiceModule.receiptText||'',qrUrl:window.invoiceModule&&window.invoiceModule.receiptQrUrl||'',footer:window.invoiceModule&&window.invoiceModule.receiptFooterText||'',ip:window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_ip_address||saved.ipAddress||''}})()", value -> {
                             if (!sourceUrl.equals(view.getUrl())) return;
                             try {
                                 Object receipt = new org.json.JSONTokener(value).nextValue();
                                 if (receipt instanceof org.json.JSONObject) {
                                     org.json.JSONObject data = (org.json.JSONObject) receipt;
                                     String resolvedIp = ipAddress != null && !ipAddress.trim().isEmpty() ? ipAddress : data.optString("ip");
-                                    thermalPrinter.print(data.optString("text"), paper, connection, data.optString("qrUrl"), data.optString("footer"), autoCut, resolvedIp);
+                                    if (!data.optString("html").isEmpty()) {
+                                        receiptRenderer.render(data.optString("html"), "58mm".equals(paper) ? 384 : 576, (raster, error) -> {
+                                            if (isFinishing() || isDestroyed() || !sourceUrl.equals(view.getUrl())) return;
+                                            if (error != null) { Toast.makeText(MainActivity.this, error, Toast.LENGTH_LONG).show(); return; }
+                                            String sameStore = "String(window.api&&window.api.getCurrentStoreId?window.api.getCurrentStoreId():'')===" + org.json.JSONObject.quote(data.optString("storeId"));
+                                            view.evaluateJavascript(sameStore, valid -> {
+                                                if (!"true".equals(valid) || !sourceUrl.equals(view.getUrl())) {
+                                                    Toast.makeText(MainActivity.this, "Cửa hàng đã thay đổi. Hãy mở lại phiếu.", Toast.LENGTH_LONG).show(); return;
+                                                }
+                                                thermalPrinter.print(data.optString("text"), paper, connection, "", "", autoCut, resolvedIp, raster);
+                                            });
+                                        });
+                                    } else thermalPrinter.print(data.optString("text"), paper, connection, data.optString("qrUrl"), data.optString("footer"), autoCut, resolvedIp);
                                 }
                                 else Toast.makeText(MainActivity.this, "Chưa đọc được dữ liệu hóa đơn. Hãy mở lại phiếu.", Toast.LENGTH_LONG).show();
                             } catch (Exception error) { Toast.makeText(MainActivity.this, "Không đọc được dữ liệu hóa đơn", Toast.LENGTH_LONG).show(); }
@@ -252,7 +279,7 @@ public final class MainActivity extends Activity {
                 if (loadFailed || !isAppHost(uri) || !url.equals(view.getUrl())) return;
                 pageLoaded = true;
                 applyInsetsToWebView();
-                view.evaluateJavascript(APP_BRIDGE_SCRIPT, ignored -> {
+                view.evaluateJavascript(receiptSnapshotScript + ";" + APP_BRIDGE_SCRIPT, ignored -> {
                     if (!url.equals(view.getUrl())) return;
                     view.clearHistory();
                     progress.setVisibility(View.GONE);
@@ -426,6 +453,7 @@ public final class MainActivity extends Activity {
         super.onSaveInstanceState(outState);
     }
     @Override protected void onDestroy() {
+        receiptRenderer.close();
         nativeSpeaker.close();
         thermalPrinter.close();
         if (fileUploadCallback != null) {

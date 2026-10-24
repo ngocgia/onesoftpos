@@ -13,6 +13,10 @@
 
 ## In LAN trực tiếp (APK 1.3.7)
 
+APK **1.3.9** đóng băng DOM hóa đơn ngay lúc bấm in, dựng riêng bố cục hiện tại thành raster (căn giữa, bảng món, chữ đậm, tổng tiền, QR và chân hóa đơn), thay vì dùng bản văn bản thuần. Logic nằm trong `assets/receipt-snapshot.js` và `ReceiptRenderer.java`, không cần cập nhật website cho thay đổi bố cục này. Kiểm tra cửa hàng trước khi gửi dữ liệu nếu người dùng đã chuyển cửa hàng trong lúc dựng ảnh. Hỗ trợ snapshot dài tối đa 24.000 pixel chiều cao; dùng bitmap từng dải 128 dòng thay vì một bitmap toàn phiếu.
+
+LAN bỏ khoảng nghỉ cố định 180 ms/dải, dựa vào TCP backpressure. RawBT cũng không nghỉ trong bước chuẩn bị dữ liệu; RawBT tự quản lý tốc độ tới máy in. USB/Bluetooth giữ nhịp gửi bảo thủ cho máy cũ. Khi dùng bản HTML, ảnh QR được nhúng từ ảnh đã tải nếu trình duyệt cho phép, nếu không dùng cache HTTPS dùng chung; lỗi tải QR dừng trước khi gửi giấy. Chưa đo tốc độ hoặc xác minh bản in trên máy Zywell thực tế.
+
 APK **1.3.8** bổ sung đọc IP đã lưu từ `menuPersistence.read('printer', {})` nếu website cũ chưa truyền trường IP sang native, đồng thời phân biệt lỗi thiếu IP và IP sai định dạng. Không dùng IP mặc định hoặc IP của cửa hàng khác để in khi chưa nhận được cấu hình.
 
 Trong app Android, chọn **Cài đặt máy in → Mạng LAN/Wi-Fi**, khổ **K80**, IP máy in (ví dụ `192.168.1.27`), lưu rồi in thử. App mở TCP tới cổng **9100** trên máy in và gửi raster ESC/POS tiếng Việt, QR, lệnh cắt theo thiết lập. Điện thoại/máy iPOS phải cùng mạng và không bị chặn truy cập mạng nội bộ. Mở được trang cấu hình HTTP của máy in chỉ xác nhận cổng web truy cập được; không xác nhận cổng in 9100 mở. Thử mục **Printer Test** trong trang cấu hình máy in để kiểm tra riêng phần cứng.

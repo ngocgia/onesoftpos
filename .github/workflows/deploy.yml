@@ -40,6 +40,7 @@ jobs:
           npm test --prefix server
           bash -n scripts/deploy-passenger.sh
           bash -n scripts/deploy-over-ssh.sh
+          bash -n scripts/deploy-via-download.sh
       - name: Prepare SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -56,15 +57,11 @@ jobs:
           printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
           printf '%s\n' "$SSH_KNOWN_HOSTS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
-      - name: Package application code
+      - name: Deploy (hosting downloads from GitHub)
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          tar --exclude='.env' --exclude='.env.*' --exclude='.htaccess' \
-            --exclude='node_modules' --exclude='server/data' \
-            -czf "$RUNNER_TEMP/application.tar.gz" \
-            public server/src package.json server/package.json server/package-lock.json
-      - name: Upload and deploy
-        run: |
-          bash scripts/deploy-over-ssh.sh "$RUNNER_TEMP/application.tar.gz"
+          bash scripts/deploy-via-download.sh
       - name: Check website
         if: env.HEALTH_URL != ''
         run: |

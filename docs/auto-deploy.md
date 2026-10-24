@@ -1,6 +1,6 @@
 # Tự triển khai master lên DirectAdmin
 
-Workflow `.github/workflows/deploy.yml` chạy khi push lên `master`, hoặc khi chọn **Actions → Deploy master to DirectAdmin → Run workflow** trên nhánh master. GitHub cài dependencies và chạy kiểm thử trước khi chuyển code qua SSH. Không triển khai nếu kiểm thử thất bại. Các lượt triển khai không chạy đồng thời.
+Workflow `.github/workflows/deploy.yml` chạy khi push lên `master`, hoặc khi chọn **Actions → Deploy master to DirectAdmin → Run workflow** trên nhánh master. GitHub cài dependencies và chạy kiểm thử, sau đó gửi lệnh SSH ngắn để **hosting tự tải code từ GitHub qua HTTPS**. Không truyền gói code qua SCP/SFTP hoặc stdin SSH. Không triển khai nếu kiểm thử thất bại. Các lượt triển khai không chạy đồng thời.
 
 ## Thiết lập SSH một lần
 
@@ -52,9 +52,11 @@ Sau khi chép code, script cập nhật `tmp/restart.txt` để Passenger nạp 
 
 Lỗi `Timeout, server ... not responding`, `scp: Connection closed` và mã 255 cho biết kết nối SSH/SFTP bị ngắt khi tải archive. Riêng log này chưa xác định được máy chủ quá tải, đường truyền chập chờn hay firewall giới hạn kết nối. Nếu lỗi ở `scp`, bước chép code/restart Passenger phía sau chưa chạy; website có thể vẫn phục vụ bản trước.
 
-Workflow hiện dùng `scripts/deploy-over-ssh.sh`: truyền archive và script qua stdin của **một phiên SSH**, không mở thêm phiên SCP/SFTP. Gửi keepalive mỗi 15 giây và kiểm tra SHA-256/cấu trúc gzip trước khi chạy deploy. Archive đang tải có đuôi `.upload`; chỉ đổi sang `.tar.gz` sau khi kiểm tra thành công. Đây là cách giảm số kết nối và bỏ phụ thuộc vào SFTP, không bảo đảm khắc phục được firewall hoặc đường truyền hỏng. Script không tự thử lại vì mất kết nối sau khi deploy bắt đầu có thể đã thay đổi một phần code.
+Workflow hiện dùng `scripts/deploy-via-download.sh`. Runner dùng token workflow có quyền `contents: read` sẵn có để lấy link tải tạm cho đúng SHA commit từ GitHub; token này không gửi sang hosting. Link tạm được che trong log. Runner tải và tính SHA-256 của gói, hosting tải cùng link qua HTTPS rồi đối chiếu checksum. Sau đó hosting đóng gói lại đúng danh sách file ứng dụng và gọi `deploy-passenger.sh`. Không cần thêm GitHub token vào Secrets hoặc cài repository Git trong thư mục app đang chạy. Hosting cần có `curl`, `tar`, `sha256sum` và truy cập HTTPS tới `codeload.github.com`. Link tải tạm cũng có quyền truy cập mã nguồn trong thời gian còn hiệu lực, không chia sẻ link/log debug có chứa nó.
 
-Log `SSH connected; receiving application archive...` xác nhận đã kết nối được shell. `Archive received and SHA-256 verified.` xác nhận archive đầy đủ. `Starting deployment of verified code...` là mốc bắt đầu script có thể ghi vào app đang chạy. Nếu mất kết nối sau mốc này, kiểm tra `tmp/deployed-commit.txt`, các file/log và website trước khi chạy lại; commit marker không thay thế health check.
+`scripts/deploy-over-ssh.sh` là cách truyền gói qua stdin SSH trước đây, không còn được workflow gọi. Nếu log cũ dừng ở `SSH connected; receiving application archive...` rồi timeout, kết nối đã vào được shell nhưng mất phản hồi trong quá trình truyền gói. Điều này chưa chứng minh SFTP, khóa SSH hay firewall là nguyên nhân duy nhất.
+
+Log mới có bước **Deploy (hosting downloads from GitHub)**. `SSH connected; hosting is downloading source from GitHub over HTTPS...` xác nhận đã vào shell. `Hosting download complete; SHA-256 verified.` xác nhận gói tải về khớp bản runner kiểm tra. `Starting deployment of verified code...` là mốc bắt đầu script có thể ghi vào app đang chạy. Nếu mất kết nối sau mốc này, kiểm tra `tmp/deployed-commit.txt`, các file/log và website trước khi chạy lại; commit marker không thay thế health check. Không tự thử lại toàn bộ deploy khi chưa rõ trạng thái.
 
 Nếu vẫn báo `Connection timed out`, kiểm tra SSH và dung lượng/quota tài khoản trên hosting; đề nghị nhà cung cấp xem log SSH/firewall tại thời điểm lỗi, gồm việc chặn IP runner GitHub Actions, giới hạn phiên đồng thời và ngắt kết nối đang truyền dữ liệu. Đăng nhập được từ máy cá nhân không chứng minh IP runner cũng được phép. Không xóa `.ssh` hoặc tắt kiểm tra host key để xử lý timeout.
 

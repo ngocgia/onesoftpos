@@ -158,7 +158,9 @@ public final class MainActivity extends Activity {
 
         webView.setWebChromeClient(new WebChromeClient() {
             @Override public void onProgressChanged(WebView view, int newProgress) {
-                if (!loadFailed && newProgress < 100) progress.setVisibility(View.VISIBLE);
+                // A handled tgpos:// print link can emit progress without a new
+                // document/onPageFinished. Never revive the page spinner for it.
+                progress.setVisibility(!pageLoaded && !loadFailed && newProgress < 100 ? View.VISIBLE : View.GONE);
             }
             @Override public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback,
                     FileChooserParams fileChooserParams) {
@@ -206,6 +208,7 @@ public final class MainActivity extends Activity {
                 if (!request.isForMainFrame()) return false;
                 Uri uri = request.getUrl();
                 if ("tgpos".equals(uri.getScheme()) && "print".equals(uri.getHost())) {
+                    progress.setVisibility(View.GONE);
                     if (!isAppHost(Uri.parse(view.getUrl()))) return true;
                     if (receiptRenderer.isBusy() || thermalPrinter.isBusy()) {
                         Toast.makeText(MainActivity.this, "Đang xử lý phiếu in. Vui lòng chờ.", Toast.LENGTH_LONG).show();
@@ -247,7 +250,8 @@ public final class MainActivity extends Activity {
                                 else Toast.makeText(MainActivity.this, "Chưa đọc được dữ liệu hóa đơn. Hãy mở lại phiếu.", Toast.LENGTH_LONG).show();
                             } catch (Exception error) { Toast.makeText(MainActivity.this, "Không đọc được dữ liệu hóa đơn", Toast.LENGTH_LONG).show(); }
                         });
-                    } else printReceipt(paper);
+                    } else if ("browser".equals(connection)) printReceipt(paper);
+                    else Toast.makeText(MainActivity.this, "Phương thức in không hợp lệ. Hãy mở lại cài đặt máy in.", Toast.LENGTH_LONG).show();
                     return true;
                 }
                 if (isAppHost(uri)) {
@@ -264,6 +268,7 @@ public final class MainActivity extends Activity {
                 return true;
             }
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                if (!isAppHost(Uri.parse(url))) return;
                 loadFailed = false;
                 pageLoaded = false;
                 errorView.setVisibility(View.GONE);
@@ -288,6 +293,7 @@ public final class MainActivity extends Activity {
             }
             @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (!request.isForMainFrame()) return;
+                if (!isAppHost(request.getUrl())) return;
                 loadFailed = true;
                 pageLoaded = false;
                 progress.setVisibility(View.GONE);

@@ -27,7 +27,6 @@ import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.widget.Toast;
 import java.io.IOException;
-import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.io.InputStream;
 import java.net.URL;
@@ -59,6 +58,11 @@ final class ThermalPrinter {
     private volatile boolean closed;
     private volatile BluetoothSocket activeSocket;
     private volatile Socket activeNetworkSocket;
+    private volatile UsbDeviceConnection activeUsbConnection;
+    private final android.os.Handler uiHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private Runnable usbPermissionTimeout;
+    private Runnable bluetoothPermissionTimeout;
+    private boolean waitingBluetoothPermission;
 
     ThermalPrinter(Activity activity) {
         this.activity = activity;
@@ -80,14 +84,15 @@ final class ThermalPrinter {
         footer = receiptFooter;
         autoCut = cutPaper;
         renderedRaster = rendered;
-        paceOutput = "usb".equals(connection) || "bluetooth".equals(connection);
+        paceOutput = "bluetooth".equals(connection);
         // K80/K85 use a conservative 72mm raster until the exact printhead width is known.
         width = "58mm".equals(paper) ? 384 : 576;
         busy = true;
         if ("lan".equals(connection) || "network".equals(connection)) sendNetwork(ipAddress);
         else if ("rawbt".equals(connection)) sendRawBt();
         else if ("bluetooth".equals(connection)) chooseBluetooth();
-        else chooseUsb();
+        else if ("usb".equals(connection)) chooseUsb();
+        else stop("Phương thức in trực tiếp không được hỗ trợ");
     }
 
     private void sendNetwork(String address) {
@@ -114,22 +119,20 @@ final class ThermalPrinter {
     }
 
     private void sendRawBt() {
+        try {
+            Intent probe = new Intent(Intent.ACTION_VIEW, Uri.parse("rawbt:base64,G0A="));
+            probe.setPackage("ru.a402d.rawbtprinter");
+            if (activity.getPackageManager().resolveActivity(probe, PackageManager.MATCH_DEFAULT_ONLY) == null) {
+                stop("Chưa tìm thấy RawBT hỗ trợ in. Hãy cài/bật RawBT và in thử trong RawBT trước.");
+                return;
+            }
+        } catch (Exception error) { stop("Không kiểm tra được RawBT: " + error.getMessage()); return; }
         message("Đang chuẩn bị phiếu in qua RawBT...");
         worker.execute(() -> {
             try {
                 // Keep the encoded URI comfortably below Android's Binder transaction limit.
-                ByteArrayOutputStream data = new ByteArrayOutputStream();
-                OutputStream limited = new OutputStream() {
-                    @Override public void write(int value) throws IOException {
-                        if (data.size() >= 180000) throw new IOException("Phiếu quá dài để gửi qua RawBT. Hãy dùng kết nối USB/Bluetooth trực tiếp.");
-                        data.write(value);
-                    }
-                    @Override public void write(byte[] value, int offset, int length) throws IOException {
-                        if (length > 180000 - data.size()) throw new IOException("Phiếu quá dài để gửi qua RawBT. Hãy dùng kết nối USB/Bluetooth trực tiếp.");
-                        data.write(value, offset, length);
-                    }
-                };
-                sendRaster(limited);
+                RawBtBuffer data = new RawBtBuffer();
+                sendRaster(data);
                 String encoded = Base64.encodeToString(data.toByteArray(), Base64.NO_WRAP);
                 activity.runOnUiThread(() -> {
                     try {
@@ -156,19 +159,39 @@ final class ThermalPrinter {
         });
     }
 
-    private void stop(String message) { busy = false; message(message); }
+    private void stop(String message) {
+        clearUsbPermissionTimeout();
+        clearBluetoothPermissionTimeout();
+        waitingDevice = null;
+        busy = false;
+        message(message);
+    }
+
+    private void clearUsbPermissionTimeout() {
+        if (usbPermissionTimeout != null) uiHandler.removeCallbacks(usbPermissionTimeout);
+        usbPermissionTimeout = null;
+    }
 
     private void chooseBluetooth() {
-        if (Build.VERSION.SDK_INT >= 31 && activity.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            activity.requestPermissions(new String[]{Manifest.permission.BLUETOOTH_CONNECT}, BLUETOOTH_PERMISSION);
-            return;
-        }
         try {
+            if (closed) return;
+            if (Build.VERSION.SDK_INT >= 31 && activity.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                waitingBluetoothPermission = true;
+                activity.requestPermissions(new String[]{Manifest.permission.BLUETOOTH_CONNECT}, BLUETOOTH_PERMISSION);
+                bluetoothPermissionTimeout = () -> {
+                    if (waitingBluetoothPermission && busy) stop("Chưa được cấp quyền Bluetooth. Hãy cấp quyền Thiết bị ở gần rồi bấm in lại.");
+                };
+                uiHandler.postDelayed(bluetoothPermissionTimeout, 60000);
+                return;
+            }
             BluetoothManager manager = (BluetoothManager) activity.getSystemService(Context.BLUETOOTH_SERVICE);
             BluetoothAdapter adapter = manager == null ? null : manager.getAdapter();
             if (adapter == null || !adapter.isEnabled()) { stop("Hãy bật Bluetooth và ghép đôi máy in trong Cài đặt Android"); return; }
-            List<BluetoothDevice> devices = new ArrayList<>(adapter.getBondedDevices());
-            if (devices.isEmpty()) { stop("Chưa có thiết bị ghép đôi. Hãy ghép đôi máy in trong Cài đặt Bluetooth."); return; }
+            List<BluetoothDevice> devices = new ArrayList<>();
+            for (BluetoothDevice device : adapter.getBondedDevices()) {
+                if (device.getType() != BluetoothDevice.DEVICE_TYPE_LE) devices.add(device);
+            }
+            if (devices.isEmpty()) { stop("Chưa có thiết bị Bluetooth Classic đã ghép đôi. Hãy ghép đôi máy in SPP trong Cài đặt Android; thiết bị chỉ có BLE chưa được hỗ trợ."); return; }
             String[] labels = new String[devices.size()];
             for (int i = 0; i < devices.size(); i++) labels[i] = devices.get(i).getName() + "\n" + devices.get(i).getAddress();
             new AlertDialog.Builder(activity).setTitle("Chọn máy in Bluetooth (SPP)")
@@ -178,24 +201,40 @@ final class ThermalPrinter {
     }
 
     void onBluetoothPermission(boolean granted) {
+        // A late Bluetooth permission result must not cancel a newer USB/LAN job.
+        if (!waitingBluetoothPermission || closed) return;
+        clearBluetoothPermissionTimeout();
         if (granted && busy) chooseBluetooth();
         else stop("Cần quyền Thiết bị ở gần để in Bluetooth");
+    }
+
+    private void clearBluetoothPermissionTimeout() {
+        if (bluetoothPermissionTimeout != null) uiHandler.removeCallbacks(bluetoothPermissionTimeout);
+        bluetoothPermissionTimeout = null;
+        waitingBluetoothPermission = false;
     }
 
     private void sendBluetooth(BluetoothDevice device) {
         message("Đang kết nối máy in...");
         worker.execute(() -> {
+            final boolean[] transmitting = {false};
             try (BluetoothSocket socket = device.createRfcommSocketToServiceRecord(UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"))) {
                 activeSocket = socket;
                 if (closed) return;
-                ScheduledFuture<?> timeout = timer.schedule(() -> { try { socket.close(); } catch (IOException ignored) {} }, 90, TimeUnit.SECONDS);
-                try {
-                    socket.connect();
+                if (Build.VERSION.SDK_INT >= 31 && activity.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    throw new IOException("Quyền Bluetooth đã bị thu hồi. Hãy cấp lại quyền Thiết bị ở gần");
+                }
+                if (device.getBondState() != BluetoothDevice.BOND_BONDED) throw new IOException("Máy in chưa được ghép đôi hoặc đã hủy ghép đôi");
+                if (device.getType() == BluetoothDevice.DEVICE_TYPE_LE) throw new IOException("Máy chỉ hỗ trợ BLE, chưa hỗ trợ Bluetooth Classic SPP");
+                BluetoothPrintSession.run(socket, socket::connect, () -> {
+                    if (closed) throw new IOException("Đã dừng in");
+                    transmitting[0] = true;
                     sendRaster(socket.getOutputStream());
-                    message("Đã gửi dữ liệu in. Vui lòng kiểm tra giấy in.");
-                } finally { timeout.cancel(false); }
+                }, timer, 15000, 90000);
+                message("Đã gửi dữ liệu in Bluetooth. Vui lòng kiểm tra giấy in.");
             } catch (Exception error) {
-                message("In Bluetooth thất bại: " + error.getMessage() + ". Kiểm tra phiếu trước khi in lại để tránh trùng.");
+                message((transmitting[0] ? "Gửi phiếu Bluetooth bị gián đoạn: " : "Không kết nối được máy in Bluetooth: ")
+                        + error.getMessage() + (transmitting[0] ? ". Kiểm tra phiếu trước khi in lại để tránh trùng." : ". Kiểm tra nguồn, ghép đôi, hỗ trợ SPP và tắt app khác đang giữ máy in."));
             } finally { activeSocket = null; activity.runOnUiThread(() -> busy = false); }
         });
     }
@@ -214,6 +253,11 @@ final class ThermalPrinter {
     }
 
     private void chooseUsb() {
+        try { chooseUsbDevice(); }
+        catch (Exception error) { stop("Không mở được USB: " + error.getMessage()); }
+    }
+
+    private void chooseUsbDevice() {
         UsbManager manager = (UsbManager) activity.getSystemService(Context.USB_SERVICE);
         if (manager == null) { stop("Thiết bị không hỗ trợ in USB"); return; }
         List<UsbDevice> devices = new ArrayList<>();
@@ -223,6 +267,7 @@ final class ThermalPrinter {
         for (int i = 0; i < devices.size(); i++) labels[i] = (devices.get(i).getProductName() == null ? "Máy in USB" : devices.get(i).getProductName()) + " (" + devices.get(i).getDeviceName() + ")";
         new AlertDialog.Builder(activity).setTitle("Chọn máy in USB")
                 .setItems(labels, (dialog, index) -> {
+                    try {
                     waitingDevice = devices.get(index);
                     if (manager.hasPermission(waitingDevice)) {
                         UsbDevice device = waitingDevice;
@@ -238,17 +283,25 @@ final class ThermalPrinter {
                     PendingIntent permission = PendingIntent.getBroadcast(activity, 0,
                             new Intent(usbAction).setPackage(activity.getPackageName()), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
                     manager.requestPermission(waitingDevice, permission);
+                    usbPermissionTimeout = () -> {
+                        if (waitingDevice != null && busy) stop("Chưa nhận được quyền USB. Hãy cấp quyền rồi bấm in lại.");
+                    };
+                    uiHandler.postDelayed(usbPermissionTimeout, 60000);
+                    } catch (Exception error) { stop("Không mở hoặc yêu cầu được quyền USB: " + error.getMessage()); }
                 }).setOnCancelListener(dialog -> busy = false).show();
     }
 
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
             if (!usbAction.equals(intent.getAction()) || !busy || waitingDevice == null) return;
+            clearUsbPermissionTimeout();
             UsbManager manager = (UsbManager) activity.getSystemService(Context.USB_SERVICE);
             UsbDevice device = waitingDevice;
             waitingDevice = null;
-            if (manager.hasPermission(device)) sendUsb(device);
-            else stop("Chưa được cấp quyền truy cập máy in USB");
+            try {
+                if (manager != null && manager.hasPermission(device)) sendUsb(device);
+                else stop("Chưa được cấp quyền truy cập máy in USB");
+            } catch (Exception error) { stop("Không kiểm tra được quyền USB: " + error.getMessage()); }
         }
     };
 
@@ -257,11 +310,16 @@ final class ThermalPrinter {
             UsbManager manager = (UsbManager) activity.getSystemService(Context.USB_SERVICE);
             UsbDeviceConnection connection = null;
             UsbInterface selected = null;
+            ScheduledFuture<?> timeout = null;
             try {
                 if (closed) return;
                 // Permission may be revoked or the cable detached after the device picker.
                 connection = manager.openDevice(device);
                 if (connection == null) throw new IOException("Không mở được máy in USB");
+                activeUsbConnection = connection;
+                final UsbDeviceConnection timedConnection = connection;
+                final long deadline = android.os.SystemClock.elapsedRealtime() + 90000;
+                timeout = timer.schedule(timedConnection::close, 90, TimeUnit.SECONDS);
                 UsbEndpoint output = null;
                 for (int i = 0; i < device.getInterfaceCount() && output == null; i++) {
                     UsbInterface iface = device.getInterface(i);
@@ -279,18 +337,20 @@ final class ThermalPrinter {
                 sendRaster(new OutputStream() {
                     @Override public void write(int value) throws IOException { write(new byte[]{(byte) value}, 0, 1); }
                     @Override public void write(byte[] bytes, int offset, int length) throws IOException {
-                        while (length > 0) {
-                            if (closed || Thread.currentThread().isInterrupted()) throw new IOException("Đã dừng in");
-                            int written = outputConnection.bulkTransfer(endpoint, bytes, offset, Math.min(length, 1024), 10000);
-                            if (written <= 0) throw new IOException("Mất kết nối hoặc máy in không nhận dữ liệu");
-                            offset += written; length -= written;
-                        }
+                        UsbBulkWriter.write(bytes, offset, length, deadline,
+                                (data, start, size, wait) -> outputConnection.bulkTransfer(endpoint, data, start, size, wait),
+                                () -> closed || Thread.currentThread().isInterrupted(), android.os.SystemClock::elapsedRealtime);
                     }
                 });
                 message("Đã gửi dữ liệu in. Vui lòng kiểm tra giấy in.");
             } catch (Exception error) { message("In USB thất bại: " + error.getMessage() + ". Kiểm tra phiếu trước khi in lại để tránh trùng."); }
             finally {
-                if (connection != null) { if (selected != null) connection.releaseInterface(selected); connection.close(); }
+                if (timeout != null) timeout.cancel(false);
+                if (connection != null) {
+                    try { if (selected != null) connection.releaseInterface(selected); } catch (Exception ignored) {}
+                    try { connection.close(); } catch (Exception ignored) {}
+                }
+                activeUsbConnection = null;
                 activity.runOnUiThread(() -> busy = false);
             }
         });
@@ -300,7 +360,7 @@ final class ThermalPrinter {
         if (renderedRaster != null) {
             output.write(new byte[]{27, 64, 27, 97, 0});
             // TCP applies backpressure; RawBT manages its own printer buffers.
-            // USB/Bluetooth retain conservative pacing for slower legacy devices.
+            // USB bulkTransfer handles backpressure; only Bluetooth keeps pacing.
             for (int offset = 0; offset < renderedRaster.length; offset += 4608) {
                 output.write(renderedRaster, offset, Math.min(4608, renderedRaster.length - offset));
                 output.flush();
@@ -387,11 +447,16 @@ final class ThermalPrinter {
 
     void close() {
         closed = true;
+        clearUsbPermissionTimeout();
+        clearBluetoothPermissionTimeout();
+        waitingDevice = null;
         if (receiverRegistered) activity.unregisterReceiver(usbReceiver);
         BluetoothSocket socket = activeSocket;
         if (socket != null) try { socket.close(); } catch (IOException ignored) {}
         Socket networkSocket = activeNetworkSocket;
         if (networkSocket != null) try { networkSocket.close(); } catch (IOException ignored) {}
+        UsbDeviceConnection usbConnection = activeUsbConnection;
+        if (usbConnection != null) usbConnection.close();
         worker.shutdownNow();
         timer.shutdownNow();
     }

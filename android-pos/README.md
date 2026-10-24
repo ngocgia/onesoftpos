@@ -13,9 +13,15 @@
 
 ## In LAN trực tiếp (APK 1.3.7)
 
+APK **1.3.12** sửa vòng quay tải trang bị kẹt sau in: `WebChromeClient.onProgressChanged` chỉ hiện loader khi tài liệu POS đang tải, không bật lại cho sự kiện tiến độ của `tgpos://`. Điều hướng in luôn ẩn loader; callback bắt đầu/lỗi trang bỏ qua các scheme ngoài website POS. Thông báo kết nối LAN thất bại vẫn là lỗi kết nối riêng, không được xem là in thành công sau khi vòng quay tắt.
+
+APK **1.3.11** kiểm tra Bluetooth: cấp quyền `BLUETOOTH_CONNECT` trên Android 12+, giới hạn chờ quyền 60 giây và bỏ callback đã hết hạn để không ảnh hưởng job mới; chỉ chọn thiết bị ghép đôi không phải BLE-only; kiểm tra lại trạng thái ghép đôi trước kết nối; tách timeout kết nối 15 giây và gửi dữ liệu 90 giây, đóng socket để thoát lệnh bị treo. Không tự reconnect/in lại sau lỗi giữa phiếu. Vẫn dùng chung bố cục raster, QR và cắt giấy; nhịp 180 ms giữ cho Bluetooth vì chưa đo được buffer máy in thực tế. Chưa kiểm thử radio/giấy in trên máy thật. Máy Zywell Q822 bản tem USB+LAN người dùng gửi không có đường Bluetooth tương ứng.
+
+APK **1.3.10** rà soát các kết nối: USB bỏ nghỉ cố định 180 ms, truyền theo số byte `bulkTransfer` thực nhận, giới hạn một lệnh in 90 giây và chờ quyền USB 60 giây. Mất kết nối/hết thời gian không tự gửi lại phiếu để tránh trùng. Khi app đóng, kết nối USB đang mở được đóng. RawBT được kiểm tra có activity nhận URI trước khi tạo payload; vẫn dùng dữ liệu raster đầy đủ, không cắt phiếu hoặc bỏ QR khi vượt 180.000 byte. Web chọn USB trực tiếp sẽ báo rõ cần app; dùng driver hệ điều hành phải chọn **Trình duyệt**. Chi tiết và giới hạn: [rà soát các phương thức in](../docs/printing-transport-audit.md).
+
 APK **1.3.9** đóng băng DOM hóa đơn ngay lúc bấm in, dựng riêng bố cục hiện tại thành raster (căn giữa, bảng món, chữ đậm, tổng tiền, QR và chân hóa đơn), thay vì dùng bản văn bản thuần. Logic nằm trong `assets/receipt-snapshot.js` và `ReceiptRenderer.java`, không cần cập nhật website cho thay đổi bố cục này. Kiểm tra cửa hàng trước khi gửi dữ liệu nếu người dùng đã chuyển cửa hàng trong lúc dựng ảnh. Hỗ trợ snapshot dài tối đa 24.000 pixel chiều cao; dùng bitmap từng dải 128 dòng thay vì một bitmap toàn phiếu.
 
-LAN bỏ khoảng nghỉ cố định 180 ms/dải, dựa vào TCP backpressure. RawBT cũng không nghỉ trong bước chuẩn bị dữ liệu; RawBT tự quản lý tốc độ tới máy in. USB/Bluetooth giữ nhịp gửi bảo thủ cho máy cũ. Khi dùng bản HTML, ảnh QR được nhúng từ ảnh đã tải nếu trình duyệt cho phép, nếu không dùng cache HTTPS dùng chung; lỗi tải QR dừng trước khi gửi giấy. Chưa đo tốc độ hoặc xác minh bản in trên máy Zywell thực tế.
+LAN bỏ khoảng nghỉ cố định 180 ms/dải, dựa vào TCP backpressure. RawBT cũng không nghỉ trong bước chuẩn bị dữ liệu; RawBT tự quản lý tốc độ tới máy in. Từ 1.3.10 USB cũng bỏ nhịp nghỉ cố định; chỉ Bluetooth giữ nhịp bảo thủ cho máy cũ. Khi dùng bản HTML, ảnh QR được nhúng từ ảnh đã tải nếu trình duyệt cho phép, nếu không dùng cache HTTPS dùng chung; lỗi tải QR dừng trước khi gửi giấy. Chưa đo tốc độ hoặc xác minh bản in trên máy Zywell thực tế.
 
 APK **1.3.8** bổ sung đọc IP đã lưu từ `menuPersistence.read('printer', {})` nếu website cũ chưa truyền trường IP sang native, đồng thời phân biệt lỗi thiếu IP và IP sai định dạng. Không dùng IP mặc định hoặc IP của cửa hàng khác để in khi chưa nhận được cấu hình.
 

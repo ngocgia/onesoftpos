@@ -12,10 +12,10 @@ Web hiển thị hóa đơn Unicode. Android 1.3.0 trở lên dựng chữ bằn
 2. Trong **Nhiều hơn → Máy in**, chọn **K58**, **K80** hoặc **K85** theo giấy đang dùng. K58 dùng vùng 48 mm / 384 điểm. K80 và K85 dùng vùng in an toàn 72 mm / 576 điểm; K85 đặt trang giấy 85 mm và cần Android 1.3.1 trở lên. Đây là profile bảo thủ khi chưa có thông số đầu in của máy K85, không mặc định đầu in rộng bằng khổ giấy.
 3. Bluetooth: ghép đôi máy in trong Cài đặt Android, chọn kết nối Bluetooth trong POS. Khi in, cấp quyền Thiết bị ở gần trên Android 12+, chọn đúng thiết bị. Hỗ trợ Bluetooth Classic SPP, không phải máy chỉ hỗ trợ BLE hoặc giao thức riêng.
 4. USB: điện thoại cần hỗ trợ USB host/OTG và cáp OTG truyền dữ liệu. Chọn USB, chọn máy in và cấp quyền truy cập. Hỗ trợ giao diện USB printer hoặc vendor có bulk OUT nhận ESC/POS trực tiếp. Máy dùng USB serial cần driver riêng; không khẳng định tương thích chỉ từ hình thông số.
-5. Windows: dùng driver máy in đúng model, khổ giấy 58 mm, tỷ lệ 100%, tắt header/footer của trình duyệt. Chọn kết nối trình duyệt hoặc USB; web mở hộp thoại in của hệ điều hành. Web thông thường không gửi Bluetooth SPP trực tiếp.
+5. Windows: dùng driver máy in đúng model, khổ giấy 58 mm, tỷ lệ 100%, tắt header/footer của trình duyệt. Chọn **Trình duyệt** để mở hộp thoại in của hệ điều hành. **USB trực tiếp** chỉ dùng trong app Android; web sẽ báo cần dùng app thay vì tự chuyển sang hộp thoại. Web thông thường không gửi Bluetooth SPP trực tiếp.
 6. Bấm **In thử** để lưu cấu hình hiện tại và in phiếu có tiếng Việt, tên món dài, tùy chọn, ghi chú, giảm giá và thuế qua đúng đường in.
 
-Luồng LAN hiện vẫn dùng dịch vụ/driver in hệ thống; thay đổi này không bổ sung raw TCP qua IP. Khổ A4 dùng hộp thoại in hệ thống, không gửi tới máy nhiệt.
+App Android từ 1.3.7 hỗ trợ LAN trực tiếp qua TCP 9100; bản 1.3.9 dùng chung bố cục hóa đơn cho LAN/USB/Bluetooth/RawBT. Bản 1.3.10 bỏ nhịp nghỉ cố định của USB, kiểm soát thời gian chờ và kiểm tra RawBT đã cài/bật. Khổ A4 dùng lựa chọn **Trình duyệt**, không gửi tới máy nhiệt. Xem [kết quả rà soát](printing-transport-audit.md) về giới hạn từng kết nối.
 
 ## Dữ liệu hóa đơn
 

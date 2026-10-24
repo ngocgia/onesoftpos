@@ -1615,9 +1615,10 @@
             <option value="rawbt">RawBT (máy Android/iPOS đã cấu hình RawBT)</option>
             <option value="browser">Trình duyệt (Web Print / Hộp thoại in Windows)</option>
             <option value="lan">Mạng LAN / Wi-Fi (Máy in qua địa chỉ IP)</option>
-            <option value="bluetooth">Máy in không dây Bluetooth</option>
-            <option value="usb">USB / dây OTG (ứng dụng Android hoặc driver Windows)</option>
+            <option value="bluetooth">Bluetooth Classic SPP (app Android, ghép đôi trước)</option>
+            <option value="usb">USB / dây OTG trực tiếp (ứng dụng Android)</option>
           </select>
+          <p class="text-muted" style="font-size:12px;margin-top:6px">USB: cần cáp dữ liệu/OTG và cấp quyền máy in. RawBT: cấu hình kết nối và in thử trong RawBT trước; phiếu dài vượt giới hạn cần chọn LAN hoặc USB trực tiếp. Web dùng máy in đã cài driver: chọn Trình duyệt.</p>
         </div>
         <div class="form-group">
           <label>Địa chỉ IP máy in LAN (nếu dùng mạng LAN):</label>
@@ -2331,7 +2332,7 @@
   <script src="js/completed-items.js?v=20260923-table-first"></script>
   <script src="js/orders.js?v=20261010-history-printer"></script>
   <script src="js/checkout.js?v=20261010-store-printer"></script>
-  <script src="js/invoice.js?v=20261024-lan-print"></script>
+  <script src="js/invoice.js?v=20261024-usb-review"></script>
   <script src="js/shifts.js"></script>
   <script src="js/admin.js?v=20260923-pos-store-fields"></script>
   <script src="js/more-menu.js?v=20261024-landing-entry"></script>

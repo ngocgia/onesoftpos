@@ -182,6 +182,46 @@ test('direct thermal printing requires updated Android bridge and rejects A4', a
   assert.equal(h.prints(), 1);
 });
 
+test('USB direct printing cannot silently use a browser driver and accepts all thermal sizes on Android', async () => {
+  const h = harness();
+  h.settings.set('11', { paperSize: 'K80', connectionType: 'usb' });
+  await h.window.invoiceModule.showReceipt({ isDraft: true, order_code: 'USB' });
+  await h.window.invoiceModule.printReceipt();
+  assert.equal(h.prints(), 0);
+  assert.match(h.toasts.at(-1).message, /Trên web, chọn Trình duyệt/);
+  h.window.onesoftNativePrint = true;
+  h.window.onesoftNativeReceiptQr = true;
+  for (const paperSize of ['K58', 'K80', 'K85']) {
+    h.settings.set('11', { paperSize, connectionType: 'usb' });
+    await h.window.invoiceModule.printReceipt();
+  }
+  assert.equal(h.prints(), 3);
+  h.settings.set('11', { paperSize: 'A4', connectionType: 'usb' });
+  await h.window.invoiceModule.printReceipt();
+  assert.equal(h.prints(), 3);
+});
+
+test('Bluetooth printing preserves thermal sizes, QR and cutter preferences and rejects unsupported A4', async () => {
+  const h = harness();
+  h.window.onesoftNativePrint = true;
+  h.window.onesoftNativeReceiptQr = true;
+  h.settings.set('11', { paperSize: 'K58', connectionType: 'bluetooth', autoCutPaper: false });
+  await h.window.invoiceModule.showReceipt({ isDraft: true, order_code: 'BLUETOOTH' });
+  h.window.invoiceModule.receiptQrUrl = 'https://img.vietqr.io/image/test.png';
+  for (const paperSize of ['K58', 'K80', 'K85']) {
+    h.settings.set('11', { paperSize, connectionType: 'bluetooth', autoCutPaper: false });
+    await h.window.invoiceModule.printReceipt();
+    assert.equal(h.window.appState.storeSettings.receipt_connection_type, 'bluetooth');
+    assert.equal(h.window.appState.storeSettings.receipt_auto_cut_paper, false);
+    assert.equal(h.window.invoiceModule.receiptQrUrl, 'https://img.vietqr.io/image/test.png');
+  }
+  assert.equal(h.prints(), 3);
+  h.settings.set('11', { paperSize: 'A4', connectionType: 'bluetooth' });
+  await h.window.invoiceModule.printReceipt();
+  assert.equal(h.prints(), 3);
+  assert.match(h.toasts.at(-1).message, /K58, K80 hoặc K85/);
+});
+
 test('RawBT never silently falls back on older APKs, supports receipts with QR and rejects A4', async () => {
   const h = harness();
   h.settings.set('11', { paperSize: 'K80', connectionType: 'rawbt' });

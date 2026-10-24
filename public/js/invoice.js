@@ -157,6 +157,7 @@ window.invoiceModule = {
       }
       if (['bluetooth', 'usb'].includes(settings.connectionType) && !window.onesoftNativePrint) {
         if (settings.connectionType === 'bluetooth') throw new Error('In Bluetooth trực tiếp cần ứng dụng Android Onesoft POS bản mới');
+        throw new Error('In USB trực tiếp cần app Android Onesoft POS. Trên web, chọn Trình duyệt và máy in đã cài driver USB.');
       }
       if (window.onesoftNativePrint && ['bluetooth', 'usb'].includes(settings.connectionType) && settings.paperSize === 'A4') {
         throw new Error('Máy in nhiệt Bluetooth/USB chỉ hỗ trợ K58, K80 hoặc K85');

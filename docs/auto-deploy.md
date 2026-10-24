@@ -52,9 +52,11 @@ Sau khi chép code, script cập nhật `tmp/restart.txt` để Passenger nạp 
 
 Lỗi `Timeout, server ... not responding`, `scp: Connection closed` và mã 255 cho biết kết nối SSH/SFTP bị ngắt khi tải archive. Riêng log này chưa xác định được máy chủ quá tải, đường truyền chập chờn hay firewall giới hạn kết nối. Nếu lỗi ở `scp`, bước chép code/restart Passenger phía sau chưa chạy; website có thể vẫn phục vụ bản trước.
 
-Workflow gửi keepalive mỗi 15 giây, thử tải tối đa 3 lần và kiểm tra SHA-256 trước khi chạy deploy. Archive đang tải có đuôi `.upload`; chỉ đổi sang `.tar.gz` sau khi kiểm tra thành công. Chỉ tải tệp được thử lại, không tự chạy lại script sửa ứng dụng đang hoạt động. Tệp `.upload` của lượt lỗi có thể còn trong `$HOME/.onesoft-deploy`; có thể xóa riêng tệp đó sau khi xác nhận không có deployment đang chạy.
+Workflow hiện dùng `scripts/deploy-over-ssh.sh`: truyền archive và script qua stdin của **một phiên SSH**, không mở thêm phiên SCP/SFTP. Gửi keepalive mỗi 15 giây và kiểm tra SHA-256/cấu trúc gzip trước khi chạy deploy. Archive đang tải có đuôi `.upload`; chỉ đổi sang `.tar.gz` sau khi kiểm tra thành công. Đây là cách giảm số kết nối và bỏ phụ thuộc vào SFTP, không bảo đảm khắc phục được firewall hoặc đường truyền hỏng. Script không tự thử lại vì mất kết nối sau khi deploy bắt đầu có thể đã thay đổi một phần code.
 
-Nếu vẫn lỗi sau 3 lần, kiểm tra SSH/SFTP và dung lượng/quota tài khoản trên hosting; đề nghị nhà cung cấp xem log SSH/firewall tại thời điểm lỗi, gồm việc chặn IP runner GitHub Actions. Nếu nhà cung cấp xác nhận máy chủ không hỗ trợ SFTP, mới cân nhắc `scp -O` để dùng giao thức SCP cũ. Không tắt kiểm tra host key để xử lý lỗi timeout.
+Log `SSH connected; receiving application archive...` xác nhận đã kết nối được shell. `Archive received and SHA-256 verified.` xác nhận archive đầy đủ. `Starting deployment of verified code...` là mốc bắt đầu script có thể ghi vào app đang chạy. Nếu mất kết nối sau mốc này, kiểm tra `tmp/deployed-commit.txt`, các file/log và website trước khi chạy lại; commit marker không thay thế health check.
+
+Nếu vẫn báo `Connection timed out`, kiểm tra SSH và dung lượng/quota tài khoản trên hosting; đề nghị nhà cung cấp xem log SSH/firewall tại thời điểm lỗi, gồm việc chặn IP runner GitHub Actions, giới hạn phiên đồng thời và ngắt kết nối đang truyền dữ liệu. Đăng nhập được từ máy cá nhân không chứng minh IP runner cũng được phép. Không xóa `.ssh` hoặc tắt kiểm tra host key để xử lý timeout.
 
 Sau khi cập nhật workflow lên `master`, chọn **Run workflow** để chạy lại. **Re-run jobs** của lượt cũ dùng workflow ở commit cũ nên không có phần sửa này.
 

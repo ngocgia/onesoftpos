@@ -2,6 +2,12 @@
 <html lang="vi" class="dark scroll-smooth"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+      // Start in dark mode unless the visitor explicitly saved light mode.
+      try {
+        document.documentElement.classList.toggle('dark', localStorage.getItem('onesoft_theme') !== 'light');
+      } catch (_) { /* Keep dark mode when browser storage is unavailable. */ }
+    </script>
     <title data-landing-text="content_001">OneSoft (onesoft.one) - Phát Triển Công Nghệ &amp; Phần Mềm Quản Lý Bán Hàng OneSoft POS</title>
     <!-- Tailwind CSS -->
     <link rel="stylesheet" href="css/landing.css">
@@ -64,9 +70,7 @@
             <div class="flex justify-between items-center h-16 sm:h-20 gap-3 xl:gap-6">
                 <!-- Logo OneSoft + onesoft.one badge -->
                 <a href="#" class="flex items-center gap-2.5 group shrink-0 whitespace-nowrap" data-landing-link="content_206">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-600 via-indigo-500 to-emerald-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/25 group-hover:scale-105 transition-transform font-extrabold text-xl shrink-0">
-                        <span data-landing-text="content_007">1S</span>
-                    </div>
+                    <img src="images/app-icon.png" alt="Logo OneSoft" width="40" height="40" style="flex-shrink:0;object-fit:contain;border-radius:12px">
                     <div class="flex flex-col">
                         <div class="flex items-center gap-1.5">
                             <span class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white whitespace-nowrap"><span data-landing-text="content_008">One</span><span class="text-brand-500"><span data-landing-text="content_009">Soft</span></span></span>
@@ -847,9 +851,7 @@
                 <!-- Brand Info -->
                 <div class="space-y-4">
                     <a href="https://onesoft.one" class="flex items-center gap-2.5" data-landing-link="content_231">
-                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-600 via-indigo-500 to-emerald-500 flex items-center justify-center text-white font-extrabold">
-                            <span data-landing-text="content_176">1S</span>
-                        </div>
+                        <img src="images/app-icon.png" alt="Logo OneSoft" width="36" height="36" style="flex-shrink:0;object-fit:contain;border-radius:12px">
                         <span class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white"><span data-landing-text="content_177">One</span><span class="text-brand-500"><span data-landing-text="content_178">Soft</span></span></span>
                         <span class="text-xs px-2 py-0.5 rounded bg-brand-500/10 text-brand-500 font-semibold"><span data-landing-text="content_179">onesoft.one</span></span>
                     </a>
@@ -962,10 +964,7 @@
 
         function toggleTheme() {
             htmlEl.classList.toggle('dark');
-            localStorage.setItem('onesoft_theme', htmlEl.classList.contains('dark') ? 'dark' : 'light');
-        }
-        if (localStorage.getItem('onesoft_theme') === 'light') {
-            htmlEl.classList.remove('dark');
+            try { localStorage.setItem('onesoft_theme', htmlEl.classList.contains('dark') ? 'dark' : 'light'); } catch (_) {}
         }
         themeBtn.addEventListener('click', toggleTheme);
         themeBtnMobile.addEventListener('click', toggleTheme);

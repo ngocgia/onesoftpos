@@ -7,7 +7,9 @@ window.landingAdmin = {
     status.textContent = 'Đang tải nội dung...';
     try {
       const data = await window.api.get('/admin/landing');
-      this.fields = data.fields;
+      // Retain legacy text keys in the API for old saved content, but hide the
+      // retired "1S" placeholders now replaced by the company image.
+      this.fields = data.fields.filter(field => !['content_007', 'content_176'].includes(field.key));
       const groups = new Map();
       for (const field of this.fields) {
         if (!groups.has(field.group)) groups.set(field.group, []);

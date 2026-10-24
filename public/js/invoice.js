@@ -88,6 +88,7 @@ window.invoiceModule = {
     window.appState.storeSettings.receipt_paper_size = { K58: '58mm', K80: '80mm', K85: '85mm', A4: 'A4' }[settings.paperSize] || '80mm';
     window.appState.storeSettings.receipt_connection_type = settings.connectionType || 'browser';
     window.appState.storeSettings.receipt_auto_cut_paper = settings.autoCutPaper !== false;
+    window.appState.storeSettings.receipt_ip_address = String(settings.ipAddress || '').trim();
     let style = document.getElementById('receiptPrintSettings');
     if (!style) {
       style = document.createElement('style');
@@ -141,6 +142,15 @@ window.invoiceModule = {
       const settings = await this.loadPrinterSettings(storeId);
       this.applyPrinterSettings(settings);
       if (auto && !(this.receiptKind === 'orderSlip' ? settings.autoPrintOrderSlipOnTransfer : settings.autoPrintOnPayment)) return;
+      if (['lan', 'network'].includes(settings.connectionType)) {
+        if (!window.onesoftNativeLanPrint) throw new Error('In LAN trực tiếp cần app Android Onesoft POS 1.3.7 trở lên. Trên web, chọn Trình duyệt và máy in đã cài driver, hoặc dùng app Android.');
+        const parts = String(settings.ipAddress || '').trim().split('.');
+        if (parts.length !== 4 || parts.some(part => !/^\d{1,3}$/.test(part) || Number(part) > 255)
+            || Number(parts[0]) === 0 || Number(parts[0]) >= 224 || Number(parts[3]) === 255) {
+          throw new Error('Nhập IP máy in hợp lệ, ví dụ 192.168.1.27; không kèm http:// hoặc cổng');
+        }
+        if (settings.paperSize === 'A4') throw new Error('In LAN máy in nhiệt chỉ hỗ trợ K58, K80 hoặc K85');
+      }
       if (settings.connectionType === 'rawbt') {
         if (!window.onesoftNativeRawBt) throw new Error('In RawBT cần cài ứng dụng Android Onesoft POS bản hỗ trợ RawBT; vui lòng cập nhật APK');
         if (settings.paperSize === 'A4') throw new Error('In RawBT chỉ hỗ trợ K58, K80 hoặc K85');

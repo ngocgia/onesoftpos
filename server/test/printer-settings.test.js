@@ -215,10 +215,70 @@ test('automatic cutter setting reaches the Android bridge and follows the latest
   assert.equal(h.prints(), 2);
 });
 
+test('LAN printing forwards IP and blocks browser/old APK fallback, invalid addresses and A4', async () => {
+  const h = harness();
+  h.settings.set('11', { paperSize: 'K80', connectionType: 'lan', ipAddress: '192.168.1.27', autoCutPaper: true });
+  await h.window.invoiceModule.showReceipt({ isDraft: true, order_code: 'LAN' });
+  await h.window.invoiceModule.printReceipt();
+  assert.equal(h.prints(), 0);
+  assert.match(h.toasts.at(-1).message, /1.3.7/);
+  h.window.onesoftNativePrint = true;
+  await h.window.invoiceModule.printReceipt();
+  assert.equal(h.prints(), 0);
+  h.window.onesoftNativeLanPrint = true;
+  await h.window.invoiceModule.printReceipt();
+  assert.equal(h.prints(), 1);
+  assert.equal(h.window.appState.storeSettings.receipt_ip_address, '192.168.1.27');
+  assert.equal(h.window.appState.storeSettings.receipt_auto_cut_paper, true);
+  for (const ipAddress of ['', 'http://192.168.1.27', '192.168.1.999', '192.168.1.27:9100', '224.0.0.1']) {
+    h.settings.set('11', { paperSize: 'K80', connectionType: 'lan', ipAddress });
+    await h.window.invoiceModule.printReceipt();
+    assert.equal(h.prints(), 1);
+    assert.match(h.toasts.at(-1).message, /IP máy in hợp lệ/);
+  }
+  h.settings.set('11', { paperSize: 'A4', connectionType: 'lan', ipAddress: '192.168.1.27' });
+  await h.window.invoiceModule.printReceipt();
+  assert.equal(h.prints(), 1);
+  h.settings.set('11', { paperSize: 'K80', connectionType: 'network', ipAddress: '192.168.1.28' });
+  await h.window.invoiceModule.printReceipt();
+  assert.equal(h.prints(), 2);
+  assert.equal(h.window.appState.storeSettings.receipt_ip_address, '192.168.1.28');
+});
+
+test('Android bridge includes IP, LAN capability and cutter flag in its print request', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../../android-pos/app/src/main/java/vn/pro/giavdn/onesoftpos/MainActivity.java'), 'utf8');
+  const region = source.split('private static final String APP_BRIDGE_SCRIPT =')[1].split('private WebView')[0];
+  const script = [...region.matchAll(/"(?:\\.|[^"\\])*"/g)].map(match => JSON.parse(match[0])).join('');
+  const window = { appState: { storeSettings: { receipt_paper_size: '80mm', receipt_connection_type: 'lan', receipt_ip_address: '192.168.1.27', receipt_auto_cut_paper: false } }, location: {} };
+  vm.runInNewContext(script, { window });
+  window.print();
+  const url = new URL(window.location.href);
+  assert.equal(window.onesoftNativeLanPrint, true);
+  assert.equal(url.searchParams.get('ip'), '192.168.1.27');
+  assert.equal(url.searchParams.get('connection'), 'lan');
+  assert.equal(url.searchParams.get('cut'), '0');
+});
+
 test('RawBT configuration persists through the printer settings API', () => {
   const { validate } = require('../src/controllers/menuPreferencesController');
   const settings = { paperSize: 'K80', connectionType: 'rawbt', ipAddress: '', autoPrintOnPayment: false, autoCutPaper: false, printKitchenSeparate: false };
   assert.equal(validate('printer', settings).connectionType, 'rawbt');
+});
+
+test('Android LAN compatibility reads saved printer IP when the older website omitted the bridge field', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../../android-pos/app/src/main/java/vn/pro/giavdn/onesoftpos/MainActivity.java'), 'utf8');
+  const literal = source.match(/view\.evaluateJavascript\(("\(function\(\)\{var saved=(?:\\.|[^"\\])*"), value ->/)[1];
+  const script = JSON.parse(literal);
+  const window = {
+    invoiceModule: { receiptText: 'Hóa đơn LAN' },
+    appState: { storeSettings: {} },
+    menuPersistence: { read(section) { assert.equal(section, 'printer'); return { ipAddress: '192.168.1.27' }; } }
+  };
+  assert.equal(vm.runInNewContext(script, { window }).ip, '192.168.1.27');
+  window.menuPersistence.read = () => ({}); // Another store has no saved printer.
+  assert.equal(vm.runInNewContext(script, { window }).ip, '');
+  delete window.menuPersistence;
+  assert.equal(vm.runInNewContext(script, { window }).ip, '');
 });
 
 test('test print uses the actual receipt and transport, includes Vietnamese accents', async () => {

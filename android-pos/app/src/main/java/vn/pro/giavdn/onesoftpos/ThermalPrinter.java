@@ -31,6 +31,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.io.InputStream;
 import java.net.URL;
+import java.net.Socket;
+import java.net.InetSocketAddress;
 import javax.net.ssl.HttpsURLConnection;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,13 +56,14 @@ final class ThermalPrinter {
     private boolean receiverRegistered;
     private volatile boolean closed;
     private volatile BluetoothSocket activeSocket;
+    private volatile Socket activeNetworkSocket;
 
     ThermalPrinter(Activity activity) {
         this.activity = activity;
         usbAction = activity.getPackageName() + ".USB_PRINT_PERMISSION";
     }
 
-    void print(String receipt, String paper, String connection, String receiptQrUrl, String receiptFooter, boolean cutPaper) {
+    void print(String receipt, String paper, String connection, String receiptQrUrl, String receiptFooter, boolean cutPaper, String ipAddress) {
         if (closed) return;
         if (busy) { message("Đang xử lý một phiếu in. Vui lòng chờ."); return; }
         if (receipt == null || receipt.trim().isEmpty()) { message("Chưa có dữ liệu hóa đơn"); return; }
@@ -71,9 +74,33 @@ final class ThermalPrinter {
         // K80/K85 use a conservative 72mm raster until the exact printhead width is known.
         width = "58mm".equals(paper) ? 384 : 576;
         busy = true;
-        if ("rawbt".equals(connection)) sendRawBt();
+        if ("lan".equals(connection) || "network".equals(connection)) sendNetwork(ipAddress);
+        else if ("rawbt".equals(connection)) sendRawBt();
         else if ("bluetooth".equals(connection)) chooseBluetooth();
         else chooseUsb();
+    }
+
+    private void sendNetwork(String address) {
+        final String host;
+        try { host = PrinterNetworkAddress.parse(address); }
+        catch (IllegalArgumentException error) { stop(error.getMessage()); return; }
+        message("Đang kết nối máy in LAN " + host + ":9100...");
+        worker.execute(() -> {
+            try (Socket socket = new Socket()) {
+                activeNetworkSocket = socket;
+                if (closed) return;
+                ScheduledFuture<?> timeout = timer.schedule(() -> { try { socket.close(); } catch (IOException ignored) {} }, 90, TimeUnit.SECONDS);
+                try {
+                    socket.connect(new InetSocketAddress(host, 9100), 5000);
+                    socket.setTcpNoDelay(true);
+                    sendRaster(socket.getOutputStream());
+                    message("Đã gửi dữ liệu tới máy in LAN. Vui lòng kiểm tra giấy in.");
+                } finally { timeout.cancel(false); }
+            } catch (Exception error) {
+                message("In LAN thất bại (" + host + ":9100): " + error.getMessage()
+                        + ". Kiểm tra cùng mạng Wi-Fi/LAN và cổng in 9100. Kiểm tra giấy trước khi in lại để tránh trùng.");
+            } finally { activeNetworkSocket = null; activity.runOnUiThread(() -> busy = false); }
+        });
     }
 
     private void sendRawBt() {
@@ -334,6 +361,8 @@ final class ThermalPrinter {
         if (receiverRegistered) activity.unregisterReceiver(usbReceiver);
         BluetoothSocket socket = activeSocket;
         if (socket != null) try { socket.close(); } catch (IOException ignored) {}
+        Socket networkSocket = activeNetworkSocket;
+        if (networkSocket != null) try { networkSocket.close(); } catch (IOException ignored) {}
         worker.shutdownNow();
         timer.shutdownNow();
     }

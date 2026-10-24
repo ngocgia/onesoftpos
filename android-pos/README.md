@@ -11,6 +11,14 @@
 - Từ bản 1.3.4, hóa đơn tạm tính có QR thanh toán được in cả mã QR qua Bluetooth/USB. Cần cấu hình ngân hàng, số tài khoản và chủ tài khoản trong cài đặt cửa hàng. Ứng dụng tải ảnh QR trước khi gửi dữ liệu in; tải lỗi sẽ báo để thử lại.
 - Cần Internet và website public hoạt động; app không lưu menu hoặc đơn hàng để dùng offline.
 
+## In LAN trực tiếp (APK 1.3.7)
+
+APK **1.3.8** bổ sung đọc IP đã lưu từ `menuPersistence.read('printer', {})` nếu website cũ chưa truyền trường IP sang native, đồng thời phân biệt lỗi thiếu IP và IP sai định dạng. Không dùng IP mặc định hoặc IP của cửa hàng khác để in khi chưa nhận được cấu hình.
+
+Trong app Android, chọn **Cài đặt máy in → Mạng LAN/Wi-Fi**, khổ **K80**, IP máy in (ví dụ `192.168.1.27`), lưu rồi in thử. App mở TCP tới cổng **9100** trên máy in và gửi raster ESC/POS tiếng Việt, QR, lệnh cắt theo thiết lập. Điện thoại/máy iPOS phải cùng mạng và không bị chặn truy cập mạng nội bộ. Mở được trang cấu hình HTTP của máy in chỉ xác nhận cổng web truy cập được; không xác nhận cổng in 9100 mở. Thử mục **Printer Test** trong trang cấu hình máy in để kiểm tra riêng phần cứng.
+
+Cần cập nhật cả website và APK. Trước bản này, lựa chọn LAN chưa được triển khai và rơi về hộp thoại in Android. Trình duyệt không có bridge TCP; web mới sẽ báo rõ thay vì mở nhầm hộp thoại. Trên web Windows, chọn **Trình duyệt** và máy in đã cài driver TCP/IP; trên Android có thể cấu hình RawBT qua mạng rồi chọn **RawBT** trong app POS. Không gửi IP nội bộ sang backend hosting để in vì hosting không thuộc LAN cửa hàng. Cổng 9100 là cổng được app sử dụng, phải xác nhận máy in đang bật RAW TCP tại cổng này. Chưa xác minh in thực tế trên Zywell ZY-Q822.
+
 ## In qua RawBT trên máy iPOS
 
 APK **1.3.6** sửa tùy chọn **Tự động cắt giấy**: website truyền `receipt_auto_cut_paper` sang Android, bộ in thêm đúng một lệnh `GS V 66 0` sau nội dung, QR, lời cuối và đẩy giấy. Lệnh dùng chung cho USB/Bluetooth và dữ liệu chuyển sang RawBT. Tắt tùy chọn thì chỉ đẩy giấy, không gửi lệnh cắt. Cần cập nhật cả website và APK. Máy phải có dao cắt hỗ trợ ESC/POS; hộp thoại in Android/trình duyệt vẫn do driver điều khiển. Nếu RawBT cũng được cấu hình tự thêm lệnh cắt, chỉ bật cắt ở một nơi để tránh cắt hai lần. Tham khảo [lệnh GS V của Epson](https://download4.epson.biz/sec_pubs/pos/reference_en/escpos/gs_cv.html).

@@ -43,11 +43,13 @@ public final class MainActivity extends Activity {
             + "window.onesoftAudio={beep:function(v){OnesoftAudioBridge.beep(v)},speak:function(t,v){OnesoftAudioBridge.speak(String(t),v)}};"
             + "window.onesoftNativePrint=true;"
             + "window.onesoftNativeRawBt=true;"
+            + "window.onesoftNativeLanPrint=true;"
             + "window.onesoftNativeReceiptQr=true;"
             + "window.print=function(){var paper=(window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_paper_size)||'80mm';"
             + "var connection=(window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_connection_type)||'browser';"
             + "var cut=!(window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_auto_cut_paper===false);"
-            + "window.location.href='tgpos://print?paper='+encodeURIComponent(paper)+'&connection='+encodeURIComponent(connection)+'&cut='+(cut?'1':'0')}"
+            + "var ip=(window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_ip_address)||'';"
+            + "window.location.href='tgpos://print?paper='+encodeURIComponent(paper)+'&connection='+encodeURIComponent(connection)+'&cut='+(cut?'1':'0')+'&ip='+encodeURIComponent(ip)}"
             + "})()";
 
     private WebView webView;
@@ -197,19 +199,23 @@ public final class MainActivity extends Activity {
                     String paper = uri.getQueryParameter("paper");
                     String connection = uri.getQueryParameter("connection");
                     boolean autoCut = !"0".equals(uri.getQueryParameter("cut"));
-                    if ("bluetooth".equals(connection) || "usb".equals(connection) || "rawbt".equals(connection)) {
+                    String ipAddress = uri.getQueryParameter("ip");
+                    if ("bluetooth".equals(connection) || "usb".equals(connection) || "rawbt".equals(connection) || "lan".equals(connection) || "network".equals(connection)) {
                         if (!"58mm".equals(paper) && !"80mm".equals(paper) && !"85mm".equals(paper)) {
                             Toast.makeText(MainActivity.this, "Chọn khổ K58, K80 hoặc K85 để in nhiệt", Toast.LENGTH_LONG).show();
                             return true;
                         }
                         String sourceUrl = view.getUrl();
-                        view.evaluateJavascript("({text:window.invoiceModule && window.invoiceModule.receiptText || '',qrUrl:window.invoiceModule && window.invoiceModule.receiptQrUrl || '',footer:window.invoiceModule && window.invoiceModule.receiptFooterText || ''})", value -> {
+                        // Older website builds don't fill receipt_ip_address. Read the
+                        // same-store saved preference as a compatibility fallback.
+                        view.evaluateJavascript("(function(){var saved=window.menuPersistence&&typeof window.menuPersistence.read==='function'?window.menuPersistence.read('printer',{}):{};return {text:window.invoiceModule&&window.invoiceModule.receiptText||'',qrUrl:window.invoiceModule&&window.invoiceModule.receiptQrUrl||'',footer:window.invoiceModule&&window.invoiceModule.receiptFooterText||'',ip:window.appState&&window.appState.storeSettings&&window.appState.storeSettings.receipt_ip_address||saved.ipAddress||''}})()", value -> {
                             if (!sourceUrl.equals(view.getUrl())) return;
                             try {
                                 Object receipt = new org.json.JSONTokener(value).nextValue();
                                 if (receipt instanceof org.json.JSONObject) {
                                     org.json.JSONObject data = (org.json.JSONObject) receipt;
-                                    thermalPrinter.print(data.optString("text"), paper, connection, data.optString("qrUrl"), data.optString("footer"), autoCut);
+                                    String resolvedIp = ipAddress != null && !ipAddress.trim().isEmpty() ? ipAddress : data.optString("ip");
+                                    thermalPrinter.print(data.optString("text"), paper, connection, data.optString("qrUrl"), data.optString("footer"), autoCut, resolvedIp);
                                 }
                                 else Toast.makeText(MainActivity.this, "Chưa đọc được dữ liệu hóa đơn. Hãy mở lại phiếu.", Toast.LENGTH_LONG).show();
                             } catch (Exception error) { Toast.makeText(MainActivity.this, "Không đọc được dữ liệu hóa đơn", Toast.LENGTH_LONG).show(); }

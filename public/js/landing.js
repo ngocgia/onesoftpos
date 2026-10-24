@@ -4,6 +4,13 @@
   let catalog = [];
   let billing = 'yearly';
   let industry = 'grocery';
+  const scrollTop = document.getElementById('landingScrollTop');
+  const updateScrollTop = () => { scrollTop.hidden = window.scrollY < 320; };
+  window.addEventListener('scroll', updateScrollTop, { passive: true });
+  updateScrollTop();
+  scrollTop.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  });
   const escape = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   function apply() {
     for (const [attribute, property] of [['text', 'textContent'], ['link', 'href'], ['placeholder', 'placeholder']]) {

@@ -1986,5 +1986,19 @@
     "type": "text",
     "label": "chain / năm",
     "value": "299.000₫"
+  },
+  {
+    "key": "action.top.label",
+    "group": "Tiện ích trang giới thiệu",
+    "type": "text",
+    "label": "Nhãn nút cuộn lên",
+    "value": "Lên đầu trang"
+  },
+  {
+    "key": "action.download.label",
+    "group": "Tiện ích trang giới thiệu",
+    "type": "text",
+    "label": "Nhãn nút tải APK",
+    "value": "Tải APK Android"
   }
 ]

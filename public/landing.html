@@ -5,6 +5,7 @@
     <title data-landing-text="content_001">OneSoft (onesoft.one) - Phát Triển Công Nghệ &amp; Phần Mềm Quản Lý Bán Hàng OneSoft POS</title>
     <!-- Tailwind CSS -->
     <link rel="stylesheet" href="css/landing.css">
+    <link rel="stylesheet" href="css/landing-actions.css?v=20261024">
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
@@ -1329,4 +1330,14 @@
         switchIndustry('grocery');
     </script>
 
-<script src="js/landing.js?v=20261024"></script></body></html>
+<nav class="landing-actions" aria-label="Tiện ích trang giới thiệu">
+  <button type="button" id="landingScrollTop" class="landing-action landing-to-top" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 12 6-6 6 6M12 6v14"/></svg>
+    <span data-landing-text="action.top.label">Lên đầu trang</span>
+  </button>
+  <a href="/download" class="landing-action landing-download" id="landingDownloadApk">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 16v4h14v-4"/></svg>
+    <span data-landing-text="action.download.label">Tải APK Android</span>
+  </a>
+</nav>
+<script src="js/landing.js?v=20261024-actions"></script></body></html>

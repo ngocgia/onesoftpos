@@ -4,6 +4,8 @@
 
 ## Phạm vi ứng dụng
 
+APK mới nhất: **OnesoftPOS 1.3.13** (`versionCode 19`), tệp `OnesoftPOS-1.3.13-debug.apk`. Bản này dùng tên OnesoftPOS và xử lý xóa phiên đăng nhập với cả khóa lưu mới lẫn khóa cũ. Giao diện và cài đặt máy in được tải từ website `https://onesoft.one/?mode=pos`; cần cập nhật website để nhận các thay đổi giao diện mới nhất.
+
 - Đăng nhập và làm việc bằng tài khoản POS hiện có; phiên được website lưu trong WebView.
 - Menu, giỏ hàng, bàn, đơn hàng, KDS, thanh toán, ca làm việc và hóa đơn hoạt động theo quyền và cấu hình của website.
 - Mục quản trị bị ẩn và các điều hướng đến `/admin.html` bị chuyển về POS.
@@ -63,4 +65,4 @@ Tạo Android App Bundle để tải lên Play Console bằng `gradlew.bat bundl
 
 ## Kiểm tra
 
-Lệnh `assembleDebug` đã chạy thành công với Android SDK 35 và JDK 17; chữ ký APK debug đã được xác minh. URL POS public trả HTTP 200. Chưa có thiết bị hoặc trình giả lập để xác nhận trực tiếp việc hiển thị WebView, đăng nhập và in với máy in cụ thể.
+APK 1.3.13 đã dựng thành công bằng `assembleDebug` với Android SDK 36 và JDK 21, biên dịch mã Java theo mức 17; chữ ký, tên ứng dụng và thông tin phiên bản đã được xác minh. Bốn bộ kiểm thử Java cho raster, địa chỉ LAN, USB/RawBT và phiên Bluetooth đều đạt. Chưa có thiết bị hoặc trình giả lập để xác nhận trực tiếp việc hiển thị WebView, đăng nhập và in với máy in cụ thể.

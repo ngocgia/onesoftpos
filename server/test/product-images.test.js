@@ -91,7 +91,7 @@ test('HTTP upload enforces real auth, management role and store assignment, serv
   assert.ok(Buffer.from(await image.arrayBuffer()).equals(decodeImage(png).bytes));
 });
 
-test('menu sorts Vietnamese names A-Z with numeric order under category and search filters', async () => {
+test('menu sorts Vietnamese names A-Z before names starting with numbers under category and search filters', async () => {
   const grid = { innerHTML: '', querySelectorAll: () => [] };
   const window = { api: { formatMoney: String } };
   const document = { getElementById: id => id === 'productsGrid' ? grid : null };
@@ -105,20 +105,25 @@ test('menu sorts Vietnamese names A-Z with numeric order under category and sear
     { id: 2, name: 'Gà rán', code: 'GA', price: 2, category_id: 1 },
     { id: 3, name: 'Bánh 10', code: 'B10', price: 3, category_id: 1 },
     { id: 4, name: 'bánh 2', code: 'B2', price: 4, category_id: 1 },
-    { id: 5, name: 'Đậu hũ', code: 'DH', price: 5, category_id: 2 }
+    { id: 5, name: 'Đậu hũ', code: 'DH', price: 5, category_id: 2 },
+    { id: 6, name: '10 Gà rán', code: 'GA10', price: 6, category_id: 1 },
+    { id: 7, name: ' 2 Gà rán', code: 'GA2', price: 7, category_id: 1 }
   ];
   const names = () => [...grid.innerHTML.matchAll(/class="product-title">([^<]*)</g)].map(match => match[1]);
   pos.renderProducts();
-  assert.deepEqual(names(), ['bánh 2', 'Bánh 10', 'Đậu hũ', 'Gà rán', 'Trà sữa']);
+  assert.deepEqual(names(), ['bánh 2', 'Bánh 10', 'Đậu hũ', 'Gà rán', 'Trà sữa', ' 2 Gà rán', '10 Gà rán']);
   assert.equal(pos.products[0].id, 1, 'sorting must not mutate the catalog');
   assert.match(grid.innerHTML, /<img class="product-photo"/);
   pos.selectedCategory = '1';
   pos.renderProducts();
-  assert.deepEqual(names(), ['bánh 2', 'Bánh 10', 'Gà rán']);
+  assert.deepEqual(names(), ['bánh 2', 'Bánh 10', 'Gà rán', ' 2 Gà rán', '10 Gà rán']);
   pos.selectedCategory = 'all';
   pos.searchKeyword = 'bánh';
   pos.renderProducts();
   assert.deepEqual(names(), ['bánh 2', 'Bánh 10']);
+  pos.searchKeyword = 'gà';
+  pos.renderProducts();
+  assert.deepEqual(names(), ['Gà rán', ' 2 Gà rán', '10 Gà rán']);
   assert.ok(!window.productImages.render('<script>x</script>').includes('<script>'));
   assert.ok(!window.productImages.render('javascript:alert(1)').includes('<img'));
 });

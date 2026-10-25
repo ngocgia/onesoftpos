@@ -423,7 +423,13 @@ window.posModule = {
     const empty = document.getElementById('productEmpty');
     if (!grid) return;
 
-    let filtered = [...this.products].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'vi', { sensitivity: 'base', numeric: true }) || Number(a.id) - Number(b.id));
+    let filtered = [...this.products].sort((a, b) => {
+      const nameA = String(a.name || '').trim();
+      const nameB = String(b.name || '').trim();
+      return Number(/^\d/.test(nameA)) - Number(/^\d/.test(nameB))
+        || nameA.localeCompare(nameB, 'vi', { sensitivity: 'base', numeric: true })
+        || Number(a.id) - Number(b.id);
+    });
 
     // Filter category
     if (this.selectedCategory !== 'all') {

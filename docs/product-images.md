@@ -9,4 +9,4 @@ Trong Admin → Sản phẩm, chọn cửa hàng rồi thêm hoặc sửa món. 
 - Ảnh được lưu tại `server/data/product-images/<store_id>/` và phục vụ qua `/uploads/products/`. Có thể đặt `PRODUCT_IMAGE_STORAGE_DIR` thành đường dẫn tuyệt đối đến nơi lưu lâu dài. Sao lưu thư mục này cùng database; các lần triển khai code hiện tại giữ nguyên `server/data/`.
 - Đổi hoặc xóa ảnh trên món không tự xóa file cũ, tránh ảnh đang được món khác sử dụng bị mất. Ảnh chỉ được tải lên khi bấm Lưu.
 
-Thực đơn sắp xếp tên món A–Z theo tiếng Việt, không phân biệt hoa thường, xử lý số tự nhiên (Bánh 2 đứng trước Bánh 10). Thứ tự được giữ khi lọc danh mục hoặc tìm kiếm.
+Thực đơn sắp xếp tên món A–Z theo tiếng Việt, không phân biệt hoa thường. Món có tên bắt đầu bằng số được xếp sau toàn bộ món bắt đầu bằng chữ; trong nhóm số, 2 đứng trước 10. Số trong tên vẫn theo thứ tự tự nhiên (Bánh 2 đứng trước Bánh 10). Thứ tự được giữ khi lọc danh mục hoặc tìm kiếm.

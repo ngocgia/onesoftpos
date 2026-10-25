@@ -316,7 +316,13 @@ async function getProducts(req, res) {
       });
     }
 
-    products.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'vi', { sensitivity: 'base', numeric: true }) || Number(a.id) - Number(b.id));
+    products.sort((a, b) => {
+      const nameA = String(a.name || '').trim();
+      const nameB = String(b.name || '').trim();
+      return Number(/^\d/.test(nameA)) - Number(/^\d/.test(nameB))
+        || nameA.localeCompare(nameB, 'vi', { sensitivity: 'base', numeric: true })
+        || Number(a.id) - Number(b.id);
+    });
     res.json({ success: true, products, options });
   } catch (error) {
     console.error('getProducts error:', error);

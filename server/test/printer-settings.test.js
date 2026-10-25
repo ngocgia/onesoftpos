@@ -43,6 +43,60 @@ function harness() {
   return { window, document, settings, toasts, prints: () => prints, switchStore: id => { storeId = id; } };
 }
 
+test('four printer profiles persist independently and kitchen slips use their own destination', async () => {
+  const h = harness();
+  await h.window.moreMenuModule.openPrinterModal();
+  const menu = h.window.moreMenuModule;
+  menu.editPrinter('kitchen');
+  h.document.getElementById('printerEnabled-kitchen').checked = true;
+  h.document.getElementById('printerkitchenConnectionType').value = 'lan';
+  h.document.getElementById('printerkitchenIpAddress').value = '192.168.1.28';
+  h.document.getElementById('printerIpAddress').value = '192.168.1.27';
+  await menu.savePrinterSettings();
+  const saved = h.settings.get('11');
+  assert.deepEqual(Object.keys(saved.profiles), ['invoice', 'label', 'barcode', 'kitchen']);
+  assert.equal(saved.profiles.invoice.ipAddress, '192.168.1.27');
+  assert.equal(saved.profiles.kitchen.ipAddress, '192.168.1.28');
+  assert.equal(saved.profiles.label.configured, false);
+  assert.equal((await h.window.invoiceModule.loadPrinterSettings('11', 'kitchen')).connectionType, 'lan');
+  assert.equal((await h.window.invoiceModule.loadPrinterSettings('11', 'invoice')).connectionType, 'browser');
+  const { validate } = require('../src/controllers/menuPreferencesController');
+  assert.equal(validate('printer', saved).profiles.kitchen.ipAddress, '192.168.1.28');
+  await menu.openPrinterModal();
+  menu.removePrinter('kitchen');
+  await menu.savePrinterSettings();
+  assert.equal((await h.window.invoiceModule.loadPrinterSettings('11', 'kitchen')).enabled, false);
+  assert.equal(h.settings.get('11').profiles.invoice.configured, true);
+});
+
+test('disabled invoice profile blocks printing and enabled empty profiles cannot be saved', async () => {
+  const h = harness();
+  await h.window.moreMenuModule.openPrinterModal();
+  h.document.getElementById('printerEnabled-invoice').checked = false;
+  await h.window.moreMenuModule.savePrinterSettings();
+  await h.window.invoiceModule.showReceipt({ isDraft: true, items: [] });
+  await h.window.invoiceModule.printReceipt();
+  assert.equal(h.prints(), 0);
+  h.document.getElementById('printerEnabled-label').checked = true;
+  assert.throws(() => h.window.moreMenuModule.getPrinterSettingsFromForm(), /thêm máy in/);
+});
+
+test('printer profile validation rejects malformed groups and preserves legacy payloads', () => {
+  const h = harness();
+  const menu = h.window.moreMenuModule;
+  const { validate } = require('../src/controllers/menuPreferencesController');
+  const legacy = { paperSize: 'K80', connectionType: 'browser', ipAddress: '', autoPrintOnPayment: true,
+    autoPrintOrderSlipOnTransfer: false, autoCutPaper: true, printKitchenSeparate: false };
+  const profiles = menu.normalizePrinterProfiles(legacy);
+  assert.doesNotThrow(() => validate('printer', { ...legacy, profiles }));
+  assert.throws(() => validate('printer', { ...legacy, profiles: { invoice: profiles.invoice } }));
+  profiles.label.enabled = true;
+  assert.throws(() => validate('printer', { ...legacy, profiles }));
+  profiles.label.configured = true;
+  profiles.label.connectionType = 'invalid';
+  assert.throws(() => validate('printer', { ...legacy, profiles }));
+});
+
 test('saved printer settings apply to draft, reprint and subsequent changes from another cashier', async () => {
   const h = harness();
   await h.window.moreMenuModule.openPrinterModal();
@@ -536,9 +590,11 @@ test('QR image failures do not block the bill or print a stale QR', async () => 
 test('a slow older QR response cannot overwrite a newer receipt', async () => {
   const h = harness();
   let finish;
-  h.window.api.post = () => new Promise(resolve => { finish = resolve; });
+  let started;
+  const qrStarted = new Promise(resolve => { started = resolve; });
+  h.window.api.post = () => new Promise(resolve => { finish = resolve; started(); });
   const loading = h.window.invoiceModule.showReceipt({ isDraft: true, order_code: 'OLD', total_amount: 10000 });
-  await Promise.resolve();
+  await qrStarted;
   await h.window.invoiceModule.showReceipt({ isDraft: true, order_code: 'NEW', total_amount: 0 });
   finish({ configured: true, qrUrl: 'https://img.vietqr.io/old.png' });
   await loading;
@@ -585,3 +641,244 @@ for (const paymentMethod of ['CASH', 'BANK_TRANSFER', 'CARD', 'QR']) {
     assert.equal(h.toasts.filter(toast => toast.type === 'error').length, 0);
   });
 }
+
+
+test('invoice content switches save and restore separately from printer destinations', async () => {
+  const h = harness();
+  const menu = h.window.moreMenuModule;
+  await menu.openPrinterModal();
+  for (const key of Object.keys(menu.defaultInvoiceOptions)) {
+    assert.equal(h.document.getElementById('invoiceOption-' + key).checked, true);
+    h.document.getElementById('invoiceOption-' + key).checked = false;
+  }
+  await menu.savePrinterSettings();
+  const saved = h.settings.get('11');
+  const { validate } = require('../src/controllers/menuPreferencesController');
+  assert.equal(Object.values(validate('printer', saved).invoiceOptions).every(value => value === false), true);
+  assert.throws(() => validate('printer', { ...saved, invoiceOptions: { ...saved.invoiceOptions, qr: 'false' } }));
+  assert.throws(() => validate('printer', { ...saved, invoiceOptions: { ...saved.invoiceOptions, extra: true } }));
+  await menu.openPrinterModal();
+  for (const key of Object.keys(menu.defaultInvoiceOptions)) assert.equal(h.document.getElementById('invoiceOption-' + key).checked, false);
+});
+
+for (const [key, id, text] of [
+  ['notes', 'receiptNote', 'Ghi chú đơn:'], ['tax', 'receiptTaxRow', 'Thuế:'],
+  ['checkIn', 'receiptDateTime', 'Giờ vào:'], ['checkOut', 'receiptExitTime', 'Giờ ra:'],
+  ['staff', 'receiptCashier', 'Nhân viên:'], ['qr', 'receiptPaymentQr', 'Quét mã QR'],
+  ['printCount', 'receiptPrintCount', 'In lần'], ['orderCode', 'receiptOrderCodeText', 'Mã đơn:']
+]) {
+  test('invoice option ' + key + ' applies to preview, refreshed reprints and native text', async () => {
+    const h = harness();
+    let qrCalls = 0;
+    const get = h.window.api.get;
+    h.window.api.get = async url => url.startsWith('/orders/') ? {
+      order: { id: 1, order_code: 'HD01', payment_status: 'PAID', created_at: '2026-10-25T03:00:00Z',
+        completed_at: '2026-10-25T04:00:00Z', cashier_name: 'Nguyễn An', note: 'Ghi chú đơn riêng',
+        subtotal: 50000, tax_amount: 5000, total_amount: 55000 },
+      items: [{ product_name: 'Gà', quantity: 1, subtotal: 50000, note: 'Ghi chú món riêng' }]
+    } : get(url);
+    h.window.api.post = async () => {
+      qrCalls++;
+      return { configured: true, qrUrl: 'https://img.vietqr.io/image/test.png' };
+    };
+    const options = { ...h.window.moreMenuModule.defaultInvoiceOptions, [key]: false };
+    h.settings.set('11', { invoiceOptions: options });
+    const invoice = h.window.invoiceModule;
+    await invoice.showReceipt({ id: 1 });
+    assert.equal(h.document.getElementById(id).style.display, 'none');
+    assert.equal(invoice.receiptText.includes(text), false);
+    assert.equal(h.document.getElementById('receiptTotal').textContent, '55000');
+    if (key === 'notes') assert.doesNotMatch(h.document.getElementById('receiptItemsTbody').innerHTML, /Ghi chú món riêng/);
+    if (key === 'qr') { assert.equal(qrCalls, 0); assert.equal(invoice.receiptQrUrl, ''); }
+    h.settings.set('11', { invoiceOptions: { ...options, [key]: true } });
+    await invoice.printReceipt();
+    assert.notEqual(h.document.getElementById(id).style.display, 'none');
+    assert.equal(invoice.receiptText.includes(text), true);
+    h.settings.set('11', { invoiceOptions: options });
+    await invoice.printReceipt();
+    assert.equal(h.document.getElementById(id).style.display, 'none');
+    assert.equal(invoice.receiptText.includes(text), false);
+    assert.equal(h.prints(), 2);
+    if (key === 'printCount') assert.equal(h.document.getElementById('receiptPrintCount').textContent, 'In lần 2');
+    if (key === 'qr') assert.equal(invoice.receiptQrUrl, '');
+  });
+}
+
+test('six-option invoice settings remain valid and default new switches to on', () => {
+  const { validate } = require('../src/controllers/menuPreferencesController');
+  const settings = { paperSize: 'K80', connectionType: 'browser', ipAddress: '', autoPrintOnPayment: false,
+    autoCutPaper: false, printKitchenSeparate: false,
+    invoiceOptions: { qr: false, notes: true, tax: false, checkIn: true, checkOut: false, staff: true } };
+  const options = validate('printer', settings).invoiceOptions;
+  assert.equal(options.printCount, true);
+  assert.equal(options.orderCode, true);
+  assert.equal(options.qr, false);
+});
+
+test('unpaid invoices have no checkout time and invoice options do not hide kitchen notes', async () => {
+  const h = harness();
+  const invoice = h.window.invoiceModule;
+  h.settings.set('11', { invoiceOptions: Object.fromEntries(Object.keys(h.window.moreMenuModule.defaultInvoiceOptions).map(key => [key, false])) });
+  await invoice.showReceipt({ isDraft: true, items: [] });
+  assert.equal(h.document.getElementById('receiptExitTime').textContent, '');
+  await invoice.showOrderSlip({ id: 1, note: 'Ghi chú bếp' }, [{ product_name: 'Gà', quantity: 1, note: 'Ít cay' }]);
+  assert.match(invoice.receiptText, /Ít cay/);
+  assert.match(invoice.receiptText, /Ghi chú bếp/);
+});
+
+
+const uploadedQrPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
+
+test('uploaded QR image saves per store, restores preview, and can be removed', async () => {
+  const h = harness();
+  const menu = h.window.moreMenuModule;
+  await menu.openPrinterModal();
+  h.document.getElementById('paymentQrSource').value = 'upload';
+  menu.updatePaymentQrEditor();
+  assert.throws(() => menu.getPrinterSettingsFromForm(), /tải ảnh QR/);
+  menu.paymentQrDraft.image = uploadedQrPng;
+  menu.updatePaymentQrEditor();
+  await menu.savePrinterSettings();
+  const { validate } = require('../src/controllers/menuPreferencesController');
+  assert.equal(validate('printer', h.settings.get('11')).paymentQr.image, uploadedQrPng);
+  await menu.openPrinterModal();
+  assert.equal(h.document.getElementById('paymentQrPreview').src, uploadedQrPng);
+  assert.equal(h.document.getElementById('paymentQrUpload').hidden, false);
+  menu.removePaymentQrImage();
+  assert.equal(h.document.getElementById('paymentQrPreview').hidden, true);
+  h.switchStore('12');
+  await menu.openPrinterModal();
+  assert.equal(menu.paymentQrDraft.image, '');
+  assert.equal(menu.paymentQrDraft.source, 'vietqr');
+});
+
+test('uploaded QR prints without bank configuration, refreshes changed images and respects QR off', async () => {
+  const h = harness();
+  let requests = 0;
+  h.window.api.post = async () => { requests++; return { configured: true, qrUrl: 'https://img.vietqr.io/image/current.png', bankName: 'MB', accountHolder: 'TEST', bankAccount: '123', memo: 'TEST' }; };
+  const config = { paymentQr: { source: 'upload', image: uploadedQrPng } };
+  h.settings.set('11', config);
+  const invoice = h.window.invoiceModule;
+  let decoded = 0;
+  h.document.getElementById('receiptQrImage').decode = async () => { decoded++; };
+  h.document.getElementById('receiptQrMemo').textContent = 'Nội dung cũ';
+  await invoice.showReceipt({ isDraft: true, total_amount: 50000, items: [] });
+  assert.equal(invoice.receiptQrUrl, uploadedQrPng);
+  assert.equal(requests, 0);
+  assert.equal(decoded, 1);
+  assert.equal(h.document.getElementById('receiptQrMemo').textContent, '');
+  await invoice.printReceipt();
+  assert.equal(h.prints(), 1);
+  const replacement = 'data:image/jpeg;base64,/9j/AA==';
+  h.settings.set('11', { paymentQr: { source: 'upload', image: replacement } });
+  await invoice.printReceipt();
+  assert.equal(invoice.receiptQrUrl, replacement);
+  h.settings.set('11', { paymentQr: { source: 'vietqr', image: '' } });
+  await invoice.printReceipt();
+  assert.equal(invoice.receiptQrUrl, 'https://img.vietqr.io/image/current.png');
+  assert.equal(requests, 1);
+  h.settings.set('11', { ...config, invoiceOptions: { qr: false } });
+  await invoice.printReceipt();
+  assert.equal(invoice.receiptQrUrl, '');
+  assert.equal(h.document.getElementById('receiptPaymentQr').style.display, 'none');
+});
+
+test('QR upload processes a real file selection and discards results after a store switch', async () => {
+  const h = harness();
+  const menu = h.window.moreMenuModule;
+  await menu.openPrinterModal();
+  h.document.getElementById('paymentQrSource').value = 'upload';
+  menu.updatePaymentQrEditor();
+  let reader;
+  h.window.FileReader = class { readAsDataURL() { reader = this; } };
+  h.window.Image = class { constructor() { this.width = 400; this.height = 400; } set src(value) { this.onload(); } };
+  h.document.createElement = () => ({ getContext: () => ({ fillRect() {}, drawImage() {} }), toDataURL: () => uploadedQrPng });
+  const event = { target: { files: [{ type: 'image/png', size: 1000 }] } };
+  const pending = menu.uploadPaymentQr(event);
+  assert.throws(() => menu.getPrinterSettingsFromForm(), /đang được xử lý/);
+  reader.result = uploadedQrPng; reader.onload();
+  await pending;
+  assert.equal(menu.paymentQrDraft.image, uploadedQrPng);
+  menu.removePaymentQrImage();
+  const stale = menu.uploadPaymentQr(event);
+  h.switchStore('12');
+  reader.result = uploadedQrPng; reader.onload();
+  await stale;
+  assert.equal(menu.paymentQrDraft.image, '');
+});
+
+test('QR configuration rejects external images, malformed data, wrong formats and excessive size', () => {
+  const { validate } = require('../src/controllers/menuPreferencesController');
+  const legacy = { paperSize: 'K80', connectionType: 'browser', ipAddress: '', autoPrintOnPayment: false, autoCutPaper: false, printKitchenSeparate: false };
+  for (const image of ['https://example.com/qr.png', 'data:image/svg+xml;base64,AAAA', 'data:image/png;base64,AAAA', uploadedQrPng + 'A'.repeat(2 * 1024 * 1024)]) {
+    assert.throws(() => validate('printer', { ...legacy, paymentQr: { source: 'upload', image } }));
+  }
+  assert.throws(() => validate('printer', { ...legacy, paymentQr: { source: 'upload', image: '' } }));
+  assert.doesNotThrow(() => validate('printer', { ...legacy, paymentQr: { source: 'upload', image: uploadedQrPng } }));
+});
+
+test('broken uploaded QR never falls back to a previous QR or blocks the invoice', async () => {
+  const h = harness();
+  h.settings.set('11', { paymentQr: { source: 'upload', image: uploadedQrPng } });
+  h.document.getElementById('receiptQrImage').decode = async () => { throw new Error('broken'); };
+  await h.window.invoiceModule.showReceipt({ isDraft: true, total_amount: 50000, items: [] });
+  assert.equal(h.window.invoiceModule.receiptQrUrl, '');
+  assert.equal(h.document.getElementById('receiptPaymentQr').style.display, 'none');
+  await h.window.invoiceModule.printReceipt();
+  assert.equal(h.prints(), 1);
+});
+
+
+test('86KB QR uploads survive selection, validation, save and invoice rendering without re-encoding', async () => {
+  const h = harness();
+  const menu = h.window.moreMenuModule;
+  await menu.openPrinterModal();
+  h.document.getElementById('paymentQrSource').value = 'upload';
+  menu.updatePaymentQrEditor();
+  // The image decoder is mocked; retain a PNG signature for server validation.
+  const bytes = Buffer.alloc(86 * 1024);
+  Buffer.from(uploadedQrPng.split(',')[1], 'base64').copy(bytes);
+  const source = 'data:image/png;base64,' + bytes.toString('base64');
+  h.window.FileReader = class { readAsDataURL() { this.result = source; this.onload(); } };
+  h.window.Image = class { constructor() { this.width = 600; this.height = 600; } set src(value) { this.onload(); } };
+  h.document.createElement = () => ({ getContext: () => ({ fillRect() {}, drawImage() {} }), toDataURL: () => { throw new Error('Small image must stay intact'); } });
+  await menu.uploadPaymentQr({ target: { files: [{ type: 'image/png', size: bytes.length }] } });
+  assert.equal(menu.paymentQrDraft.image, source);
+  assert.equal(h.toasts.some(entry => entry.type === 'error'), false);
+  const { validate } = require('../src/controllers/menuPreferencesController');
+  h.window.api.put = async (url, body) => {
+    const saved = validate('printer', body);
+    h.settings.set('11', saved);
+    return { settings: saved };
+  };
+  await menu.savePrinterSettings();
+  assert.equal(h.settings.get('11').paymentQr.image, source);
+  await h.window.invoiceModule.showReceipt({ isDraft: true, total_amount: 10000, items: [] });
+  assert.equal(h.window.invoiceModule.receiptQrUrl, source);
+  await h.window.invoiceModule.printReceipt();
+  assert.equal(h.prints(), 1);
+  assert.equal(h.toasts.some(entry => entry.type === 'error'), false);
+});
+
+test('large QR uploads resize and use JPEG only when the PNG exceeds the storage limit', async () => {
+  const h = harness();
+  const menu = h.window.moreMenuModule;
+  await menu.openPrinterModal();
+  h.document.getElementById('paymentQrSource').value = 'upload';
+  menu.updatePaymentQrEditor();
+  const oversized = 'data:image/png;base64,' + 'A'.repeat(menu.maxPaymentQrImageLength);
+  h.window.FileReader = class { readAsDataURL() { this.result = oversized; this.onload(); } };
+  h.window.Image = class { constructor() { this.width = 3000; this.height = 2000; } set src(value) { this.onload(); } };
+  const formats = [];
+  const canvas = { getContext: () => ({ fillRect() {}, drawImage() {} }), toDataURL: format => {
+    formats.push(format);
+    return format === 'image/png' ? oversized : uploadedQrPng;
+  } };
+  h.document.createElement = () => canvas;
+  await menu.uploadPaymentQr({ target: { files: [{ type: 'image/png', size: 3 * 1024 * 1024 }] } });
+  assert.equal(canvas.width, 960);
+  assert.equal(canvas.height, 640);
+  assert.deepEqual(formats, ['image/png', 'image/jpeg']);
+  assert.equal(menu.paymentQrDraft.image, uploadedQrPng);
+  assert.equal(h.toasts.some(entry => entry.type === 'error'), false);
+});

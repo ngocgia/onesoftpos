@@ -11,7 +11,11 @@ window.invoiceModule = {
   printCounts: new Map(),
   renderVersion: 0,
 
-  async loadReceiptQr(order, storeId, version) {
+  paymentQrKey(settings) {
+    return settings.paymentQr?.source === 'upload' ? `upload:${settings.paymentQr.image || ''}` : 'vietqr';
+  },
+
+  async loadReceiptQr(order, storeId, version, settings = {}) {
     this.receiptQrUrl = '';
     const block = document.getElementById('receiptPaymentQr');
     const notice = document.getElementById('receiptQrNotice');
@@ -19,9 +23,11 @@ window.invoiceModule = {
     block.style.display = 'none';
     notice.style.display = 'none';
     image.removeAttribute?.('src');
+    for (const id of ['receiptQrBank', 'receiptQrAccount', 'receiptQrMemo']) document.getElementById(id).textContent = '';
     if (Number(order.total_amount) <= 0) return;
     try {
-      const data = await window.api.post('/payments/vietqr/receipt', {
+      const uploaded = settings.paymentQr?.source === 'upload';
+      const data = uploaded ? { configured: true, qrUrl: settings.paymentQr.image } : await window.api.post('/payments/vietqr/receipt', {
         amount: Math.round(Number(order.total_amount)), memo: order.order_code || `DON-${order.id}`
       });
       if (version !== this.renderVersion) return;
@@ -31,10 +37,17 @@ window.invoiceModule = {
         notice.style.display = 'block';
         return;
       }
-      // Use only the payment image service; never print arbitrary URLs from a response.
-      const url = new URL(data.qrUrl);
-      if (url.protocol !== 'https:' || url.hostname !== 'img.vietqr.io') throw new Error('Địa chỉ QR không hợp lệ');
-      image.src = url.href;
+      let qrSource;
+      if (uploaded) {
+        if (typeof data.qrUrl !== 'string' || data.qrUrl.length > window.moreMenuModule.maxPaymentQrImageLength || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(data.qrUrl)) throw new Error('Ảnh QR tải lên không hợp lệ');
+        qrSource = data.qrUrl;
+      } else {
+        // Dynamic QR images must come from the payment image service.
+        const url = new URL(data.qrUrl);
+        if (url.protocol !== 'https:' || url.hostname !== 'img.vietqr.io') throw new Error('Địa chỉ QR không hợp lệ');
+        qrSource = url.href;
+      }
+      image.src = qrSource;
       if (image.decode) {
         let timeout;
         try {
@@ -46,10 +59,12 @@ window.invoiceModule = {
       }
       if (version !== this.renderVersion) return;
       if (storeId !== window.api.getCurrentStoreId()) throw new Error('Cửa hàng đã thay đổi');
-      this.receiptQrUrl = url.href;
-      document.getElementById('receiptQrBank').textContent = `${data.bankName} - ${data.accountHolder}`;
-      document.getElementById('receiptQrAccount').textContent = `STK: ${data.bankAccount}`;
-      document.getElementById('receiptQrMemo').textContent = `Nội dung: ${data.memo}`;
+      this.receiptQrUrl = qrSource;
+      if (!uploaded) {
+        document.getElementById('receiptQrBank').textContent = `${data.bankName} - ${data.accountHolder}`;
+        document.getElementById('receiptQrAccount').textContent = `STK: ${data.bankAccount}`;
+        document.getElementById('receiptQrMemo').textContent = `Nội dung: ${data.memo}`;
+      }
       block.style.display = 'block';
     } catch (error) {
       if (version !== this.renderVersion) return;
@@ -73,10 +88,37 @@ window.invoiceModule = {
     }[paperSize] || this.getPrintLayout('K80');
   },
 
-  async loadPrinterSettings(storeId) {
+  async loadPrinterSettings(storeId, kind = this.receiptKind === 'orderSlip' ? 'kitchen' : 'invoice') {
     const result = await window.api.get('/store/menu-settings/printer');
     if (storeId !== window.api.getCurrentStoreId()) throw new Error('Cửa hàng đã thay đổi; vui lòng mở lại phiếu');
-    return { ...window.moreMenuModule.defaultPrinterSettings, ...(result.settings || {}) };
+    const settings = { ...window.moreMenuModule.defaultPrinterSettings, ...(result.settings || {}) };
+    const profile = settings.profiles?.[kind];
+    return profile ? { ...settings, ...profile, enabled: profile.enabled && profile.configured } : settings;
+  },
+
+  async applyInvoiceOptions(settings, storeId, version = this.renderVersion) {
+    if (this.receiptKind !== 'invoice') return;
+    const options = { ...window.moreMenuModule.defaultInvoiceOptions, ...settings.invoiceOptions };
+    const qrKey = this.paymentQrKey(settings);
+    if (options.qr && (!this.invoiceQrEnabled || this.invoiceQrKey !== qrKey)) await this.loadReceiptQr(this.currentOrder, storeId, version, settings);
+    if (version !== this.renderVersion) return;
+    if (storeId !== window.api.getCurrentStoreId()) throw new Error('Cửa hàng đã thay đổi; vui lòng mở lại phiếu');
+    this.invoiceQrEnabled = options.qr;
+    this.invoiceQrKey = qrKey;
+    if (!options.qr) {
+      this.receiptQrUrl = '';
+      document.getElementById('receiptPaymentQr').style.display = 'none';
+      document.getElementById('receiptQrNotice').style.display = 'none';
+      document.getElementById('receiptQrImage').removeAttribute?.('src');
+    }
+    for (const [id, visible] of Object.entries({ receiptNote: options.notes, receiptCashier: options.staff,
+      receiptDateTime: options.checkIn, receiptExitTime: options.checkOut,
+      receiptPrintCount: options.printCount, receiptOrderCodeText: options.orderCode,
+      receiptTaxRow: options.tax && Number(this.currentOrder?.tax_amount || 0) > 0 })) {
+      document.getElementById(id).style.display = visible ? (id === 'receiptTaxRow' ? 'flex' : '') : 'none';
+    }
+    document.getElementById('receiptItemsTbody').innerHTML = this.renderInvoiceItems?.(options.notes) || '';
+    this.receiptText = this.buildInvoiceText?.(options) || '';
   },
 
   applyPrinterSettings(settings) {
@@ -132,16 +174,21 @@ window.invoiceModule = {
       }`;
   },
 
-  async printReceipt({ auto = false } = {}) {
+  async printReceipt({ auto = false, printerKind, test = false } = {}) {
     if (this.printing) return;
     this.printing = true;
     try {
       const storeId = window.api.getCurrentStoreId();
       if (!this.currentOrder || this.receiptStoreId !== storeId) throw new Error('Vui lòng mở lại phiếu của cửa hàng hiện tại');
       // Refresh on every print so another cashier's saved changes also take effect.
-      const settings = await this.loadPrinterSettings(storeId);
+      const settings = await this.loadPrinterSettings(storeId, printerKind);
+      if (settings.enabled === false && !test) {
+        if (auto) return;
+        throw new Error('Nhóm máy in đang tắt hoặc chưa có máy in. Vui lòng kiểm tra cài đặt máy in.');
+      }
       this.applyPrinterSettings(settings);
       if (auto && !(this.receiptKind === 'orderSlip' ? settings.autoPrintOrderSlipOnTransfer : settings.autoPrintOnPayment)) return;
+      await this.applyInvoiceOptions(settings, storeId);
       if (['lan', 'network'].includes(settings.connectionType)) {
         if (!window.onesoftNativeLanPrint) throw new Error('In LAN trực tiếp cần app Android Onesoft POS 1.3.7 trở lên. Trên web, chọn Trình duyệt và máy in đã cài driver, hoặc dùng app Android.');
         const parts = String(settings.ipAddress || '').trim().split('.');
@@ -179,6 +226,7 @@ window.invoiceModule = {
         this.printCounts.set(key, count);
         document.getElementById('receiptPrintCount').textContent = `In lần ${count}`;
         document.getElementById('receiptPrintedAt').textContent = `Giờ in: ${new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
+        this.receiptText = this.buildInvoiceText?.({ ...window.moreMenuModule.defaultInvoiceOptions, ...settings.invoiceOptions }) || '';
       }
       window.print();
     } catch (error) {
@@ -258,7 +306,7 @@ window.invoiceModule = {
     if (this.printing) return;
     const version = ++this.renderVersion;
     try {
-      const settings = await this.loadPrinterSettings(storeId);
+      const settings = await this.loadPrinterSettings(storeId, 'kitchen');
       if (version !== this.renderVersion) return;
       if (auto && !settings.autoPrintOrderSlipOnTransfer) return;
       const items = sourceItems.filter(item => item.status !== 'CANCELLED');
@@ -392,13 +440,13 @@ window.invoiceModule = {
 
       if (itemsTbody) {
         const number = value => window.api.formatMoney(value).replace(/\s*(₫|đ|VND)\s*$/i, '').trim();
-        itemsTbody.innerHTML = items.map(item => `
+        this.renderInvoiceItems = showNotes => items.map(item => `
           <tr>
             <td class="text-left">
               <strong>${this.escape(item.product_name)}</strong>
               ${item.variant_name ? ` (${this.escape(item.variant_name)})` : ''}
               ${(item.options || []).map(o => `<div>+${this.escape(o.option_name || o.name)}</div>`).join('')}
-              ${item.note ? `<div>Ghi chú: ${this.escape(item.note)}</div>` : ''}
+              ${showNotes && item.note ? `<div>Ghi chú: ${this.escape(item.note)}</div>` : ''}
             </td>
             <td class="text-right">${this.escape(number(item.unit_price_with_options ?? (Number(item.unit_price || 0) + (item.options || []).reduce((sum, option) => sum + Number(option.extra_price ?? option.price ?? 0), 0))))}</td>
             <td class="text-center">${this.escape(item.quantity)}</td>
@@ -452,31 +500,38 @@ window.invoiceModule = {
       }
 
       if (footerMsg) footerMsg.textContent = settings?.receipt_footer || 'Cảm ơn Quý khách & Hẹn gặp lại!';
-      await this.loadReceiptQr(fullOrder, storeId, version);
+      const printerSettings = await this.loadPrinterSettings(storeId, 'invoice');
       if (version !== this.renderVersion) return;
+      const invoiceOptions = { ...window.moreMenuModule.defaultInvoiceOptions, ...printerSettings.invoiceOptions };
+      if (invoiceOptions.qr) await this.loadReceiptQr(fullOrder, storeId, version, printerSettings);
+      if (version !== this.renderVersion) return;
+      this.invoiceQrEnabled = invoiceOptions.qr;
+      this.invoiceQrKey = this.paymentQrKey(printerSettings);
       if (storeId !== window.api.getCurrentStoreId()) throw new Error('Cửa hàng đã thay đổi; vui lòng mở lại phiếu');
       this.receiptFooterText = [settings?.receipt_footer || 'Cảm ơn Quý khách & Hẹn gặp lại!', 'Phần mềm ThichGaPOS Multi-Store v1.0'].join('\n');
       // Plain Unicode is rendered to raster on Android; never send UTF-8 to the printer's legacy fonts.
       const money = value => window.api.formatMoney(value);
-      this.receiptText = [
+      this.buildInvoiceText = options => [
         currentStore?.name?.toUpperCase() || 'THÍCH GÀ POS', currentStore?.address,
         currentStore?.phone ? `Hotline: ${currentStore.phone}` : '',
         isUnpaid ? 'HÓA ĐƠN TẠM TÍNH' : 'HÓA ĐƠN THANH TOÁN',
-        `Mã đơn: #${fullOrder.order_code}`, dateTime?.textContent, tableType?.textContent,
-        fullOrder.cashier_name ? `Nhân viên: ${fullOrder.cashier_name}` : '',
+        options.printCount ? document.getElementById('receiptPrintCount').textContent : '',
+        options.orderCode ? `Mã đơn: #${fullOrder.order_code}` : '', options.checkIn ? dateTime?.textContent : '',
+        options.checkOut ? document.getElementById('receiptExitTime').textContent : '', tableType?.textContent,
+        options.staff && fullOrder.cashier_name ? `Nhân viên: ${fullOrder.cashier_name}` : '',
         '--------------------------------',
         ...items.flatMap(item => [
           `${item.quantity} × ${item.product_name}${item.variant_name ? ` (${item.variant_name})` : ''}`,
           ...(item.options || []).map(option => `  + ${option.option_name || option.name || ''}`),
           `Đơn giá: ${money(item.unit_price_with_options ?? (Number(item.unit_price || 0) + (item.options || []).reduce((sum, option) => sum + Number(option.extra_price ?? option.price ?? 0), 0)))}`,
           `Thành tiền: ${money(item.subtotal)}`,
-          item.note ? `Ghi chú: ${item.note}` : ''
+          options.notes && item.note ? `Ghi chú: ${item.note}` : ''
         ]),
         '--------------------------------', `Tạm tính: ${money(fullOrder.subtotal)}`,
-        discount > 0 ? `Giảm giá: -${money(discount)}` : '', tax > 0 ? `Thuế: ${money(tax)}` : '',
+        discount > 0 ? `Giảm giá: -${money(discount)}` : '', options.tax && tax > 0 ? `Thuế: ${money(tax)}` : '',
         `${isUnpaid ? 'TỔNG TẠM TÍNH' : 'TỔNG CỘNG'}: ${money(fullOrder.total_amount)}`, isUnpaid ? '' : `Thanh toán: ${methodText}`,
         !isUnpaid && payMethod === 'CASH' && payment ? `Tiền khách đưa: ${money(payment.cash_received ?? fullOrder.total_amount)}\nTiền thối: ${money(payment.cash_return ?? change ?? 0)}` : '',
-        fullOrder.note ? `Ghi chú đơn: ${fullOrder.note}` : '',
+        options.notes && fullOrder.note ? `Ghi chú đơn: ${fullOrder.note}` : '',
         this.receiptQrUrl ? 'Quét mã QR để thanh toán' : '',
         this.receiptQrUrl ? document.getElementById('receiptQrBank').textContent : '',
         this.receiptQrUrl ? document.getElementById('receiptQrAccount').textContent : '',
@@ -485,12 +540,17 @@ window.invoiceModule = {
       ].filter(value => value !== undefined && value !== null && value !== '').join('\n');
 
       this.currentOrder = fullOrder;
+      const exitTime = !isUnpaid && (fullOrder.completed_at || payment?.created_at);
+      document.getElementById('receiptExitTime').textContent = exitTime
+        ? 'Giờ ra: ' + new Date(exitTime).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+      await this.applyInvoiceOptions(printerSettings, storeId, version);
+      if (version !== this.renderVersion) return;
       document.getElementById('receiptModal').style.display = 'flex';
       if (autoPrint && !fullOrder.isDraft) {
         await this.printReceipt({ auto: !forcePrint });
       } else {
         try {
-          this.applyPrinterSettings(await this.loadPrinterSettings(storeId));
+          this.applyPrinterSettings(printerSettings);
         } catch (error) {
           window.api.showToast(`Không thể tải cấu hình máy in: ${error.message}`, 'error');
         }

@@ -4,6 +4,8 @@
  */
 
 window.moreMenuModule = {
+  maxPaymentQrImageLength: 2 * 1024 * 1024,
+  defaultInvoiceOptions: { qr: true, notes: true, tax: true, checkIn: true, checkOut: true, staff: true, printCount: true, orderCode: true },
   // Cấu hình mặc định
   defaultPrinterSettings: {
     printerName: 'Máy in hóa đơn thu ngân (Mặc định)',
@@ -198,11 +200,142 @@ window.moreMenuModule = {
     document.getElementById('printerAutoCut').checked = !!saved.autoCutPaper;
     document.getElementById('printerKitchenSeparate').checked = !!saved.printKitchenSeparate;
 
+    this.printerDraft = this.normalizePrinterProfiles(saved);
+    this.paymentQrDraft = { source: 'vietqr', image: '', ...saved.paymentQr };
+    this.qrUploadPending = false;
+    document.getElementById('paymentQrSource').value = this.paymentQrDraft.source;
+    document.getElementById('paymentQrFile').value = '';
+    this.updatePaymentQrEditor();
+    for (const [key, fallback] of Object.entries(this.defaultInvoiceOptions)) {
+      document.getElementById(`invoiceOption-${key}`).checked = saved.invoiceOptions?.[key] ?? fallback;
+    }
+    for (const kind of ['invoice', 'label', 'barcode', 'kitchen']) {
+      this.populatePrinterProfile(kind);
+    }
+
     modal.style.display = 'flex';
   },
 
+  normalizePrinterProfiles(saved) {
+    const profiles = {};
+    for (const [kind, name] of Object.entries({ invoice: 'Máy in hóa đơn', label: 'Máy in tem món', barcode: 'Máy in mã vạch', kitchen: 'Máy in bếp' })) {
+      const legacy = kind === 'invoice';
+      profiles[kind] = { configured: legacy, enabled: legacy, name, paperSize: legacy ? saved.paperSize : 'K80',
+        connectionType: legacy ? saved.connectionType : 'browser', ipAddress: legacy ? saved.ipAddress : '',
+        autoCutPaper: legacy ? saved.autoCutPaper : true, ...(saved.profiles?.[kind] || {}) };
+    }
+    return profiles;
+  },
+
+  updatePaymentQrEditor() {
+    this.paymentQrDraft.source = document.getElementById('paymentQrSource').value;
+    document.getElementById('paymentQrUpload').hidden = this.paymentQrDraft.source !== 'upload';
+    const preview = document.getElementById('paymentQrPreview');
+    preview.hidden = !this.paymentQrDraft.image;
+    if (this.paymentQrDraft.image) preview.src = this.paymentQrDraft.image;
+    else preview.removeAttribute?.('src');
+  },
+
+  removePaymentQrImage() {
+    this.paymentQrUploadVersion = (this.paymentQrUploadVersion || 0) + 1;
+    this.qrUploadPending = false;
+    this.paymentQrDraft.image = '';
+    document.getElementById('paymentQrFile').value = '';
+    this.updatePaymentQrEditor();
+  },
+
+  async uploadPaymentQr(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const draft = this.paymentQrDraft;
+    const storeId = window.api.getCurrentStoreId();
+    const version = this.paymentQrUploadVersion = (this.paymentQrUploadVersion || 0) + 1;
+    this.qrUploadPending = true;
+    try {
+      if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) {
+        throw new Error('Chọn ảnh PNG, JPG hoặc WebP, tối đa 10MB');
+      }
+      const source = await new Promise((resolve, reject) => {
+        const reader = new window.FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Không đọc được tệp ảnh'));
+        reader.readAsDataURL(file);
+      });
+      const image = new window.Image();
+      await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = () => reject(new Error('Ảnh không hợp lệ hoặc đã bị hỏng'));
+        image.src = source;
+      });
+      if (!image.width || !image.height || image.width * image.height > 24000000) throw new Error('Ảnh quá lớn; vui lòng cắt gọn vùng mã QR');
+      const canvas = document.createElement('canvas');
+      const scale = Math.min(1, 960 / Math.max(image.width, image.height));
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      const context = canvas.getContext('2d');
+      context.fillStyle = '#fff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      // Keep small uploads intact: re-encoding a small JPEG as PNG can enlarge it.
+      let encoded = source.length <= this.maxPaymentQrImageLength ? source : canvas.toDataURL('image/png');
+      if (encoded.length > this.maxPaymentQrImageLength) encoded = canvas.toDataURL('image/jpeg', 0.9);
+      if (encoded.length > this.maxPaymentQrImageLength) throw new Error('Ảnh QR sau xử lý vẫn quá lớn; vui lòng chọn ảnh nhỏ hơn');
+      if (version !== this.paymentQrUploadVersion || draft !== this.paymentQrDraft || storeId !== window.api.getCurrentStoreId()) return;
+      draft.image = encoded;
+      this.updatePaymentQrEditor();
+      window.api.showToast('Đã chọn ảnh QR. Bấm Lưu để áp dụng cho cửa hàng', 'success');
+    } catch (error) {
+      if (version === this.paymentQrUploadVersion && draft === this.paymentQrDraft && storeId === window.api.getCurrentStoreId()) window.api.showToast(error.message, 'error');
+    } finally {
+      if (version === this.paymentQrUploadVersion && draft === this.paymentQrDraft) this.qrUploadPending = false;
+    }
+  },
+
+  printerFieldId(kind, suffix) {
+    return `printer${kind === 'invoice' ? '' : kind}${suffix}`;
+  },
+
+  populatePrinterProfile(kind) {
+    const profile = this.printerDraft[kind];
+    for (const [suffix, key] of Object.entries({ Name: 'name', PaperSize: 'paperSize', ConnectionType: 'connectionType', IpAddress: 'ipAddress' })) {
+      document.getElementById(this.printerFieldId(kind, suffix)).value = key === 'connectionType' && profile[key] === 'network' ? 'lan' : profile[key] || '';
+    }
+    document.getElementById(this.printerFieldId(kind, 'AutoCut')).checked = !!profile.autoCutPaper;
+    document.getElementById(`printerEnabled-${kind}`).checked = !!profile.enabled;
+    document.getElementById(`printerEditor-${kind}`).hidden = true;
+    this.renderPrinterProfile(kind);
+  },
+
+  renderPrinterProfile(kind) {
+    const profile = this.printerDraft[kind];
+    document.getElementById(`printerDevice-${kind}`).hidden = !profile.configured;
+    document.getElementById(`printerEmpty-${kind}`).hidden = profile.configured;
+    document.getElementById(`printerName-${kind}`).textContent = profile.name;
+    document.getElementById(`printerAddress-${kind}`).textContent = ['lan', 'network'].includes(profile.connectionType)
+      ? profile.ipAddress : ({ browser: 'Trình duyệt', usb: 'USB / OTG', bluetooth: 'Bluetooth', rawbt: 'RawBT' }[profile.connectionType] || '');
+  },
+
+  editPrinter(kind) {
+    this.printerDraft[kind].configured = true;
+    document.getElementById(`printerEditor-${kind}`).hidden = false;
+    this.renderPrinterProfile(kind);
+    document.getElementById(this.printerFieldId(kind, 'Name')).focus?.();
+  },
+
+  removePrinter(kind) {
+    this.printerDraft[kind].configured = false;
+    this.printerDraft[kind].enabled = false;
+    document.getElementById(`printerEnabled-${kind}`).checked = false;
+    document.getElementById(`printerEditor-${kind}`).hidden = true;
+    this.renderPrinterProfile(kind);
+  },
+
+  testPrinter(kind) {
+    return this.testPrintBill(kind);
+  },
+
   getPrinterSettingsFromForm() {
-    return {
+    const settings = {
       paperSize: document.getElementById('printerPaperSize').value,
       connectionType: document.getElementById('printerConnectionType').value,
       ipAddress: document.getElementById('printerIpAddress').value,
@@ -211,6 +344,25 @@ window.moreMenuModule = {
       autoCutPaper: document.getElementById('printerAutoCut').checked,
       printKitchenSeparate: document.getElementById('printerKitchenSeparate').checked
     };
+    settings.invoiceOptions = Object.fromEntries(Object.keys(this.defaultInvoiceOptions)
+      .map(key => [key, document.getElementById(`invoiceOption-${key}`).checked]));
+    if (this.qrUploadPending) throw new Error('Ảnh QR đang được xử lý; vui lòng chờ');
+    if (this.paymentQrDraft) {
+      settings.paymentQr = { ...this.paymentQrDraft };
+      if (settings.invoiceOptions.qr && settings.paymentQr.source === 'upload' && !settings.paymentQr.image) throw new Error('Vui lòng tải ảnh QR thanh toán lên');
+    }
+    if (this.printerDraft) {
+      for (const [kind, profile] of Object.entries(this.printerDraft)) {
+        for (const [suffix, key] of Object.entries({ Name: 'name', PaperSize: 'paperSize', ConnectionType: 'connectionType', IpAddress: 'ipAddress' })) {
+          profile[key] = document.getElementById(this.printerFieldId(kind, suffix)).value.trim();
+        }
+        profile.autoCutPaper = document.getElementById(this.printerFieldId(kind, 'AutoCut')).checked;
+        profile.enabled = document.getElementById(`printerEnabled-${kind}`).checked;
+        if (profile.enabled && !profile.configured) throw new Error('Vui lòng thêm máy in trước khi bật');
+      }
+      settings.profiles = JSON.parse(JSON.stringify(this.printerDraft));
+    }
+    return settings;
   },
 
   async savePrinterSettings() {
@@ -220,7 +372,7 @@ window.moreMenuModule = {
     window.api?.showToast('Đã lưu cấu hình máy in thành công', 'success');
   },
 
-  async testPrintBill() {
+  async testPrintBill(kind = 'invoice') {
     try {
       await window.menuPersistence.save('printer', this.getPrinterSettingsFromForm());
       document.getElementById('printerSettingsModal').style.display = 'none';
@@ -236,7 +388,7 @@ window.moreMenuModule = {
           { product_name: 'Trà đào cam sả', quantity: 1, unit_price: 25000, subtotal: 25000 }
         ]
       });
-      if (invoice.currentOrder?.order_code === 'IN-THU-TIENG-VIET') await invoice.printReceipt();
+      if (invoice.currentOrder?.order_code === 'IN-THU-TIENG-VIET') await invoice.printReceipt({ printerKind: kind, test: true });
     } catch (error) {
       window.api.showToast('Không thể in thử: ' + error.message, 'error');
     }

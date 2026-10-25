@@ -26,6 +26,7 @@ function statements() {
       .replace(/\bBOOLEAN\b/gi, 'TINYINT(1)')
       .replace(/\bTRUE\b/gi, '1')
       .replace(/\bFALSE\b/gi, '0');
+    if (/CREATE TABLE IF NOT EXISTS menu_preferences\b/.test(sql)) sql = sql.replace('payload TEXT', 'payload MEDIUMTEXT');
     // MySQL requires JSON/TEXT defaults to be expressions.
     sql = sql.replace(/(JSON\s+DEFAULT\s+)('(?:[^']|'')*')/gi, '$1($2)');
     sql = sql.replace(/(TEXT\s+DEFAULT\s+)('(?:[^']|'')*')/gi, '$1($2)');

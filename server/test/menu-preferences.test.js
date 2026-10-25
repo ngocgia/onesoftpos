@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const db = require('../src/config/db');
 const controller = require('../src/controllers/menuPreferencesController');
 const { translate } = require('../src/config/mysql');
-const { schemaFor } = require('../src/db/menuPreferences');
+const { schemaFor, ensureMenuPreferences } = require('../src/db/menuPreferences');
 
 function response() {
   return { statusCode: 200, status(code) { this.statusCode = code; return this; }, json(data) { this.data = data; return this; } };
@@ -108,8 +108,31 @@ test('MySQL menu migration preserves existing tables and supports Vietnamese and
   const sql = schemaFor('mysql');
   assert.match(sql, /CREATE TABLE IF NOT EXISTS menu_preferences/);
   assert.match(sql, /ENGINE=InnoDB DEFAULT CHARSET=utf8mb4/);
+  assert.match(sql, /payload MEDIUMTEXT NOT NULL/);
   assert.doesNotMatch(sql, /DROP|TRUNCATE|DELETE|INSERT|JSONB|ON CONFLICT/i);
   assert.doesNotMatch(schemaFor('postgres'), /ENGINE=|CHARSET=/);
+});
+
+test('existing MySQL preference payload grows once without changing stored records', async () => {
+  const queries = [];
+  let type = 'text';
+  const pool = { query: async sql => {
+    queries.push(sql);
+    if (sql.startsWith('SELECT')) return { rows: [{ data_type: type }] };
+    if (sql.startsWith('ALTER')) type = 'mediumtext';
+    return { rows: [] };
+  } };
+  await ensureMenuPreferences(pool, 'mysql');
+  await ensureMenuPreferences(pool, 'mysql');
+  assert.equal(queries.filter(sql => sql.startsWith('ALTER')).length, 1);
+  assert.equal(type, 'mediumtext');
+  assert.equal(queries.some(sql => /^\s*(DELETE|DROP|TRUNCATE|UPDATE|INSERT)\b/i.test(sql)), false);
+  queries.length = 0;
+  await ensureMenuPreferences(pool, 'postgres');
+  assert.equal(queries.length, 1);
+  assert.match(queries[0], /payload TEXT NOT NULL/);
+  const { statements } = require('../src/db/mysqlSchema');
+  assert.match(statements().find(sql => sql.includes('CREATE TABLE IF NOT EXISTS menu_preferences')), /payload MEDIUMTEXT NOT NULL/);
 });
 
 test.after(async () => { await db.pool.end(); });

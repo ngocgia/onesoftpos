@@ -3,12 +3,12 @@ require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
 async function migrate() {
   if (process.env.DB_CLIENT !== 'mysql') throw new Error('Đặt DB_CLIENT=mysql trong server/.env trước khi chạy migration MySQL.');
-  const { mysqlPool } = require('../config/mysql');
-  const { schemaFor } = require('./menuPreferences');
+  const { pool } = require('../config/mysql');
+  const { ensureMenuPreferences } = require('./menuPreferences');
   try {
-    await mysqlPool.query(schemaFor('mysql'));
+    await ensureMenuPreferences(pool, 'mysql');
     console.log('MySQL: menu_preferences đã sẵn sàng. Dữ liệu hiện có được giữ nguyên.');
-  } finally { await mysqlPool.end(); }
+  } finally { await pool.end(); }
 }
 
 if (require.main === module) migrate().catch(error => { console.error(error.message); process.exitCode = 1; });

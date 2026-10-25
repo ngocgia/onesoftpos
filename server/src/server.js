@@ -15,6 +15,8 @@ const PORT = process.env.PORT || 3000;
 
 // Middlewares
 app.use(cors());
+// Printer settings include the resized QR image; other JSON endpoints keep their default limit.
+app.use('/api/store/menu-settings/printer', express.json({ limit: '3mb' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const bcrypt = require('bcryptjs');
+const MAX_PAYMENT_QR_IMAGE_LENGTH = 2 * 1024 * 1024;
 
 const fields = {
   printer: { paperSize: ['K58', 'K80', 'K85', 'A4'], connectionType: ['browser', 'usb', 'lan', 'bluetooth', 'network', 'rawbt'], ipAddress: 'string', autoPrintOnPayment: 'boolean', autoPrintOrderSlipOnTransfer: 'boolean', autoCutPaper: 'boolean', printKitchenSeparate: 'boolean' },
@@ -16,6 +17,51 @@ const fields = {
 };
 
 function validate(section, data) {
+  if (section === 'printer' && data && Object.hasOwn(data, 'paymentQr')) {
+    const { paymentQr, ...rest } = data;
+    if (!paymentQr || typeof paymentQr !== 'object' || Array.isArray(paymentQr)
+        || Object.keys(paymentQr).sort().join(',') !== 'image,source'
+        || !['vietqr', 'upload'].includes(paymentQr.source)
+        || typeof paymentQr.image !== 'string' || paymentQr.image.length > MAX_PAYMENT_QR_IMAGE_LENGTH) throw new Error('Cấu hình ảnh QR không hợp lệ');
+    if (paymentQr.image) {
+      const match = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/]+={0,2})$/.exec(paymentQr.image);
+      if (!match || match[2].length % 4 !== 0) throw new Error('Ảnh QR phải là PNG, JPG hoặc WebP');
+      const bytes = Buffer.from(match[2], 'base64');
+      const valid = match[1] === 'png' ? bytes.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))
+        : match[1] === 'jpeg' ? bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255
+        : bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP';
+      if (!valid) throw new Error('Dữ liệu ảnh QR không hợp lệ');
+    }
+    if (paymentQr.source === 'upload' && !paymentQr.image && rest.invoiceOptions?.qr !== false) throw new Error('Vui lòng tải ảnh QR thanh toán lên');
+    if (Buffer.byteLength(JSON.stringify(data), 'utf8') > MAX_PAYMENT_QR_IMAGE_LENGTH + 60000) throw new Error('Cấu hình hoặc ảnh quá lớn');
+    return { ...validate('printer', rest), paymentQr };
+  }
+  if (section === 'printer' && data && Object.hasOwn(data, 'invoiceOptions')) {
+    const { invoiceOptions: savedOptions, ...rest } = data;
+    if (!savedOptions || typeof savedOptions !== 'object' || Array.isArray(savedOptions)) throw new Error('Tùy chọn in hóa đơn không hợp lệ');
+    // Existing clients have six options; preserve the two newly configurable fields.
+    const invoiceOptions = { printCount: true, orderCode: true, ...savedOptions };
+    const keys = ['qr', 'notes', 'tax', 'checkIn', 'checkOut', 'staff', 'printCount', 'orderCode'];
+    if (Object.keys(invoiceOptions).length !== keys.length
+        || keys.some(key => typeof invoiceOptions[key] !== 'boolean')) throw new Error('Tùy chọn in hóa đơn không hợp lệ');
+    return { ...validate('printer', rest), invoiceOptions };
+  }
+  if (section === 'printer' && data && Object.hasOwn(data, 'profiles')) {
+    const { profiles, ...legacy } = data;
+    validate('printer', legacy);
+    if (!profiles || Array.isArray(profiles) || typeof profiles !== 'object'
+        || Object.keys(profiles).sort().join(',') !== 'barcode,invoice,kitchen,label') throw new Error('Cần đủ 4 nhóm máy in');
+    for (const profile of Object.values(profiles)) {
+      if (!profile || typeof profile !== 'object' || Array.isArray(profile)
+          || Object.keys(profile).sort().join(',') !== 'autoCutPaper,configured,connectionType,enabled,ipAddress,name,paperSize'
+          || typeof profile.configured !== 'boolean' || typeof profile.enabled !== 'boolean'
+          || (profile.enabled && !profile.configured)
+          || typeof profile.name !== 'string' || profile.name.length > 100) throw new Error('Cấu hình nhóm máy in không hợp lệ');
+      validate('printer', { ...legacy, paperSize: profile.paperSize, connectionType: profile.connectionType,
+        ipAddress: profile.ipAddress, autoCutPaper: profile.autoCutPaper });
+    }
+    return { ...validate('printer', legacy), profiles };
+  }
   // Older clients do not send the new, opt-in order slip setting.
   if (section === 'printer' && data && typeof data === 'object' && !Array.isArray(data) && !Object.hasOwn(data, 'autoPrintOrderSlipOnTransfer')) {
     data = { ...data, autoPrintOrderSlipOnTransfer: false };

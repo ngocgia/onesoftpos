@@ -4,8 +4,8 @@ import java.util.Arrays;
 
 public final class EscPosRasterTest {
     public static void main(String[] args) {
-        if (!Arrays.equals(EscPosRaster.finish(true), new byte[]{27, 100, 4, 29, 86, 66, 0})) throw new AssertionError("Feed then cut command");
-        if (!Arrays.equals(EscPosRaster.finish(false), new byte[]{27, 100, 4})) throw new AssertionError("Disabled cutter must only feed");
+        if (!Arrays.equals(EscPosRaster.finish(true), new byte[]{27, 100, 1, 29, 86, 66, 0})) throw new AssertionError("Feed one line then cut command");
+        if (!Arrays.equals(EscPosRaster.finish(false), new byte[]{27, 100, 1})) throw new AssertionError("Disabled cutter must only feed one line");
         int[] pixels = new int[384 * 64];
         Arrays.fill(pixels, 0xffffffff);
         pixels[0] = pixels[7] = pixels[8] = pixels[pixels.length - 1] = 0xff000000;

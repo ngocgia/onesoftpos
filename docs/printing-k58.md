@@ -27,6 +27,8 @@ App Android từ 1.3.7 hỗ trợ LAN trực tiếp qua TCP 9100; bản 1.3.9 d�
 
 ## Kiểm chứng
 
+Mẫu tiết kiệm giấy (APK 1.3.14 và website tương ứng): đệm trên/dưới 2 px, giảm khoảng trống tiêu đề/chân hóa đơn, QR 38 mm thay vì 32 mm. Bộ in trực tiếp chỉ đẩy thêm 1 dòng cuối phiếu thay vì 4 dòng; lệnh cắt vẫn được gửi một lần theo cài đặt. Khoảng giấy bắt buộc từ đầu in tới dao cắt phụ thuộc máy in. Đã kiểm tra bố cục K58/K80/K85, bộ mã hóa ESC/POS và dựng/lint APK; cần in thử bản giấy trên thiết bị thực tế.
+
 Chạy `npm test --prefix server`, `gradlew.bat assembleDebug lintDebug` trong `android-pos`.
 
 Kiểm thử bộ mã hóa độc lập:

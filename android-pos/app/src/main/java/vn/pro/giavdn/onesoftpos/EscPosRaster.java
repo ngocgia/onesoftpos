@@ -3,9 +3,10 @@ package vn.pro.giavdn.onesoftpos;
 /** Pure encoder so byte packing can be verified without Android hardware. */
 final class EscPosRaster {
     static byte[] finish(boolean autoCut) {
-        // ESC d 4: feed four lines. GS V 66 0: feed to cutter, then partial cut.
+        // ESC d 1: leave one line after the footer. GS V 66 0 advances
+        // to the cutter before cutting; four extra lines waste paper.
         // Send once, after all text, QR and footer; never between raster strips.
-        return autoCut ? new byte[]{27, 100, 4, 29, 86, 66, 0} : new byte[]{27, 100, 4};
+        return autoCut ? new byte[]{27, 100, 1, 29, 86, 66, 0} : new byte[]{27, 100, 1};
     }
 
     static byte[] encode(int[] pixels, int width, int height) {

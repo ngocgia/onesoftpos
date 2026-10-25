@@ -4,7 +4,7 @@
 
 ## Phạm vi ứng dụng
 
-APK mới nhất: **OnesoftPOS 1.3.13** (`versionCode 19`), tệp `OnesoftPOS-1.3.13-debug.apk`. Bản này dùng tên OnesoftPOS và xử lý xóa phiên đăng nhập với cả khóa lưu mới lẫn khóa cũ. Giao diện và cài đặt máy in được tải từ website `https://onesoft.one/?mode=pos`; cần cập nhật website để nhận các thay đổi giao diện mới nhất.
+APK mới nhất: **OnesoftPOS 1.3.14** (`versionCode 20`), tệp `OnesoftPOS-1.3.14-debug.apk`. Bản này giảm đẩy giấy cuối hóa đơn từ 4 dòng xuống 1 dòng và tăng QR của luồng in dự phòng từ 32 mm lên 38 mm. Cập nhật website để nhận mẫu hóa đơn có đệm đầu/cuối 2 px, khoảng cách tiêu đề/chân phiếu gọn hơn và QR 38 mm trong bản in theo bố cục màn hình.
 
 - Đăng nhập và làm việc bằng tài khoản POS hiện có; phiên được website lưu trong WebView.
 - Menu, giỏ hàng, bàn, đơn hàng, KDS, thanh toán, ca làm việc và hóa đơn hoạt động theo quyền và cấu hình của website.

@@ -389,7 +389,7 @@ final class ThermalPrinter {
             output.write(new byte[]{27, 64, 27, 97, 0});
             sendText(output, text);
             if (qr != null) {
-                int size = 256; // 32mm at 203dpi, including the QR quiet zone.
+                int size = 304; // 38mm at 203dpi, including the QR quiet zone.
                 Bitmap scaled = Bitmap.createScaledBitmap(qr, size, size, false);
                 Bitmap strip = Bitmap.createBitmap(width, 64, Bitmap.Config.ARGB_8888);
                 try {

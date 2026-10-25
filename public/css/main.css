@@ -2401,7 +2401,7 @@ textarea.form-input {
   background: #fff;
   color: #000;
   font-family: 'Courier New', Courier, monospace;
-  padding: 16px;
+  padding: 2px 16px;
   font-size: 12px;
   line-height: 1.4;
   box-shadow: var(--shadow-md);
@@ -2415,17 +2415,20 @@ textarea.form-input {
 }
 
 .receipt-logo { font-size: 28px; }
-.receipt-title { font-size: 1.5em; font-weight: bold; margin: 16px 0 12px; }
+.receipt-title { font-size: 1.5em; font-weight: bold; margin: 8px 0 6px; }
 .receipt-header-center h2 { font-size: 1.7em; }
-.receipt-meta { border-top: 1px dashed #888; padding-top: 8px; margin-top: 8px; }
+.receipt-meta { border-top: 1px dashed #888; padding-top: 4px; margin-top: 4px; }
 .receipt-meta p { margin: 2px 0; }
 .receipt-meta .receipt-row { gap: 8px; font-size: .9em; }
 .receipt-meta .receipt-row > :last-child,
 .receipt-totals-box .receipt-row > :last-child { flex-shrink: 0; white-space: nowrap; }
-.receipt-payment-qr { text-align: center; margin: 6px auto; break-inside: avoid; }
-.receipt-payment-qr img { display: block; width: 32mm; max-width: 100%; height: auto; margin: 4px auto; image-rendering: pixelated; }
+.receipt-payment-qr { text-align: center; margin: 4px auto; break-inside: avoid; }
+.receipt-payment-qr img { display: block; width: 38mm; max-width: 100%; height: auto; margin: 2px auto; image-rendering: pixelated; }
 .receipt-payment-qr p { font-size: .9em; margin: 2px 0; }
-.receipt-divider { text-align: center; overflow: hidden; margin: 4px 0; }
+.receipt-divider { text-align: center; overflow: hidden; margin: 2px 0; }
+.receipt-footer-center { line-height: 1.25; }
+.receipt-footer-center p { margin: 0; }
+.receipt-software-tag { font-size: .85em; }
 .receipt-items-table { width: 100%; border-collapse: collapse; margin: 6px 0; }
 .receipt-items-table th, .receipt-items-table td { padding: 4px 2px; border: 1px solid #aaa; vertical-align: top; }
 .text-left { text-align: left; }

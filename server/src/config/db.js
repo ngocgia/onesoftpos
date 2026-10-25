@@ -347,6 +347,7 @@ async function testConnection() {
     await client.query('CREATE INDEX IF NOT EXISTS idx_order_items_prepared_by ON order_items(prepared_by, prepared_at DESC)');
     await client.query("ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS kds_completion_message TEXT DEFAULT 'Món ăn {mon}, bàn {ban} đã xong'");
     await client.query('ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS takeaway_workspace_enabled BOOLEAN DEFAULT NULL');
+    await client.query('ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS product_modifier_popup_enabled BOOLEAN NOT NULL DEFAULT TRUE');
     await client.query(`ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS workflow_definition JSONB DEFAULT '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb`);
     await client.query('ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS admin_tabs JSONB DEFAULT NULL');
     await client.query('ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS inventory_transactions_enabled BOOLEAN DEFAULT TRUE');

@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS store_settings (
     kds_auto_print TINYINT(1) DEFAULT 0,
     kds_completion_message TEXT DEFAULT ('Món ăn {mon}, bàn {ban} đã xong'),
     takeaway_workspace_enabled TINYINT(1) DEFAULT NULL,
+    product_modifier_popup_enabled TINYINT(1) NOT NULL DEFAULT 1,
     workflow_definition JSON DEFAULT ('{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'),
     admin_tabs JSON DEFAULT NULL,
     inventory_transactions_enabled TINYINT(1) DEFAULT 1,

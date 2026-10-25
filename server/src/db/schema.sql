@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS store_settings (
     kds_auto_print BOOLEAN DEFAULT FALSE,
     kds_completion_message TEXT DEFAULT 'Món ăn {mon}, bàn {ban} đã xong',
     takeaway_workspace_enabled BOOLEAN DEFAULT NULL,
+    product_modifier_popup_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     workflow_definition JSONB DEFAULT '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb,
     admin_tabs JSONB DEFAULT NULL,
     inventory_transactions_enabled BOOLEAN DEFAULT TRUE,

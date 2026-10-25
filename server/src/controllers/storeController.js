@@ -117,6 +117,7 @@ async function getStoreDetails(req, res) {
       features.enableTakeawayWorkspace = settings.takeaway_workspace_enabled;
     }
     settings.inventory_transactions_enabled = settings.inventory_transactions_enabled !== false;
+    settings.product_modifier_popup_enabled = settings.product_modifier_popup_enabled !== false;
     if (isPostgresConnected()) {
       const result = await pool.query("SELECT payload FROM menu_preferences WHERE owner_type='store' AND owner_id=$1 AND section='workflow'", [storeId]);
       if (result.rows[0]) {
@@ -450,11 +451,15 @@ async function updateStoreSettings(req, res) {
     workflow_definition,
     admin_tabs,
     inventory_transactions_enabled,
-    allow_cancel_item
+    allow_cancel_item,
+    product_modifier_popup_enabled
   } = req.body;
 
   if (kds_completion_message !== undefined && !['SUPER_ADMIN', 'ADMIN'].includes(req.user?.role)) {
     return res.status(403).json({ success: false, message: 'Chỉ ADMIN hoặc SUPER_ADMIN được cấu hình câu thông báo KDS' });
+  }
+  if (product_modifier_popup_enabled !== undefined && !['SUPER_ADMIN', 'ADMIN'].includes(req.user?.role)) {
+    return res.status(403).json({ success: false, message: 'Chỉ ADMIN hoặc SUPER_ADMIN được cấu hình popup ghi chú' });
   }
   const normalizedKdsMessage = kds_completion_message === undefined
     ? undefined
@@ -472,6 +477,13 @@ async function updateStoreSettings(req, res) {
   const normalizedAllowCancelItem = allow_cancel_item === undefined
     ? undefined
     : (allow_cancel_item === true || String(allow_cancel_item).toLowerCase() === 'true');
+  if (product_modifier_popup_enabled !== undefined
+    && ![true, false, 'true', 'false'].includes(product_modifier_popup_enabled)) {
+    return res.status(400).json({ success: false, message: 'Cấu hình popup ghi chú phải là bật hoặc tắt' });
+  }
+  const normalizedModifierPopup = product_modifier_popup_enabled === undefined
+    ? undefined
+    : product_modifier_popup_enabled === true || product_modifier_popup_enabled === 'true';
 
   let normalizedWorkflow;
   if (workflow_definition !== undefined) {
@@ -522,8 +534,9 @@ async function updateStoreSettings(req, res) {
              admin_tabs = CASE WHEN $11::boolean THEN $12::jsonb ELSE admin_tabs END,
              inventory_transactions_enabled = COALESCE($13, inventory_transactions_enabled),
              allow_cancel_item = COALESCE($14, allow_cancel_item),
+             product_modifier_popup_enabled = COALESCE($15, product_modifier_popup_enabled),
              updated_at = CURRENT_TIMESTAMP
-         WHERE store_id = $15`,
+         WHERE store_id = $16`,
         [
           receipt_header,
           receipt_footer,
@@ -539,6 +552,7 @@ async function updateStoreSettings(req, res) {
           normalizedAdminTabs ? JSON.stringify(normalizedAdminTabs) : null,
           normalizedInventoryTransactions,
           normalizedAllowCancelItem,
+          normalizedModifierPopup,
           storeId
         ]
       );
@@ -561,6 +575,7 @@ async function updateStoreSettings(req, res) {
       if (normalizedAdminTabs !== undefined) settings.admin_tabs = normalizedAdminTabs;
       if (normalizedInventoryTransactions !== undefined) settings.inventory_transactions_enabled = normalizedInventoryTransactions;
       if (normalizedAllowCancelItem !== undefined) settings.allow_cancel_item = normalizedAllowCancelItem;
+      if (normalizedModifierPopup !== undefined) settings.product_modifier_popup_enabled = normalizedModifierPopup;
     }
 
     res.json({ success: true, message: 'Đã lưu cấu hình cửa hàng' });

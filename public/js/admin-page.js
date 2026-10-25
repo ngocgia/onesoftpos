@@ -686,6 +686,19 @@ const adminApp = {
           true,
         ) +
         this.field(
+          "product_modifier_popup_enabled",
+          "Popup ghi chú / tùy chọn món khi bấm dấu cộng",
+          "select",
+          String(settings.product_modifier_popup_enabled !== false),
+          [
+            { value: "true", label: "Bật - Chọn tùy chọn và ghi chú trước khi thêm" },
+            { value: "false", label: "Tắt - Thêm thẳng vào giỏ hàng" },
+          ],
+          false,
+          true,
+        ) +
+        `<p class="field full muted">Khi tắt, dấu cộng thêm 1 món với kích cỡ mặc định, không topping và không ghi chú. Bấm vào thẻ món để chọn tùy chọn hoặc ghi chú khi cần.</p>` +
+        this.field(
           "allow_cancel_item",
           "Cho phép đầu bếp hủy món",
           "select",
@@ -731,6 +744,7 @@ const adminApp = {
           data.takeaway_workspace_enabled =
             data.takeaway_workspace_enabled === "true";
           data.allow_cancel_item = data.allow_cancel_item === "true";
+          data.product_modifier_popup_enabled = data.product_modifier_popup_enabled === "true";
           data.inventory_transactions_enabled =
             data.inventory_transactions_enabled === "true";
           data.admin_tabs = {

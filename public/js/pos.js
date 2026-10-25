@@ -463,14 +463,91 @@ window.posModule = {
       </div>
     `).join('');
 
-    // Click on product card opens modifier modal
+    // The plus button follows the store setting; the card still allows customization.
     grid.querySelectorAll('.product-card').forEach(card => {
+      card.querySelector('.btn-add-prod')?.addEventListener('click', event => {
+        event.stopPropagation();
+        const product = this.products.find(p => p.id === Number(card.getAttribute('data-id')));
+        if (product) this.addProductFromCatalog(product, event.currentTarget);
+      });
       card.addEventListener('click', () => {
         const prodId = parseInt(card.getAttribute('data-id'), 10);
         const prod = this.products.find(p => p.id === prodId);
         if (prod) this.openModifierModal(prod);
       });
     });
+  },
+
+  addProductFromCatalog(product, source) {
+    if (this.sendingOrder) return;
+    if (window.appState.storeSettings?.product_modifier_popup_enabled !== false) {
+      this.openModifierModal(product);
+      return;
+    }
+    const variant = (product.variants || []).find(item => item.is_default) || product.variants?.[0] || null;
+    this.addProductToCart(product, { variant, source });
+  },
+
+  addProductToCart(product, { variant = null, options = [], quantity = 1, note = '', source = null } = {}) {
+    if (this.sendingOrder) return;
+    window.appState.addToCart({
+      product_id: product.id,
+      product_name: product.name,
+      unit: product.unit || 'Món',
+      variant_id: variant?.id || null,
+      variant_name: variant?.size_name || null,
+      unit_price: Number(product.price) + Number(variant?.price_adjustment || 0),
+      quantity,
+      note,
+      kitchen_type: product.kitchen_type || 'KITCHEN',
+      options: [...options]
+    });
+    this.animateAddToCart(product, source, quantity);
+    const draft = window.appState.getActiveTakeawayDraft();
+    const suffix = this.isTakeawayOnlyOrder() && draft ? ` vào đơn ${this.getTakeawayDraftName(draft)}` : '';
+    window.api.showToast(`Đã thêm ${quantity}x ${product.name}${suffix}`, 'success');
+  },
+
+  animateAddToCart(product, source, quantity = 1) {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const visible = element => {
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.right > 0
+        && rect.top < window.innerHeight && rect.left < window.innerWidth;
+    };
+    const target = Array.from(document.querySelectorAll('#cartSheetHandle, #posCartPanel .cart-title, .takeaway-workspace-tab[data-pane="orders"]')).find(visible);
+    source?.animate?.([
+      { transform: 'scale(1)' },
+      { transform: 'scale(1.2)', backgroundColor: '#10b981' },
+      { transform: 'scale(1)' }
+    ], { duration: 280, easing: 'ease-out' });
+    target?.animate?.([
+      { transform: 'scale(1)' }, { transform: 'scale(1.06)' }, { transform: 'scale(1)' }
+    ], { duration: 420, easing: 'ease-out' });
+    document.querySelectorAll('#cartItemsList .cart-item-row[data-product-id]').forEach(row => {
+      if (row.dataset.productId === String(product.id)) {
+        row.animate?.([{ backgroundColor: 'rgba(255, 122, 0, .22)' }, { backgroundColor: 'transparent' }], { duration: 650 });
+      }
+    });
+    if (!source || !target || !source.animate) return;
+    const from = source.getBoundingClientRect();
+    const to = target.getBoundingClientRect();
+    if (!from.width || !from.height) return;
+    const flyer = document.createElement('span');
+    flyer.className = 'cart-add-flyer';
+    flyer.textContent = `+${quantity}`;
+    flyer.setAttribute('aria-hidden', 'true');
+    flyer.style.left = `${from.left + from.width / 2 - 18}px`;
+    flyer.style.top = `${from.top + from.height / 2 - 18}px`;
+    document.body.appendChild(flyer);
+    const dx = to.left + to.width / 2 - from.left - from.width / 2;
+    const dy = to.top + to.height / 2 - from.top - from.height / 2;
+    const animation = flyer.animate([
+      { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+      { transform: `translate(${dx * .5}px, ${dy * .5 - 45}px) scale(.9)`, opacity: .95 },
+      { transform: `translate(${dx}px, ${dy}px) scale(.35)`, opacity: 0 }
+    ], { duration: 520, easing: 'ease-in-out' });
+    animation.onfinish = animation.oncancel = () => flyer.remove();
   },
 
   openModifierModal(product) {
@@ -567,36 +644,14 @@ window.posModule = {
   },
 
   confirmAddFromModal() {
-    if (!this.activeModalProduct) return;
-
-    let unitPrice = parseFloat(this.activeModalProduct.price);
-    let variantName = null;
-    let variantId = null;
-
-    if (this.selectedVariant) {
-      unitPrice += parseFloat(this.selectedVariant.price_adjustment || 0);
-      variantName = this.selectedVariant.size_name;
-      variantId = this.selectedVariant.id;
-    }
-
-    const note = document.getElementById('modifierItemNote')?.value.trim() || '';
-
-    window.appState.addToCart({
-      product_id: this.activeModalProduct.id,
-      product_name: this.activeModalProduct.name,
-      unit: this.activeModalProduct.unit || 'Món',
-      variant_id: variantId,
-      variant_name: variantName,
-      unit_price: unitPrice,
+    if (!this.activeModalProduct || this.sendingOrder) return;
+    this.addProductToCart(this.activeModalProduct, {
+      variant: this.selectedVariant,
+      options: this.selectedOptions,
       quantity: this.modalQty,
-      note,
-      kitchen_type: this.activeModalProduct.kitchen_type || 'KITCHEN',
-      options: [...this.selectedOptions]
+      note: document.getElementById('modifierItemNote')?.value.trim() || '',
+      source: document.getElementById('btnConfirmAddToCart')
     });
-
-    const draft = window.appState.getActiveTakeawayDraft();
-    const suffix = this.isTakeawayOnlyOrder() && draft ? ` vào đơn ${this.getTakeawayDraftName(draft)}` : '';
-    window.api.showToast(`Đã thêm ${this.modalQty}x ${this.activeModalProduct.name}${suffix}`, 'success');
     this.closeModifierModal();
   },
 
@@ -651,7 +706,7 @@ window.posModule = {
         <div class="cart-item-right"><span class="cart-item-price">${window.api.formatMoney(item.subtotal)}</span></div>
       </div>`).join('');
       itemsList.innerHTML = sentHtml + items.map((item, idx) => `
-        <div class="cart-item-row" data-index="${idx}">
+        <div class="cart-item-row" data-index="${idx}" data-product-id="${item.product_id}">
           <div class="cart-item-info">
             <h4 class="cart-item-name">${item.product_name}</h4>
             <div class="cart-item-tags">

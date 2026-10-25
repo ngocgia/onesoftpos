@@ -178,6 +178,7 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
           allow_cancel_item: { type: 'boolean', example: true, description: 'Cho phép vai trò KITCHEN hủy món' },
           kds_completion_message: { type: 'string', example: 'Món ăn {mon}, bàn {ban} đã xong' },
           takeaway_workspace_enabled: { type: 'boolean', example: false },
+          product_modifier_popup_enabled: { type: 'boolean', default: true, description: 'Bật popup tùy chọn/ghi chú khi bấm dấu cộng. Tắt để thêm món với kích cỡ mặc định, không topping.' },
           workflow_definition: {
             type: 'object',
             properties: {

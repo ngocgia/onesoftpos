@@ -5107,3 +5107,19 @@ body.theme-dark .icon-logout { background: rgba(239, 68, 68, 0.22); color: #f871
 #printerSettingsModal .setting-switch-row { gap: 12px; }
 #printerSettingsModal .setting-switch-row input[type="checkbox"] { flex-shrink: 0; }
 #printerSettingsModal .printer-settings-footer { display: flex; gap: 8px; justify-content: flex-end; flex-shrink: 0; padding: 12px 18px; }
+
+.cart-add-flyer {
+  position: fixed;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary, #ff7a00);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(255, 122, 0, .3);
+  pointer-events: none;
+}

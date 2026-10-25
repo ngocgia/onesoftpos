@@ -5081,8 +5081,7 @@ body.theme-dark .icon-logout { background: rgba(239, 68, 68, 0.22); color: #f871
 
 /* Printer settings: one destination for each print purpose. */
 #printerSettingsModal .printer-settings-dialog { max-width: 600px; }
-#printerSettingsModal .modal-header { background: #087f6b; color: white; flex-shrink: 0; }
-#printerSettingsModal .btn-close-modal { color: white; }
+#printerSettingsModal .modal-header { background: var(--bg-surface); color: var(--text-main); flex-shrink: 0; }
 #printerSettingsModal .printer-settings-body { background: var(--bg-body, #f4f5f8); padding: 18px; display: grid; gap: 16px; }
 #printerSettingsModal .printer-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 18px; padding: 20px; box-shadow: 0 2px 5px #00000010; min-width: 0; }
 #printerSettingsModal .printer-card-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }

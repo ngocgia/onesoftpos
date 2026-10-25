@@ -1,4 +1,4 @@
-# Thích Gà POS cho Android
+# OnesoftPOS cho Android
 
 Ứng dụng Android dùng WebView để hiển thị **chính giao diện POS mobile của website** tại `https://onesoft.one/?mode=pos`. Bố cục, tính năng bán hàng và luồng API được cập nhật theo website. Dự án Android nằm riêng trong `android-pos/`. In trực tiếp cần cả web mới và APK từ phiên bản 1.3.0.
 
@@ -51,7 +51,7 @@ Thiết lập lưu trong WebView trên từng máy, dùng chung cho nhân viên 
 2. Mở thư mục `android-pos` bằng Android Studio và chờ Gradle đồng bộ.
 3. Chạy trên Android 7.0 (API 24) trở lên hoặc chọn **Build > Build APK(s)**.
 
-Từ terminal có Android SDK: `gradlew.bat assembleDebug` trên Windows, hoặc `sh ./gradlew assembleDebug` trên macOS/Linux. APK đầu ra là `app/build/outputs/apk/debug/app-debug.apk`. Bản debug đã kiểm tra được chép thành `ThichGaPOS-POS-debug.apk` ở thư mục này.
+Từ terminal có Android SDK: `gradlew.bat assembleDebug` trên Windows, hoặc `sh ./gradlew assembleDebug` trên macOS/Linux. APK đầu ra là `app/build/outputs/apk/debug/app-debug.apk`. Bản debug đã kiểm tra được chép thành `OnesoftPOS-POS-debug.apk` ở thư mục này.
 
 ## Phát hành lên Google Play
 

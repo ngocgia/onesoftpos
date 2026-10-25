@@ -1,4 +1,4 @@
-# Rà soát tính năng Thích Gà POS — 09/10/2026
+# Rà soát tính năng OnesoftPOS — 09/10/2026
 
 ## Phạm vi và giới hạn
 

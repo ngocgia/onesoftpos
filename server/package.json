@@ -1,7 +1,7 @@
 {
-  "name": "thichgapos-server",
+  "name": "onesoftpos-server",
   "version": "1.0.0",
-  "description": "ThichGaPOS Backend - Multi-Store F&B POS System",
+  "description": "OnesoftPOS Backend - Multi-Store F&B POS System",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -28,6 +28,6 @@
     "restaurant",
     "takeaway"
   ],
-  "author": "ThichGaPOS Team",
+  "author": "OnesoftPOS Team",
   "license": "ISC"
 }

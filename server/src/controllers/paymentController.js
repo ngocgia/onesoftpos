@@ -279,7 +279,7 @@ async function getVietQR(req, res) {
 
     const bankName = (settings && settings.bank_name) || 'MB Bank';
     const bankAccount = (settings && settings.bank_account_number) || '090123456789';
-    const accountHolder = (settings && settings.bank_account_holder) || 'THICH GA POS';
+    const accountHolder = (settings && settings.bank_account_holder) || 'ONESOFTPOS';
     const amount = parseInt(order.total_amount, 10);
     const memo = `${order.order_code}`;
 

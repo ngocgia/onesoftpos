@@ -1,4 +1,4 @@
-// ThichGaPOS v1.0 - Global State Management (Rule 46: Dynamic UI by Store Type Features)
+// OnesoftPOS v1.0 - Global State Management (Rule 46: Dynamic UI by Store Type Features)
 
 const createEmptyPosCart = () => ({
   orderType: 'TAKEAWAY',
@@ -67,7 +67,7 @@ window.appState = {
   },
 
   tableCartKey(tableId) {
-    return `thichgapos_table_cart_${this.currentStore?.id || window.api.getCurrentStoreId()}_${this.user?.id || 'staff'}_${tableId}`;
+    return `onesoftpos_table_cart_${this.currentStore?.id || window.api.getCurrentStoreId()}_${this.user?.id || 'staff'}_${tableId}`;
   },
 
   getTableCart(tableId) {

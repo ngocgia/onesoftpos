@@ -1,7 +1,8 @@
+const { LEGACY_JWT_SECRET } = require('../config/legacyBrand');
 const jwt = require('jsonwebtoken');
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'thichgapos_jwt_secret_key_2026_production';
+const JWT_SECRET = process.env.JWT_SECRET || LEGACY_JWT_SECRET;
 
 async function userCanAccessStore(user, storeId) {
   if (['SUPER_ADMIN', 'ADMIN'].includes(user.role)) return true;

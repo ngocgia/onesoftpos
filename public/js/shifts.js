@@ -1,4 +1,4 @@
-// ThichGaPOS v1.0 - Shifts Management Controller (Rule 34)
+// OnesoftPOS v1.0 - Shifts Management Controller (Rule 34)
 
 window.shiftsModule = {
   currentShift: null,

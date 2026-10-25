@@ -1,4 +1,4 @@
-// ThichGaPOS v1.0 - Invoice & Receipt Controller (Rule 29: 58mm / 80mm Print)
+// OnesoftPOS v1.0 - Invoice & Receipt Controller (Rule 29: 58mm / 80mm Print)
 
 window.invoiceModule = {
   currentOrder: null,
@@ -418,7 +418,7 @@ window.invoiceModule = {
       const footerMsg = document.getElementById('receiptFooterMessage');
       const receiptTitle = document.querySelector('#receiptPaper .receipt-title');
 
-      if (storeName) storeName.textContent = currentStore ? currentStore.name.toUpperCase() : 'THÍCH GÀ POS';
+      if (storeName) storeName.textContent = currentStore ? currentStore.name.toUpperCase() : 'ONESOFTPOS';
       if (storeAddress) storeAddress.textContent = currentStore ? currentStore.address : '';
       if (storePhone) storePhone.textContent = currentStore?.phone ? `Hotline: ${currentStore.phone}` : '';
       const isUnpaid = fullOrder.isDraft || fullOrder.payment_status !== 'PAID';
@@ -508,11 +508,11 @@ window.invoiceModule = {
       this.invoiceQrEnabled = invoiceOptions.qr;
       this.invoiceQrKey = this.paymentQrKey(printerSettings);
       if (storeId !== window.api.getCurrentStoreId()) throw new Error('Cửa hàng đã thay đổi; vui lòng mở lại phiếu');
-      this.receiptFooterText = [settings?.receipt_footer || 'Cảm ơn Quý khách & Hẹn gặp lại!', 'Phần mềm ThichGaPOS Multi-Store v1.0'].join('\n');
+      this.receiptFooterText = [settings?.receipt_footer || 'Cảm ơn Quý khách & Hẹn gặp lại!', 'Phần mềm OnesoftPOS Multi-Store v1.0'].join('\n');
       // Plain Unicode is rendered to raster on Android; never send UTF-8 to the printer's legacy fonts.
       const money = value => window.api.formatMoney(value);
       this.buildInvoiceText = options => [
-        currentStore?.name?.toUpperCase() || 'THÍCH GÀ POS', currentStore?.address,
+        currentStore?.name?.toUpperCase() || 'ONESOFTPOS', currentStore?.address,
         currentStore?.phone ? `Hotline: ${currentStore.phone}` : '',
         isUnpaid ? 'HÓA ĐƠN TẠM TÍNH' : 'HÓA ĐƠN THANH TOÁN',
         options.printCount ? document.getElementById('receiptPrintCount').textContent : '',

@@ -1,4 +1,4 @@
--- ThichGaPOS v1.0 - Database Schema (PostgreSQL)
+-- OnesoftPOS v1.0 - Database Schema (PostgreSQL)
 -- Multi-Store Architecture for Food & Beverage POS
 
 -- 1. STORE TYPES & FEATURES
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS store_settings (
     receipt_paper_size VARCHAR(10) DEFAULT '80mm', -- 58mm, 80mm
     bank_name VARCHAR(100) DEFAULT 'MB Bank',
     bank_account_number VARCHAR(50) DEFAULT '9999988888',
-    bank_account_holder VARCHAR(100) DEFAULT 'THICHGAPOS STORE',
+    bank_account_holder VARCHAR(100) DEFAULT 'ONESOFTPOS STORE',
     kds_enabled BOOLEAN DEFAULT TRUE,
     kds_auto_print BOOLEAN DEFAULT FALSE,
     kds_completion_message TEXT DEFAULT 'Món ăn {mon}, bàn {ban} đã xong',

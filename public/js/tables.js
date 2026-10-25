@@ -1,4 +1,4 @@
-// ThichGaPOS v1.0 - Tables & Floor Plan Controller (Rule 21, 22, 23)
+// OnesoftPOS v1.0 - Tables & Floor Plan Controller (Rule 21, 22, 23)
 
 window.tablesModule = {
   areas: [],

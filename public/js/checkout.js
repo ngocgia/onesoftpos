@@ -1,4 +1,4 @@
-// ThichGaPOS v1.0 - Checkout & Payment Controller (Rule 27, 28)
+// OnesoftPOS v1.0 - Checkout & Payment Controller (Rule 27, 28)
 
 window.checkoutModule = {
   currentOrder: null,

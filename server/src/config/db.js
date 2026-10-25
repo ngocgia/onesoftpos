@@ -1,3 +1,4 @@
+const { LEGACY_DATABASE_NAME } = require('./legacyBrand');
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
 const fs = require('fs');
@@ -18,7 +19,7 @@ const LEGACY_INVALID_PASSWORD_HASHES = [
 ];
 
 const connectionString = process.env.DATABASE_URL || 
-  `postgres://${process.env.PGUSER || 'postgres'}:${process.env.PGPASSWORD || 'postgres'}@${process.env.PGHOST || 'localhost'}:${process.env.PGPORT || 5432}/${process.env.PGDATABASE || 'thichgapos'}`;
+  `postgres://${process.env.PGUSER || 'postgres'}:${process.env.PGPASSWORD || 'postgres'}@${process.env.PGHOST || 'localhost'}:${process.env.PGPORT || 5432}/${process.env.PGDATABASE || LEGACY_DATABASE_NAME}`;
 
 let pool = null;
 let isConnected = false;
@@ -41,11 +42,11 @@ try {
 // Memory fallback store if Postgres is unavailable locally
 const memoryStore = {
   users: [
-    { id: 1, username: 'admin', email: 'admin@thichgapos.com', full_name: 'Quản trị viên Hệ Thống', role: 'SUPER_ADMIN', status: 'ACTIVE', phone: '0900000001' },
-    { id: 2, username: 'manager', email: 'manager@thichgapos.com', full_name: 'Nguyễn Quản Lý', role: 'STORE_MANAGER', status: 'ACTIVE', phone: '0900000002' },
-    { id: 3, username: 'cashier', email: 'cashier@thichgapos.com', full_name: 'Trần Thu Ngân', role: 'CASHIER', status: 'ACTIVE', phone: '0900000003' },
-    { id: 4, username: 'kitchen', email: 'kitchen@thichgapos.com', full_name: 'Lê Đầu Bếp', role: 'KITCHEN', status: 'ACTIVE', phone: '0900000004' },
-    { id: 5, username: 'order', email: 'order@thichgapos.com', full_name: 'Phạm Nhân Viên Order', role: 'ORDER_STAFF', status: 'ACTIVE', phone: '0900000005' }
+    { id: 1, username: 'admin', email: 'admin@onesoftpos.com', full_name: 'Quản trị viên Hệ Thống', role: 'SUPER_ADMIN', status: 'ACTIVE', phone: '0900000001' },
+    { id: 2, username: 'manager', email: 'manager@onesoftpos.com', full_name: 'Nguyễn Quản Lý', role: 'STORE_MANAGER', status: 'ACTIVE', phone: '0900000002' },
+    { id: 3, username: 'cashier', email: 'cashier@onesoftpos.com', full_name: 'Trần Thu Ngân', role: 'CASHIER', status: 'ACTIVE', phone: '0900000003' },
+    { id: 4, username: 'kitchen', email: 'kitchen@onesoftpos.com', full_name: 'Lê Đầu Bếp', role: 'KITCHEN', status: 'ACTIVE', phone: '0900000004' },
+    { id: 5, username: 'order', email: 'order@onesoftpos.com', full_name: 'Phạm Nhân Viên Order', role: 'ORDER_STAFF', status: 'ACTIVE', phone: '0900000005' }
   ],
   store_types: [
     { id: 1, code: 'TAKEAWAY', name: 'Chỉ bán mang đi', description: 'Mô hình Kiot chuyên mang đi', is_active: true },
@@ -71,12 +72,12 @@ const memoryStore = {
     { store_type_id: 2, feature_code: 'INVENTORY', enabled: true }
   ],
   stores: [
-    { id: 1, code: 'STORE001', name: 'Thích Gà - Chi nhánh 1', display_name: 'Thích Gà - Quang Trung', store_type_id: 2, phone: '0901234567', email: 'cn1@thichgapos.vn', address: '123 Quang Trung, Phường 10, Gò Vấp', province: 'Hồ Chí Minh', district: 'Gò Vấp', tax_code: '0312345678', logo_url: '🍗', opening_time: '08:00', closing_time: '22:30', currency: 'VND', status: 'ACTIVE' },
-    { id: 2, code: 'STORE002', name: 'Thích Gà Express - Kiot Nguyễn Huệ', display_name: 'Thích Gà Express', store_type_id: 1, phone: '0909888999', email: 'express@thichgapos.vn', address: '88 Phố Đi Bộ Nguyễn Huệ, Bến Nghé', province: 'Hồ Chí Minh', district: 'Quận 1', tax_code: '0312345678-001', logo_url: '🍗', opening_time: '09:00', closing_time: '23:00', currency: 'VND', status: 'ACTIVE' }
+    { id: 1, code: 'STORE001', name: 'OnesoftPOS - Chi nhánh 1', display_name: 'OnesoftPOS - Quang Trung', store_type_id: 2, phone: '0901234567', email: 'cn1@onesoftpos.vn', address: '123 Quang Trung, Phường 10, Gò Vấp', province: 'Hồ Chí Minh', district: 'Gò Vấp', tax_code: '0312345678', logo_url: '🍗', opening_time: '08:00', closing_time: '22:30', currency: 'VND', status: 'ACTIVE' },
+    { id: 2, code: 'STORE002', name: 'OnesoftPOS Express - Kiot Nguyễn Huệ', display_name: 'OnesoftPOS Express', store_type_id: 1, phone: '0909888999', email: 'express@onesoftpos.vn', address: '88 Phố Đi Bộ Nguyễn Huệ, Bến Nghé', province: 'Hồ Chí Minh', district: 'Quận 1', tax_code: '0312345678-001', logo_url: '🍗', opening_time: '09:00', closing_time: '23:00', currency: 'VND', status: 'ACTIVE' }
   ],
   store_settings: [
-    { store_id: 1, allow_negative_stock: false, allow_discount: true, allow_custom_price: false, allow_cancel_item: true, allow_cancel_order: true, allow_refund: true, payment_cash: true, payment_transfer: true, payment_qr: true, payment_card: true, receipt_header: 'HỆ THỐNG GÀ RÁN & TRÀ SỮA THÍCH GÀ', receipt_footer: 'Cảm ơn Quý khách & Hẹn gặp lại!', receipt_paper_size: '80mm', bank_name: 'MB Bank', bank_account_number: '090123456789', bank_account_holder: 'THICH GA POS CN1', kds_enabled: true, kds_completion_message: 'Món ăn {mon}, bàn {ban} đã xong', inventory_transactions_enabled: true, workflow_definition: { name: 'Thu ngân - Bếp - Thanh toán', steps: [{ id: 'create', name: 'Thu ngân tạo đơn', type: 'CREATE', roles: ['CASHIER'] }, { id: 'kitchen', name: 'Bếp chế biến', type: 'KITCHEN', roles: ['KITCHEN'] }, { id: 'payment', name: 'Thu ngân thanh toán', type: 'PAYMENT', roles: ['CASHIER'] }] } },
-    { store_id: 2, allow_negative_stock: false, allow_discount: true, allow_custom_price: false, allow_cancel_item: true, allow_cancel_order: true, allow_refund: true, payment_cash: true, payment_transfer: true, payment_qr: true, payment_card: true, receipt_header: 'THÍCH GÀ EXPRESS - MANG ĐI SIÊU TỐC', receipt_footer: 'Chúc Quý khách ngon miệng!', receipt_paper_size: '58mm', bank_name: 'MB Bank', bank_account_number: '090988899999', bank_account_holder: 'THICH GA EXPRESS', kds_enabled: true, kds_completion_message: 'Món ăn {mon}, bàn {ban} đã xong', inventory_transactions_enabled: true, workflow_definition: { name: 'Thu ngân - Bếp - Thanh toán', steps: [{ id: 'create', name: 'Thu ngân tạo đơn', type: 'CREATE', roles: ['CASHIER'] }, { id: 'kitchen', name: 'Bếp chế biến', type: 'KITCHEN', roles: ['KITCHEN'] }, { id: 'payment', name: 'Thu ngân thanh toán', type: 'PAYMENT', roles: ['CASHIER'] }] } }
+    { store_id: 1, allow_negative_stock: false, allow_discount: true, allow_custom_price: false, allow_cancel_item: true, allow_cancel_order: true, allow_refund: true, payment_cash: true, payment_transfer: true, payment_qr: true, payment_card: true, receipt_header: 'HỆ THỐNG GÀ RÁN & TRÀ SỮA ONESOFTPOS', receipt_footer: 'Cảm ơn Quý khách & Hẹn gặp lại!', receipt_paper_size: '80mm', bank_name: 'MB Bank', bank_account_number: '090123456789', bank_account_holder: 'ONESOFTPOS CN1', kds_enabled: true, kds_completion_message: 'Món ăn {mon}, bàn {ban} đã xong', inventory_transactions_enabled: true, workflow_definition: { name: 'Thu ngân - Bếp - Thanh toán', steps: [{ id: 'create', name: 'Thu ngân tạo đơn', type: 'CREATE', roles: ['CASHIER'] }, { id: 'kitchen', name: 'Bếp chế biến', type: 'KITCHEN', roles: ['KITCHEN'] }, { id: 'payment', name: 'Thu ngân thanh toán', type: 'PAYMENT', roles: ['CASHIER'] }] } },
+    { store_id: 2, allow_negative_stock: false, allow_discount: true, allow_custom_price: false, allow_cancel_item: true, allow_cancel_order: true, allow_refund: true, payment_cash: true, payment_transfer: true, payment_qr: true, payment_card: true, receipt_header: 'ONESOFTPOS EXPRESS - MANG ĐI SIÊU TỐC', receipt_footer: 'Chúc Quý khách ngon miệng!', receipt_paper_size: '58mm', bank_name: 'MB Bank', bank_account_number: '090988899999', bank_account_holder: 'ONESOFTPOS EXPRESS', kds_enabled: true, kds_completion_message: 'Món ăn {mon}, bàn {ban} đã xong', inventory_transactions_enabled: true, workflow_definition: { name: 'Thu ngân - Bếp - Thanh toán', steps: [{ id: 'create', name: 'Thu ngân tạo đơn', type: 'CREATE', roles: ['CASHIER'] }, { id: 'kitchen', name: 'Bếp chế biến', type: 'KITCHEN', roles: ['KITCHEN'] }, { id: 'payment', name: 'Thu ngân thanh toán', type: 'PAYMENT', roles: ['CASHIER'] }] } }
   ],
   user_stores: [
     { user_id: 1, store_id: 1, is_default: true },
@@ -196,7 +197,7 @@ const memoryStore = {
     { id: 6, store_id: 1, code: 'NL06', name: 'Trà đen Phúc Long xuất khẩu', category: 'Trà & Cà phê', unit: 'gói 500g', cost_price: 85000, current_stock: 12, min_stock: 5, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
     { id: 7, store_id: 1, code: 'NL07', name: 'Sữa đặc Phương Nam lon 1.28kg', category: 'Sữa & Kem', unit: 'Lon', cost_price: 62000, current_stock: 16, min_stock: 6, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
     { id: 8, store_id: 1, code: 'NL08', name: 'Trân châu đen Đài Loan 3kg', category: 'Topping & Hạt', unit: 'Gói', cost_price: 95000, current_stock: 5, min_stock: 4, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
-    { id: 9, store_id: 1, code: 'NL09', name: 'Ly giấy Thích Gà 700ml kèm nắp', category: 'Bao bì & Ly hộp', unit: 'Cây 50 cái', cost_price: 48000, current_stock: 25, min_stock: 10, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
+    { id: 9, store_id: 1, code: 'NL09', name: 'Ly giấy OnesoftPOS 700ml kèm nắp', category: 'Bao bì & Ly hộp', unit: 'Cây 50 cái', cost_price: 48000, current_stock: 25, min_stock: 10, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
     { id: 10, store_id: 1, code: 'NL10', name: 'Hộp giấy Kraft đựng gà rán', category: 'Bao bì & Ly hộp', unit: 'Cái', cost_price: 2500, current_stock: 350, min_stock: 100, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
     { id: 11, store_id: 1, code: 'NL11', name: 'Tương ớt cay Cholimex can 2L', category: 'Gia vị & Bột', unit: 'Can', cost_price: 52000, current_stock: 3, min_stock: 5, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },
     { id: 12, store_id: 1, code: 'NL12', name: 'Bột phô mai lắc Tornado', category: 'Gia vị & Bột', unit: 'kg', cost_price: 160000, current_stock: 0, min_stock: 2, is_active: true, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-20T08:00:00Z' },

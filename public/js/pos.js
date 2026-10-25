@@ -1,4 +1,4 @@
-// ThichGaPOS v1.0 - POS Terminal & Product Catalog Controller
+// OnesoftPOS v1.0 - POS Terminal & Product Catalog Controller
 
 window.posModule = {
   categories: [],

@@ -1,3 +1,4 @@
+const { LEGACY_DATABASE_NAME } = require('../config/legacyBrand');
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
@@ -6,7 +7,7 @@ const dotenv = require('dotenv');
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const connectionString = process.env.DATABASE_URL || 
-  `postgres://${process.env.PGUSER || 'postgres'}:${process.env.PGPASSWORD || 'postgres'}@${process.env.PGHOST || 'localhost'}:${process.env.PGPORT || 5432}/${process.env.PGDATABASE || 'thichgapos'}`;
+  `postgres://${process.env.PGUSER || 'postgres'}:${process.env.PGPASSWORD || 'postgres'}@${process.env.PGHOST || 'localhost'}:${process.env.PGPORT || 5432}/${process.env.PGDATABASE || LEGACY_DATABASE_NAME}`;
 
 console.log('Connecting to PostgreSQL to initialize database...');
 console.log('Connection URL:', connectionString.replace(/:[^:@]+@/, ':****@'));

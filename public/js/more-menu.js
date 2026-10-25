@@ -1,5 +1,5 @@
 /**
- * ThichGaPOS - More Menu Module (Menu Nhiều hơn)
+ * OnesoftPOS - More Menu Module (Menu Nhiều hơn)
  * Quản lý giao diện trung tâm chức năng "Nhiều hơn" và các cài đặt liên quan
  */
 
@@ -64,7 +64,7 @@ window.moreMenuModule = {
     }
 
     if (storeEl) {
-      storeEl.innerHTML = `<i class="fa-solid fa-store"></i> ${store.name || 'Chi nhánh Thích Gà POS'}`;
+      storeEl.innerHTML = `<i class="fa-solid fa-store"></i> ${store.name || 'Chi nhánh OnesoftPOS'}`;
     }
 
     if (roleBadgeEl) {
@@ -470,7 +470,7 @@ window.moreMenuModule = {
     const modal = document.getElementById('storeWebsiteModal');
     if (!modal) return;
     const store = window.appState?.currentStore || {};
-    const code = store.code || 'thichga';
+    const code = store.code || 'onesoftpos';
     const url = `${window.location.origin}/?store=${encodeURIComponent(code)}&mode=menu`;
 
     const urlInput = document.getElementById('storeWebsiteUrl');
@@ -649,10 +649,10 @@ window.moreMenuModule = {
 
     document.getElementById('accFullName').textContent = user.full_name || 'Quản trị viên';
     document.getElementById('accUsername').textContent = user.username || 'admin';
-    document.getElementById('accEmail').textContent = user.email || 'admin@thichgapos.com';
+    document.getElementById('accEmail').textContent = user.email || 'admin@onesoftpos.com';
     document.getElementById('accPhone').textContent = user.phone || '0900000001';
     document.getElementById('accRole').textContent = user.role || 'SUPER_ADMIN';
-    document.getElementById('accStore').textContent = store.name || 'Chi nhánh Thích Gà POS';
+    document.getElementById('accStore').textContent = store.name || 'Chi nhánh OnesoftPOS';
 
     if (window.headerCustomizer) {
       window.headerCustomizer.openInAccountModal('general');
@@ -671,7 +671,7 @@ window.moreMenuModule = {
 
   // 14. Đăng xuất
   handleLogout() {
-    if (confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống Thích Gà POS?')) {
+    if (confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống OnesoftPOS?')) {
       window.api?.removeToken();
       window.api?.setCurrentStoreId('');
       window.location.replace('/?mode=pos');

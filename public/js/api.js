@@ -1,25 +1,25 @@
-// ThichGaPOS v1.0 - API Client
+// OnesoftPOS v1.0 - API Client
 
 const API_BASE = '/api';
 
 function getToken() {
-  return localStorage.getItem('thichgapos_token') || '';
+  return localStorage.getItem('onesoftpos_token') || '';
 }
 
 function setToken(token) {
-  localStorage.setItem('thichgapos_token', token);
+  localStorage.setItem('onesoftpos_token', token);
 }
 
 function removeToken() {
-  localStorage.removeItem('thichgapos_token');
+  localStorage.removeItem('onesoftpos_token');
 }
 
 function getCurrentStoreId() {
-  return localStorage.getItem('thichgapos_store_id') || '';
+  return localStorage.getItem('onesoftpos_store_id') || '';
 }
 
 function setCurrentStoreId(storeId) {
-  localStorage.setItem('thichgapos_store_id', storeId);
+  localStorage.setItem('onesoftpos_store_id', storeId);
 }
 
 async function apiRequest(endpoint, options = {}) {

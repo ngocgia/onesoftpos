@@ -1,4 +1,4 @@
-// ThichGaPOS v1.0 - Main Application Entrypoint & Navigation
+// OnesoftPOS v1.0 - Main Application Entrypoint & Navigation
 
 window.appNavigation = {
   currentView: 'viewPos',
@@ -197,7 +197,7 @@ async function initializeCurrentStore() {
 
 // Theme (Dark / Light Mode)
 function initTheme() {
-  const savedTheme = localStorage.getItem('thichgapos_theme') || 'light';
+  const savedTheme = localStorage.getItem('onesoftpos_theme') || 'light';
   document.body.className = `theme-${savedTheme}`;
   updateThemeIcon(savedTheme);
 
@@ -207,7 +207,7 @@ function initTheme() {
       const isDark = document.body.classList.contains('theme-dark');
       const newTheme = isDark ? 'light' : 'dark';
       document.body.className = `theme-${newTheme}`;
-      localStorage.setItem('thichgapos_theme', newTheme);
+      localStorage.setItem('onesoftpos_theme', newTheme);
       updateThemeIcon(newTheme);
     });
   }

@@ -3,12 +3,13 @@
 
 <head>
   <meta charset="UTF-8">
+  <script src="js/brand-migration.js?v=20261025-onesoftpos"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f97316">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Thích Gà POS - Hệ Thống Bán Hàng F&B Đa Chi Nhánh</title>
-  <meta name="description" content="Hệ thống quản lý bán hàng chuyên nghiệp đa chi nhánh - ThichGaPOS">
+  <title>OnesoftPOS - Hệ Thống Bán Hàng F&B Đa Chi Nhánh</title>
+  <meta name="description" content="Hệ thống quản lý bán hàng chuyên nghiệp đa chi nhánh - OnesoftPOS">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="shortcut icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="images/app-icon.png">
@@ -19,9 +20,9 @@
     rel="stylesheet">
   <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/main.css?v=20261025-upload-qr-size-fix">
-  <link rel="stylesheet" href="css/device-display.css?v=20261024">
-  <script src="js/device-display.js?v=20261024"></script>
+  <link rel="stylesheet" href="css/main.css?v=20261025-onesoftpos">
+  <link rel="stylesheet" href="css/device-display.css?v=20261025-onesoftpos">
+  <script src="js/device-display.js?v=20261025-onesoftpos"></script>
 </head>
 
 <body class="theme-light">
@@ -1254,7 +1255,7 @@
               <div class="qr-details-box">
                 <div>Ngân hàng: <strong id="qrBankName">MB Bank</strong></div>
                 <div>Số tài khoản: <strong id="qrAccountNo">090123456789</strong></div>
-                <div>Chủ tài khoản: <strong id="qrAccountHolder">THÍCH GÀ POS</strong></div>
+                <div>Chủ tài khoản: <strong id="qrAccountHolder">ONESOFTPOS</strong></div>
                 <div>Nội dung CK: <strong id="qrMemo" class="text-primary">TG0001</strong></div>
               </div>
             </div>
@@ -1292,7 +1293,7 @@
           <div id="orderSlipContent" style="display:none;"></div>
           <div id="receiptInvoiceContent">
             <div class="receipt-header-center">
-              <h2 id="receiptStoreName">THÍCH GÀ - QUANG TRUNG</h2>
+              <h2 id="receiptStoreName">ONESOFTPOS - QUANG TRUNG</h2>
               <p id="receiptStoreAddress">123 Quang Trung, P.10, Gò Vấp</p>
               <p id="receiptStorePhone">Hotline: 0901234567</p>
               <h3 class="receipt-title">HÓA ĐƠN THANH TOÁN</h3>
@@ -1348,7 +1349,7 @@
             <div class="receipt-divider">---------------- * ----------------</div>
             <div class="receipt-footer-center">
               <p id="receiptFooterMessage">Cảm ơn Quý khách & Hẹn gặp lại!</p>
-              <p class="receipt-software-tag">Phần mềm ThichGaPOS Multi-Store v1.0</p>
+              <p class="receipt-software-tag">Phần mềm OnesoftPOS Multi-Store v1.0</p>
             </div>
           </div>
         </div>
@@ -1572,7 +1573,7 @@
   <div class="modal-overlay" id="loginModal" style="display: none;">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3>Đăng Nhập Thích Gà POS</h3>
+        <h3>Đăng Nhập OnesoftPOS</h3>
         <button type="button" class="btn-close-modal" id="btnCloseLoginModal">&times;</button>
       </div>
       <div class="modal-body">
@@ -2174,7 +2175,7 @@
             </div>
             <div class="account-detail-row">
               <span class="text-muted"><i class="fa-solid fa-envelope"></i> Email liên hệ:</span>
-              <span id="accEmail">admin@thichgapos.com</span>
+              <span id="accEmail">admin@onesoftpos.com</span>
             </div>
             <div class="account-detail-row">
               <span class="text-muted"><i class="fa-solid fa-phone"></i> Số điện thoại:</span>
@@ -2339,22 +2340,22 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- SCRIPTS (Vanilla ES6 Modules) -->
-  <script src="js/api.js"></script>
-  <script src="js/state.js?v=20261015-takeaway-checkout"></script>
-  <script src="js/audio.js?v=20261017-native-speaker"></script>
-  <script src="js/pos.js?v=20261015-takeaway-checkout"></script>
-  <script src="js/tables.js?v=20261015-table-cart"></script>
-  <script src="js/kds.js?v=20261009-database"></script>
-  <script src="js/completed-items.js?v=20260923-table-first"></script>
-  <script src="js/orders.js?v=20261010-history-printer"></script>
-  <script src="js/checkout.js?v=20261010-store-printer"></script>
-  <script src="js/invoice.js?v=20261025-upload-qr-size-fix"></script>
-  <script src="js/shifts.js"></script>
-  <script src="js/admin.js?v=20260923-pos-store-fields"></script>
-  <script src="js/more-menu.js?v=20261025-upload-qr-size-fix"></script>
-  <script src="js/menu-persistence.js?v=20261010-store-printer"></script>
-  <script src="js/header-customizer.js?v=20261009-database"></script>
-  <script src="js/app.js?v=20261024-landing-entry"></script>
+  <script src="js/api.js?v=20261025-onesoftpos"></script>
+  <script src="js/state.js?v=20261025-onesoftpos"></script>
+  <script src="js/audio.js?v=20261025-onesoftpos"></script>
+  <script src="js/pos.js?v=20261025-onesoftpos"></script>
+  <script src="js/tables.js?v=20261025-onesoftpos"></script>
+  <script src="js/kds.js?v=20261025-onesoftpos"></script>
+  <script src="js/completed-items.js?v=20261025-onesoftpos"></script>
+  <script src="js/orders.js?v=20261025-onesoftpos"></script>
+  <script src="js/checkout.js?v=20261025-onesoftpos"></script>
+  <script src="js/invoice.js?v=20261025-onesoftpos"></script>
+  <script src="js/shifts.js?v=20261025-onesoftpos"></script>
+  <script src="js/admin.js?v=20261025-onesoftpos"></script>
+  <script src="js/more-menu.js?v=20261025-onesoftpos"></script>
+  <script src="js/menu-persistence.js?v=20261025-onesoftpos"></script>
+  <script src="js/header-customizer.js?v=20261025-onesoftpos"></script>
+  <script src="js/app.js?v=20261025-onesoftpos"></script>
 </body>
 
 </html>

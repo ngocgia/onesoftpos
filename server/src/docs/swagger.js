@@ -1,17 +1,17 @@
 /**
- * ThichGaPOS v1.0 - OpenAPI 3.0 / Swagger Specification
+ * OnesoftPOS v1.0 - OpenAPI 3.0 / Swagger Specification
  * Hệ thống POS Quản lý bán hàng chuỗi ẩm thực (Multi-Store F&B)
  */
 
 const swaggerSpec = {
   openapi: '3.0.0',
   info: {
-    title: 'ThichGaPOS - Multi-Store F&B POS API',
+    title: 'OnesoftPOS - Multi-Store F&B POS API',
     version: '1.0.0',
     description: `
-## Giới thiệu hệ thống ThichGaPOS API
+## Giới thiệu hệ thống OnesoftPOS API
 
-Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hàng F&B đa chi nhánh **ThichGaPOS v1.0**.
+Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hàng F&B đa chi nhánh **OnesoftPOS v1.0**.
 
 ### Các tính năng chính:
 - **Xác thực & Phân quyền (Auth & RBAC)**: JWT Token, kiểm tra quyền theo vai trò (\`SUPER_ADMIN\`, \`ADMIN\`, \`STORE_MANAGER\`, \`CASHIER\`, \`KITCHEN\`, \`ORDER_STAFF\`) và ma trận tính năng (\`role_features\`, \`store_role_features\`).
@@ -32,8 +32,8 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
 4. Đối với các API yêu cầu ngữ cảnh cửa hàng, nhập ID cửa hàng vào header \`X-Store-Id\` (ví dụ: \`1\` hoặc \`2\`).
     `,
     contact: {
-      name: 'ThichGaPOS Engineering Team',
-      email: 'support@thichgapos.vn'
+      name: 'OnesoftPOS Engineering Team',
+      email: 'support@onesoftpos.vn'
     }
   },
   servers: [
@@ -124,7 +124,7 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
             properties: {
               id: { type: 'integer', example: 1 },
               username: { type: 'string', example: 'admin' },
-              email: { type: 'string', example: 'admin@thichgapos.com' },
+              email: { type: 'string', example: 'admin@onesoftpos.com' },
               full_name: { type: 'string', example: 'Quản trị viên Hệ Thống' },
               role: { type: 'string', example: 'SUPER_ADMIN', enum: ['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER', 'CASHIER', 'KITCHEN', 'ORDER_STAFF'] }
             }
@@ -146,13 +146,13 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
         properties: {
           id: { type: 'integer', example: 1 },
           code: { type: 'string', example: 'STORE001' },
-          name: { type: 'string', example: 'Thích Gà - Chi nhánh 1' },
-          display_name: { type: 'string', example: 'Thích Gà - Quang Trung' },
+          name: { type: 'string', example: 'OnesoftPOS - Chi nhánh 1' },
+          display_name: { type: 'string', example: 'OnesoftPOS - Quang Trung' },
           store_type_id: { type: 'integer', example: 2 },
           store_type_code: { type: 'string', example: 'DINE_IN_TAKEAWAY' },
           store_type_name: { type: 'string', example: 'Tại chỗ & Mang đi' },
           phone: { type: 'string', example: '0901234567' },
-          email: { type: 'string', example: 'cn1@thichgapos.vn' },
+          email: { type: 'string', example: 'cn1@onesoftpos.vn' },
           address: { type: 'string', example: '123 Quang Trung, Phường 10, Gò Vấp' },
           province: { type: 'string', example: 'Hồ Chí Minh' },
           district: { type: 'string', example: 'Gò Vấp' },
@@ -168,12 +168,12 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
         type: 'object',
         properties: {
           store_id: { type: 'integer', example: 1 },
-          receipt_header: { type: 'string', example: 'HỆ THỐNG GÀ RÁN & TRÀ SỮA THÍCH GÀ' },
+          receipt_header: { type: 'string', example: 'HỆ THỐNG GÀ RÁN & TRÀ SỮA ONESOFTPOS' },
           receipt_footer: { type: 'string', example: 'Cảm ơn Quý khách & Hẹn gặp lại!' },
           receipt_paper_size: { type: 'string', example: '80mm', enum: ['58mm', '80mm'] },
           bank_name: { type: 'string', example: 'MB Bank' },
           bank_account_number: { type: 'string', example: '090123456789' },
-          bank_account_holder: { type: 'string', example: 'THICH GA POS CN1' },
+          bank_account_holder: { type: 'string', example: 'ONESOFTPOS CN1' },
           kds_enabled: { type: 'boolean', example: true },
           allow_cancel_item: { type: 'boolean', example: true, description: 'Cho phép vai trò KITCHEN hủy món' },
           kds_completion_message: { type: 'string', example: 'Món ăn {mon}, bàn {ban} đã xong' },
@@ -465,7 +465,7 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
           qrUrl: { type: 'string', example: 'https://img.vietqr.io/image/970422-090123456789-compact2.png?amount=70000&addInfo=TG260919-4821&accountName=THICH%20GA%20POS' },
           bankName: { type: 'string', example: 'MB Bank' },
           bankAccount: { type: 'string', example: '090123456789' },
-          accountHolder: { type: 'string', example: 'THICH GA POS CN1' },
+          accountHolder: { type: 'string', example: 'ONESOFTPOS CN1' },
           amount: { type: 'number', example: 70000 },
           memo: { type: 'string', example: 'TG260919-4821' }
         }
@@ -511,7 +511,7 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
                   properties: {
                     status: { type: 'string', example: 'ok' },
                     time: { type: 'string', example: '2026-09-19T15:45:00.000Z' },
-                    system: { type: 'string', example: 'ThichGaPOS v1.0' }
+                    system: { type: 'string', example: 'OnesoftPOS v1.0' }
                   }
                 }
               }
@@ -627,11 +627,11 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
                 required: ['code', 'name', 'store_type_id'],
                 properties: {
                   code: { type: 'string', example: 'STORE003' },
-                  name: { type: 'string', example: 'Thích Gà - Chi nhánh Bình Thạnh' },
-                  display_name: { type: 'string', example: 'Thích Gà - Xô Viết Nghệ Tĩnh' },
+                  name: { type: 'string', example: 'OnesoftPOS - Chi nhánh Bình Thạnh' },
+                  display_name: { type: 'string', example: 'OnesoftPOS - Xô Viết Nghệ Tĩnh' },
                   store_type_id: { type: 'integer', example: 2 },
                   phone: { type: 'string', example: '0908887776' },
-                  email: { type: 'string', example: 'binhthanh@thichgapos.vn' },
+                  email: { type: 'string', example: 'binhthanh@onesoftpos.vn' },
                   address: { type: 'string', example: '456 Xô Viết Nghệ Tĩnh, P.25' },
                   province: { type: 'string', example: 'Hồ Chí Minh' },
                   district: { type: 'string', example: 'Bình Thạnh' }
@@ -703,11 +703,11 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
               schema: {
                 type: 'object',
                 properties: {
-                  name: { type: 'string', example: 'Thích Gà - Quang Trung Mới' },
-                  display_name: { type: 'string', example: 'Thích Gà - Chi nhánh 1' },
+                  name: { type: 'string', example: 'OnesoftPOS - Quang Trung Mới' },
+                  display_name: { type: 'string', example: 'OnesoftPOS - Chi nhánh 1' },
                   store_type_id: { type: 'integer', example: 2 },
                   phone: { type: 'string', example: '0901234567' },
-                  email: { type: 'string', example: 'cn1@thichgapos.vn' },
+                  email: { type: 'string', example: 'cn1@onesoftpos.vn' },
                   address: { type: 'string', example: '123 Quang Trung, Gò Vấp' },
                   status: { type: 'string', example: 'ACTIVE', enum: ['ACTIVE', 'INACTIVE', 'SUSPENDED'] }
                 }
@@ -891,7 +891,7 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
                         properties: {
                           id: { type: 'integer', example: 10 },
                           username: { type: 'string', example: 'cashier_cn1' },
-                          email: { type: 'string', example: 'nv1@thichgapos.vn' },
+                          email: { type: 'string', example: 'nv1@onesoftpos.vn' },
                           full_name: { type: 'string', example: 'Lê Thu Ngân' },
                           phone: { type: 'string', example: '0912333444' },
                           role: { type: 'string', example: 'CASHIER' },
@@ -923,7 +923,7 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
                 properties: {
                   username: { type: 'string', example: 'kitchen_cn1' },
                   password: { type: 'string', example: '123456' },
-                  email: { type: 'string', example: 'kitchen_cn1@thichgapos.vn' },
+                  email: { type: 'string', example: 'kitchen_cn1@onesoftpos.vn' },
                   full_name: { type: 'string', example: 'Nguyễn Bếp Trưởng' },
                   phone: { type: 'string', example: '0933222111' },
                   role: { type: 'string', example: 'KITCHEN', enum: ['ORDER_STAFF', 'CASHIER', 'KITCHEN'] },
@@ -952,7 +952,7 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
                 type: 'object',
                 properties: {
                   full_name: { type: 'string', example: 'Lê Thu Ngân Cũ' },
-                  email: { type: 'string', example: 'nv1_new@thichgapos.vn' },
+                  email: { type: 'string', example: 'nv1_new@onesoftpos.vn' },
                   phone: { type: 'string', example: '0988776655' },
                   role: { type: 'string', example: 'CASHIER', enum: ['ORDER_STAFF', 'CASHIER', 'KITCHEN'] },
                   status: { type: 'string', example: 'ACTIVE', enum: ['ACTIVE', 'INACTIVE'] },
@@ -2221,7 +2221,7 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
                         type: 'object',
                         properties: {
                           id: { type: 'integer', example: 1 },
-                          name: { type: 'string', example: 'Thích Gà - Chi nhánh 1' },
+                          name: { type: 'string', example: 'OnesoftPOS - Chi nhánh 1' },
                           order_count: { type: 'integer', example: 85 },
                           revenue: { type: 'number', example: 12500000 }
                         }
@@ -2255,7 +2255,7 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
                 properties: {
                   username: { type: 'string', example: 'manager_cn2' },
                   password: { type: 'string', example: '123456' },
-                  email: { type: 'string', example: 'manager2@thichgapos.vn' },
+                  email: { type: 'string', example: 'manager2@onesoftpos.vn' },
                   full_name: { type: 'string', example: 'Trần Văn Quản Lý' },
                   phone: { type: 'string', example: '0901112223' },
                   role: { type: 'string', example: 'STORE_MANAGER', enum: ['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER', 'ORDER_STAFF', 'CASHIER', 'KITCHEN'] },
@@ -2282,7 +2282,7 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
                 type: 'object',
                 properties: {
                   full_name: { type: 'string', example: 'Trần Văn Quản Lý Cũ' },
-                  email: { type: 'string', example: 'manager2_new@thichgapos.vn' },
+                  email: { type: 'string', example: 'manager2_new@onesoftpos.vn' },
                   phone: { type: 'string', example: '0909998887' },
                   role: { type: 'string', example: 'STORE_MANAGER' },
                   status: { type: 'string', example: 'ACTIVE' },
@@ -2354,17 +2354,17 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
 
 /**
  * Custom modern CSS theme for Swagger UI
- * Đồng bộ màu sắc thương hiệu ThichGaPOS: Tông cam #ff7a00, xám đen sang trọng, badge sắc nét.
+ * Đồng bộ màu sắc thương hiệu OnesoftPOS: Tông cam #ff7a00, xám đen sang trọng, badge sắc nét.
  */
 const customCss = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
 
   :root {
-    --thichga-primary: #ff7a00;
-    --thichga-primary-hover: #e06a00;
-    --thichga-bg: #0f172a;
-    --thichga-card: #1e293b;
-    --thichga-text: #f8fafc;
+    --onesoftpos-primary: #ff7a00;
+    --onesoftpos-primary-hover: #e06a00;
+    --onesoftpos-bg: #0f172a;
+    --onesoftpos-card: #1e293b;
+    --onesoftpos-text: #f8fafc;
   }
 
   body {
@@ -2375,7 +2375,7 @@ const customCss = `
 
   .swagger-ui .topbar {
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
-    border-bottom: 3px solid var(--thichga-primary) !important;
+    border-bottom: 3px solid var(--onesoftpos-primary) !important;
     padding: 14px 0 !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
   }
@@ -2473,7 +2473,7 @@ const customCss = `
 
 const swaggerUiOptions = {
   customCss,
-  customSiteTitle: 'ThichGaPOS API Docs v1.0',
+  customSiteTitle: 'OnesoftPOS API Docs v1.0',
   customfavIcon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍗</text></svg>',
   swaggerOptions: {
     persistAuthorization: true,

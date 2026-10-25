@@ -1,4 +1,4 @@
-# Chạy ThichGaPOS với MySQL 8
+# Chạy OnesoftPOS với MySQL 8
 
 Ứng dụng backend dùng Node.js. Hosting cần cho phép chạy tiến trình Node.js và kết nối MySQL từ tiến trình đó. phpMyAdmin chỉ dùng để quản lý hoặc nhập dữ liệu; bản thân phpMyAdmin không chạy backend Node.js.
 

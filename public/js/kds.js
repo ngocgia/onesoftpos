@@ -1,4 +1,4 @@
-// ThichGaPOS v1.0 - Kitchen Display System (KDS) Controller (Rule 26)
+// OnesoftPOS v1.0 - Kitchen Display System (KDS) Controller (Rule 26)
 
 window.kdsModule = {
   orders: [],

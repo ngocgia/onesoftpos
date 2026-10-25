@@ -1,4 +1,4 @@
--- ThichGaPOS v1.0 - Seed Data (PostgreSQL)
+-- OnesoftPOS v1.0 - Seed Data (PostgreSQL)
 
 -- 1. STORE TYPES
 INSERT INTO store_types (id, code, name, description, is_active) VALUES
@@ -33,8 +33,8 @@ ON CONFLICT (store_type_id, feature_code) DO UPDATE SET enabled = EXCLUDED.enabl
 
 -- 3. STORES
 INSERT INTO stores (id, code, name, display_name, store_type_id, phone, email, address, province, district, tax_code, logo_url, opening_time, closing_time, currency, status) VALUES
-(1, 'STORE001', 'Thích Gà - Chi nhánh 1', 'Thích Gà - Quang Trung', 2, '0901234567', 'cn1@thichgapos.vn', '123 Quang Trung, Phường 10, Gò Vấp', 'Hồ Chí Minh', 'Gò Vấp', '0312345678', '🍗', '08:00', '22:30', 'VND', 'ACTIVE'),
-(2, 'STORE002', 'Thích Gà Express - Kiot Nguyễn Huệ', 'Thích Gà Express', 1, '0909888999', 'express@thichgapos.vn', '88 Phố Đi Bộ Nguyễn Huệ, Bến Nghé', 'Hồ Chí Minh', 'Quận 1', '0312345678-001', '🍗', '09:00', '23:00', 'VND', 'ACTIVE')
+(1, 'STORE001', 'OnesoftPOS - Chi nhánh 1', 'OnesoftPOS - Quang Trung', 2, '0901234567', 'cn1@onesoftpos.vn', '123 Quang Trung, Phường 10, Gò Vấp', 'Hồ Chí Minh', 'Gò Vấp', '0312345678', '🍗', '08:00', '22:30', 'VND', 'ACTIVE'),
+(2, 'STORE002', 'OnesoftPOS Express - Kiot Nguyễn Huệ', 'OnesoftPOS Express', 1, '0909888999', 'express@onesoftpos.vn', '88 Phố Đi Bộ Nguyễn Huệ, Bến Nghé', 'Hồ Chí Minh', 'Quận 1', '0312345678-001', '🍗', '09:00', '23:00', 'VND', 'ACTIVE')
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, store_type_id = EXCLUDED.store_type_id;
 
 -- Reset serial sequence for stores if needed
@@ -42,18 +42,18 @@ SELECT setval(pg_get_serial_sequence('stores', 'id'), coalesce(max(id), 1)) FROM
 
 -- 4. STORE SETTINGS
 INSERT INTO store_settings (store_id, allow_negative_stock, allow_discount, allow_custom_price, allow_cancel_item, allow_cancel_order, allow_refund, payment_cash, payment_transfer, payment_qr, payment_card, receipt_header, receipt_footer, receipt_paper_size, bank_name, bank_account_number, bank_account_holder, kds_enabled, kds_completion_message, workflow_definition) VALUES
-(1, FALSE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 'HỆ THỐNG GÀ RÁN & TRÀ SỮA THÍCH GÀ', 'Cảm ơn Quý khách & Hẹn gặp lại!', '80mm', 'MB Bank', '090123456789', 'THICH GA POS CN1', TRUE, 'Món ăn {mon}, bàn {ban} đã xong', '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb),
-(2, FALSE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 'THÍCH GÀ EXPRESS - MANG ĐI SIÊU TỐC', 'Chúc Quý khách ngon miệng!', '58mm', 'MB Bank', '090988899999', 'THICH GA EXPRESS', TRUE, 'Món ăn {mon}, bàn {ban} đã xong', '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb)
+(1, FALSE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 'HỆ THỐNG GÀ RÁN & TRÀ SỮA ONESOFTPOS', 'Cảm ơn Quý khách & Hẹn gặp lại!', '80mm', 'MB Bank', '090123456789', 'ONESOFTPOS CN1', TRUE, 'Món ăn {mon}, bàn {ban} đã xong', '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb),
+(2, FALSE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 'ONESOFTPOS EXPRESS - MANG ĐI SIÊU TỐC', 'Chúc Quý khách ngon miệng!', '58mm', 'MB Bank', '090988899999', 'ONESOFTPOS EXPRESS', TRUE, 'Món ăn {mon}, bàn {ban} đã xong', '{"name":"Thu ngân - Bếp - Thanh toán","steps":[{"id":"create","name":"Thu ngân tạo đơn","type":"CREATE","roles":["CASHIER"]},{"id":"kitchen","name":"Bếp chế biến","type":"KITCHEN","roles":["KITCHEN"]},{"id":"payment","name":"Thu ngân thanh toán","type":"PAYMENT","roles":["CASHIER"]}]}'::jsonb)
 ON CONFLICT (store_id) DO NOTHING;
 
 -- 5. USERS (Mật khẩu mặc định: 123456)
 -- Hash bcrypt hợp lệ của '123456'.
 INSERT INTO users (id, username, email, password_hash, full_name, phone, role, status) VALUES
-(1, 'admin', 'admin@thichgapos.com', '$2a$10$yDKokN0lYAcpyQIGv0szqeXEmrW3z2XjqjMvm6DqNnDjJiH.lcWG6', 'Quản trị viên Hệ Thống', '0900000001', 'SUPER_ADMIN', 'ACTIVE'),
-(2, 'manager', 'manager@thichgapos.com', '$2a$10$yDKokN0lYAcpyQIGv0szqeXEmrW3z2XjqjMvm6DqNnDjJiH.lcWG6', 'Nguyễn Quản Lý', '0900000002', 'STORE_MANAGER', 'ACTIVE'),
-(3, 'cashier', 'cashier@thichgapos.com', '$2a$10$yDKokN0lYAcpyQIGv0szqeXEmrW3z2XjqjMvm6DqNnDjJiH.lcWG6', 'Trần Thu Ngân', '0900000003', 'CASHIER', 'ACTIVE'),
-(4, 'kitchen', 'kitchen@thichgapos.com', '$2a$10$yDKokN0lYAcpyQIGv0szqeXEmrW3z2XjqjMvm6DqNnDjJiH.lcWG6', 'Lê Đầu Bếp', '0900000004', 'KITCHEN', 'ACTIVE'),
-(5, 'order', 'order@thichgapos.com', '$2a$10$yDKokN0lYAcpyQIGv0szqeXEmrW3z2XjqjMvm6DqNnDjJiH.lcWG6', 'Phạm Nhân Viên Order', '0900000005', 'ORDER_STAFF', 'ACTIVE')
+(1, 'admin', 'admin@onesoftpos.com', '$2a$10$yDKokN0lYAcpyQIGv0szqeXEmrW3z2XjqjMvm6DqNnDjJiH.lcWG6', 'Quản trị viên Hệ Thống', '0900000001', 'SUPER_ADMIN', 'ACTIVE'),
+(2, 'manager', 'manager@onesoftpos.com', '$2a$10$yDKokN0lYAcpyQIGv0szqeXEmrW3z2XjqjMvm6DqNnDjJiH.lcWG6', 'Nguyễn Quản Lý', '0900000002', 'STORE_MANAGER', 'ACTIVE'),
+(3, 'cashier', 'cashier@onesoftpos.com', '$2a$10$yDKokN0lYAcpyQIGv0szqeXEmrW3z2XjqjMvm6DqNnDjJiH.lcWG6', 'Trần Thu Ngân', '0900000003', 'CASHIER', 'ACTIVE'),
+(4, 'kitchen', 'kitchen@onesoftpos.com', '$2a$10$yDKokN0lYAcpyQIGv0szqeXEmrW3z2XjqjMvm6DqNnDjJiH.lcWG6', 'Lê Đầu Bếp', '0900000004', 'KITCHEN', 'ACTIVE'),
+(5, 'order', 'order@onesoftpos.com', '$2a$10$yDKokN0lYAcpyQIGv0szqeXEmrW3z2XjqjMvm6DqNnDjJiH.lcWG6', 'Phạm Nhân Viên Order', '0900000005', 'ORDER_STAFF', 'ACTIVE')
 ON CONFLICT (id) DO UPDATE SET
   full_name = EXCLUDED.full_name,
   password_hash = CASE

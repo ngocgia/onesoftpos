@@ -35,6 +35,9 @@ public final class MainActivity extends Activity {
     private static final String HOST = "onesoft.one";
     private static final String POS_URL = "https://" + HOST + "/?mode=pos";
     private static final String CLEAR_ADMIN_SESSION_SCRIPT = "(function(){"
+            + "localStorage.removeItem('onesoftpos_token');"
+            + "localStorage.removeItem('onesoftpos_store_id');"
+            // Clear pre-migration sessions as well, so they cannot be restored later.
             + "localStorage.removeItem('thichgapos_token');"
             + "localStorage.removeItem('thichgapos_store_id');"
             + "sessionStorage.clear();"

@@ -39,7 +39,7 @@ app.get('/download', apkRoutes.download);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString(), system: 'ThichGaPOS v1.0' });
+  res.json({ status: 'ok', time: new Date().toISOString(), system: 'OnesoftPOS v1.0' });
 });
 
 // SPA fallback: any other request goes to index.html
@@ -56,7 +56,7 @@ async function start() {
   }
   const server = app.listen(PORT, () => {
   console.log(`====================================================`);
-  console.log(`🚀 ThichGaPOS Server running on http://localhost:${PORT}`);
+  console.log(`🚀 OnesoftPOS Server running on http://localhost:${PORT}`);
   console.log(`📱 Frontend Mobile-First UI: http://localhost:${PORT}`);
   console.log(`📑 Swagger API Documentation: http://localhost:${PORT}/api-docs`);
   console.log(`⚡ Raw OpenAPI Specification: http://localhost:${PORT}/api-docs.json`);

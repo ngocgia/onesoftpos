@@ -7,7 +7,7 @@ const { Readable } = require('node:stream');
 const { ApkRepository } = require('../src/services/apkRepository');
 const vm = require('node:vm');
 const { createRequire } = require('node:module');
-const fixture = path.join(__dirname, '../../android-pos/ThichGaPOS-POS-debug.apk');
+const fixture = path.join(__dirname, '../../android-pos/OnesoftPOS-POS-debug.apk');
 
 async function setup(t) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'pos-apks-'));

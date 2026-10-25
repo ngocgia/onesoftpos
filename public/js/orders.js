@@ -1,4 +1,4 @@
-// ThichGaPOS v1.0 - Orders History Controller (Rule 25, 24)
+// OnesoftPOS v1.0 - Orders History Controller (Rule 25, 24)
 
 window.ordersModule = {
   orders: [],

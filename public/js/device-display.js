@@ -1,7 +1,7 @@
 /** Device-local layout preferences: shared by staff on this POS, never synced. */
 (function () {
   'use strict';
-  const key = 'thichgapos_device_display_v1';
+  const key = 'onesoftpos_device_display_v1';
   const edges = ['top', 'bottom', 'left', 'right'];
   const defaults = { auto: true, top: 0, bottom: 0, left: 0, right: 0 };
   function normalize(value) {

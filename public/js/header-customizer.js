@@ -1,5 +1,5 @@
 /**
- * ThichGaPOS - Header Customizer Module
+ * OnesoftPOS - Header Customizer Module
  * Quản lý tùy chỉnh câu chúc, ảnh đại diện và phông nền Header tích hợp trong modal "Thông tin tài khoản"
  */
 
@@ -53,7 +53,7 @@ window.headerCustomizer = {
   avatarPresets: [
     { id: 'male', src: 'images/staff-avatar.jpg', name: 'Nhân viên nam (Áo xanh)' },
     { id: 'female', src: 'images/staff-female.jpg', name: 'Nhân viên nữ (Áo xanh)' },
-    { id: 'logo', src: '', name: 'Logo Thích Gà (🍗)', isLogo: true }
+    { id: 'logo', src: '', name: 'Logo OnesoftPOS (🍗)', isLogo: true }
   ],
 
   wishesSuggestions: [

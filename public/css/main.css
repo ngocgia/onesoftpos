@@ -5080,35 +5080,30 @@ body.theme-dark .icon-logout { background: rgba(239, 68, 68, 0.22); color: #f871
 
 
 /* Printer settings: one destination for each print purpose. */
-#printerSettingsModal .printer-settings-dialog { max-width: 600px; }
+#printerSettingsModal .printer-settings-dialog { min-width: 0; min-height: 0; max-height: 100%; }
 #printerSettingsModal .modal-header { background: var(--bg-surface); color: var(--text-main); flex-shrink: 0; }
-#printerSettingsModal .printer-settings-body { background: var(--bg-body, #f4f5f8); padding: 18px; display: grid; gap: 16px; }
-#printerSettingsModal .printer-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 18px; padding: 20px; box-shadow: 0 2px 5px #00000010; min-width: 0; }
+#printerSettingsModal .printer-settings-body { min-height: 0; min-width: 0; overflow-y: auto; overscroll-behavior: contain; padding: 16px 18px; display: grid; align-content: start; gap: 12px; }
+#printerSettingsModal .printer-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; min-width: 0; }
 #printerSettingsModal .printer-card-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
-#printerSettingsModal h4 { font-size: 19px; margin: 0; }
+#printerSettingsModal h4 { font-size: 16px; margin: 0; }
 #printerSettingsModal .printer-toggle { position: relative; width: 48px; height: 28px; flex-shrink: 0; cursor: pointer; }
 #printerSettingsModal .printer-toggle input { position: absolute; opacity: 0; width: 100%; height: 100%; }
 #printerSettingsModal .printer-toggle span { display: block; height: 100%; border-radius: 20px; background: #aaa; pointer-events: none; }
 #printerSettingsModal .printer-toggle span::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; background: white; border-radius: 50%; transition: transform .15s; }
-#printerSettingsModal .printer-toggle input:checked + span { background: #19b36b; }
+#printerSettingsModal .printer-toggle input:checked + span { background: var(--primary); }
 #printerSettingsModal .printer-toggle input:checked + span::after { transform: translateX(20px); }
-#printerSettingsModal input:focus-visible + span { outline: 2px solid #087f6b; outline-offset: 3px; }
-#printerSettingsModal .printer-device { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; margin: 24px 0 12px; }
+#printerSettingsModal input:focus-visible + span { outline: 2px solid var(--primary); outline-offset: 3px; }
+#printerSettingsModal .printer-device { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0; }
 #printerSettingsModal [hidden] { display: none !important; }
 #printerSettingsModal .printer-device-info { display: grid; gap: 5px; min-width: 0; overflow-wrap: anywhere; }
 #printerSettingsModal .printer-device-info span { color: var(--text-muted); font-size: 14px; }
 #printerSettingsModal .printer-actions { display: flex; gap: 18px; }
-#printerSettingsModal .printer-actions button, #printerSettingsModal .printer-add { color: #188652; background: transparent; border: 0; padding: 5px 0; font: inherit; cursor: pointer; }
-#printerSettingsModal .printer-actions .printer-delete { color: #dc5555; }
-#printerSettingsModal .printer-empty { text-align: center; color: var(--text-muted); padding: 25px 0 12px; }
+#printerSettingsModal .printer-actions button, #printerSettingsModal .printer-add { color: var(--primary); background: transparent; border: 0; padding: 5px 0; font: inherit; cursor: pointer; }
+#printerSettingsModal .printer-actions .printer-delete { color: var(--danger); }
+#printerSettingsModal .printer-empty { text-align: center; color: var(--text-muted); padding: 12px 0; }
 #printerSettingsModal .printer-editor { border-top: 1px solid var(--border-color); margin-top: 16px; padding-top: 16px; }
 #printerSettingsModal .printer-help { font-size: 12px; line-height: 1.6; }
-#printerSettingsModal .printer-settings-footer { display: flex; gap: 16px; flex-shrink: 0; }
-#printerSettingsModal .printer-settings-footer button { flex: 1; min-height: 46px; }
-#printerSettingsModal .printer-settings-footer .btn-primary { background: #19b36b; }
-@media (max-width: 600px) {
- #printerSettingsModal .printer-settings-dialog { width: 100%; max-height: 100dvh; height: 100dvh; border-radius: 0; }
- #printerSettingsModal .printer-settings-body { flex: 1; padding: 14px; }
- #printerSettingsModal .printer-card { padding: 18px; }
- #printerSettingsModal .printer-settings-footer { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
-}
+#printerSettingsModal .form-group, #printerSettingsModal .form-input { min-width: 0; max-width: 100%; }
+#printerSettingsModal .setting-switch-row { gap: 12px; }
+#printerSettingsModal .setting-switch-row input[type="checkbox"] { flex-shrink: 0; }
+#printerSettingsModal .printer-settings-footer { display: flex; gap: 8px; justify-content: flex-end; flex-shrink: 0; padding: 12px 18px; }

@@ -20,7 +20,7 @@
     rel="stylesheet">
   <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/main.css?v=20261025-printer-header-white">
+  <link rel="stylesheet" href="css/main.css?v=20261025-printer-layout">
   <link rel="stylesheet" href="css/device-display.css?v=20261025-onesoftpos">
   <script src="js/device-display.js?v=20261025-onesoftpos"></script>
 </head>
@@ -1595,8 +1595,8 @@
   <!-- ==================== CÁC MODAL CHO MENU NHIỀU HƠN ==================== -->
 
   <!-- MODAL: CÀI ĐẶT MÁY IN -->
-<div class="modal-overlay" id="printerSettingsModal" style="display:none;">
- <div class="modal-dialog printer-settings-dialog"><div class="modal-header"><h3>Cài đặt máy in</h3><button type="button" class="btn-close-modal btn-close-more-modal" aria-label="Đóng">&times;</button></div>
+<div class="modal-overlay" id="printerSettingsModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="printerSettingsTitle">
+ <div class="modal-dialog printer-settings-dialog"><div class="modal-header"><h3 id="printerSettingsTitle">Cài đặt máy in</h3><button type="button" class="btn-close-modal btn-close-more-modal" aria-label="Đóng">&times;</button></div>
  <div class="modal-body printer-settings-body"><section class="printer-card" aria-labelledby="printerTitle-invoice">
  <div class="printer-card-heading"><h4 id="printerTitle-invoice">In hóa đơn</h4><label class="printer-toggle"><input type="checkbox" id="printerEnabled-invoice" aria-label="Bật in hóa đơn"><span></span></label></div>
  <div class="printer-device" id="printerDevice-invoice"><div class="printer-device-info"><strong id="printerName-invoice"></strong><span id="printerAddress-invoice"></span></div><div class="printer-actions"><button type="button" onclick="moreMenuModule.testPrinter('invoice')">In thử</button><button type="button" onclick="moreMenuModule.editPrinter('invoice')">Sửa</button><button type="button" class="printer-delete" onclick="moreMenuModule.removePrinter('invoice')">Xóa</button></div></div>
@@ -1620,7 +1620,7 @@
  <div id="paymentQrUpload" hidden>
   <label for="paymentQrFile">Tải ảnh mã QR (PNG, JPG, WebP, tối đa 10MB)</label>
   <input type="file" id="paymentQrFile" class="form-input" accept="image/png,image/jpeg,image/webp" onchange="moreMenuModule.uploadPaymentQr(event)">
-  <img id="paymentQrPreview" alt="Ảnh QR thanh toán của cửa hàng" hidden style="display:block;max-width:220px;max-height:260px;width:auto;height:auto;margin:12px auto;object-fit:contain;background:#fff">
+  <img id="paymentQrPreview" alt="Ảnh QR thanh toán của cửa hàng" hidden style="display:block;max-width:min(220px,100%);max-height:260px;width:auto;height:auto;margin:12px auto;object-fit:contain;background:#fff">
   <button type="button" class="btn-secondary" onclick="moreMenuModule.removePaymentQrImage()">Xóa ảnh QR</button>
   <p class="text-muted printer-help">Ảnh được in nguyên nội dung đã tải lên, không tự cập nhật số tiền hoặc nội dung chuyển khoản theo hóa đơn. Nên chọn ảnh rõ nét, cắt gọn vùng mã QR và giữ viền trắng.</p>
  </div>

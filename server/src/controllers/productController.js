@@ -316,6 +316,7 @@ async function getProducts(req, res) {
       });
     }
 
+    products.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'vi', { sensitivity: 'base', numeric: true }) || Number(a.id) - Number(b.id));
     res.json({ success: true, products, options });
   } catch (error) {
     console.error('getProducts error:', error);

@@ -1118,6 +1118,23 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
     // ------------------------------------------------------------------------
     // PRODUCTS & TOPPING LINKS
     // ------------------------------------------------------------------------
+    '/product-images': {
+      post: {
+        tags: ['Products'],
+        summary: 'Tải ảnh món ăn lên cho cửa hàng đang chọn',
+        description: 'Dành cho ADMIN, SUPER_ADMIN hoặc STORE_MANAGER của cửa hàng. JPG/PNG/WebP tối đa 1 MB sau tối ưu. Gán image_url trả về khi tạo hoặc sửa sản phẩm.',
+        parameters: [{ $ref: '#/components/parameters/StoreIdHeader' }],
+        requestBody: { required: true, content: { 'application/json': { schema: {
+          type: 'object', required: ['image'], properties: { image: { type: 'string', description: 'Data URL base64 của ảnh JPG, PNG hoặc WebP' } }
+        } } } },
+        responses: {
+          201: { description: 'Đã lưu ảnh, trả về image_url' },
+          400: { description: 'Ảnh không hợp lệ hoặc chưa chọn cửa hàng' },
+          403: { description: 'Không có quyền quản lý cửa hàng' },
+          413: { description: 'Dữ liệu tải lên quá lớn' }
+        }
+      }
+    },
     '/products': {
       get: {
         tags: ['Products'],

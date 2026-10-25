@@ -15,6 +15,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middlewares
 app.use(cors());
+app.use('/api/product-images', require('./routes/productImages'));
 // Printer settings include the resized QR image; other JSON endpoints keep their default limit.
 app.use('/api/store/menu-settings/printer', express.json({ limit: '3mb' }));
 app.use(express.json());
@@ -29,6 +30,10 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOpti
 
 // Serve static frontend files
 const publicPath = path.join(__dirname, '../../public');
+app.use('/uploads/products', express.static(require('./services/productImages').imageDirectory, {
+  index: false, dotfiles: 'deny', fallthrough: false, maxAge: '1y', immutable: true,
+  setHeaders: res => res.setHeader('X-Content-Type-Options', 'nosniff')
+}), (error, req, res, next) => res.status(error.status || 500).end());
 app.use(require('./routes/siteEntry'));
 app.use(express.static(publicPath));
 

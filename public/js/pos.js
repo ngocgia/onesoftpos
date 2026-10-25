@@ -423,7 +423,7 @@ window.posModule = {
     const empty = document.getElementById('productEmpty');
     if (!grid) return;
 
-    let filtered = this.products;
+    let filtered = [...this.products].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'vi', { sensitivity: 'base', numeric: true }) || Number(a.id) - Number(b.id));
 
     // Filter category
     if (this.selectedCategory !== 'all') {
@@ -449,7 +449,7 @@ window.posModule = {
     grid.innerHTML = filtered.map(prod => `
       <div class="product-card" data-id="${prod.id}">
         <div class="product-card-top">
-          <div class="product-emoji">${prod.image_url || '🍗'}</div>
+          <div class="product-emoji">${window.productImages.render(prod.image_url, prod.name)}</div>
           <span class="product-badge-kitchen">${prod.kitchen_type === 'BAR' ? 'Pha chế' : 'Bếp nấu'}</span>
         </div>
         <h4 class="product-title">${prod.name}</h4>

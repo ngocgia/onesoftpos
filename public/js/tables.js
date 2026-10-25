@@ -412,7 +412,6 @@ window.tablesModule = {
               </div>
             `}
           </div>
-          ${this.canManage() ? `<div class="table-manage-actions" style="display:flex;gap:6px;padding:0 10px 10px"><button type="button" class="btn-secondary btn-sm" onclick="event.stopPropagation();tablesModule.editTable(${t.id})">Sửa</button><button type="button" class="btn-secondary btn-sm" onclick="event.stopPropagation();tablesModule.removeTable(${t.id})">Xóa</button></div>` : ''}
         </div>
       `;
     }).join('');

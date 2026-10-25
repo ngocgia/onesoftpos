@@ -374,9 +374,12 @@ window.moreMenuModule = {
 
   async testPrintBill(kind = 'invoice') {
     try {
+      const invoice = window.invoiceModule;
+      if (!invoice || typeof invoice.showReceipt !== 'function' || typeof invoice.printReceipt !== 'function') {
+        throw new Error('Chưa tải được chức năng in hóa đơn. Vui lòng tải lại trang hoặc mở lại ứng dụng');
+      }
       await window.menuPersistence.save('printer', this.getPrinterSettingsFromForm());
       document.getElementById('printerSettingsModal').style.display = 'none';
-      const invoice = window.invoiceModule;
       await invoice.showReceipt({
         isDraft: true, order_code: 'IN-THU-TIENG-VIET', created_at: new Date().toISOString(),
         order_type: 'DINE_IN', table_code: 'B01', cashier_name: 'Nguyễn Thị Ánh',

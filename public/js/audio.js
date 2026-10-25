@@ -35,7 +35,7 @@ window.audioModule = {
       if (window.onesoftAudio?.beep) { window.onesoftAudio.beep(level); return; }
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) throw new Error('Thiết bị không hỗ trợ phát chuông');
-      this.context ||= new AudioContext();
+      if (!this.context) this.context = new AudioContext();
       if (this.context.state === 'suspended') await this.context.resume();
       const start = this.context.currentTime;
       for (const [frequency, delay, duration] of [[587.33, 0, 0.2], [880, 0.15, 0.3]]) {

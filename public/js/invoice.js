@@ -126,7 +126,7 @@ window.invoiceModule = {
     const label = document.getElementById('receiptPrintLabel');
     if (label) label.textContent = `In ${this.receiptKind === 'orderSlip' ? 'phiếu đặt đồ' : 'Hóa Đơn'} (${({ K58: '58mm', K80: '80mm', K85: '85mm', A4: 'A4' })[settings.paperSize] || '80mm'})`;
     // The installed Android bridge reads this legacy field when window.print runs.
-    window.appState.storeSettings ||= {};
+    if (!window.appState.storeSettings) window.appState.storeSettings = {};
     window.appState.storeSettings.receipt_paper_size = { K58: '58mm', K80: '80mm', K85: '85mm', A4: 'A4' }[settings.paperSize] || '80mm';
     window.appState.storeSettings.receipt_connection_type = settings.connectionType || 'browser';
     window.appState.storeSettings.receipt_auto_cut_paper = settings.autoCutPaper !== false;

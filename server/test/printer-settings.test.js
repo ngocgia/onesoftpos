@@ -388,6 +388,17 @@ test('Android LAN compatibility reads saved printer IP when the older website om
   assert.equal(vm.runInNewContext(script, { window }).ip, '');
 });
 
+test('test print keeps settings open and reports recovery when the invoice module is unavailable', async () => {
+  const h = harness();
+  await h.window.moreMenuModule.openPrinterModal();
+  delete h.window.invoiceModule;
+  await h.window.moreMenuModule.testPrintBill();
+  assert.equal(h.prints(), 0);
+  assert.equal(h.settings.has('11'), false);
+  assert.equal(h.document.getElementById('printerSettingsModal').style.display, 'flex');
+  assert.ok(h.toasts.some(toast => toast.type === 'error' && /tải lại trang/.test(toast.message)));
+});
+
 test('test print uses the actual receipt and transport, includes Vietnamese accents', async () => {
   const h = harness();
   await h.window.moreMenuModule.openPrinterModal();

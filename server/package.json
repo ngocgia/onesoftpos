@@ -29,5 +29,8 @@
     "takeaway"
   ],
   "author": "OnesoftPOS Team",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "acorn": "^8.19.0"
+  }
 }

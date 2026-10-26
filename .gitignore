@@ -24,3 +24,7 @@ server/data/product-images/
 
 # Generated deployment archives and local visual checks
 /deploy-packages/
+
+# Tesseract OCR language cache
+*.traineddata
+

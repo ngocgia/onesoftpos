@@ -18,6 +18,8 @@ app.use(cors());
 app.use('/api/product-images', require('./routes/productImages'));
 // Printer settings include the resized QR image; other JSON endpoints keep their default limit.
 app.use('/api/store/menu-settings/printer', express.json({ limit: '3mb' }));
+app.use('/api/products/extract-from-image', express.json({ limit: '10mb' }));
+app.use('/api/products/batch', express.json({ limit: '5mb' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

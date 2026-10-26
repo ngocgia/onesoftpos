@@ -1,4 +1,5 @@
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
+const menuScanService = require('../services/menuScanService');
 
 function normalizeProductIds(value) {
   if (!Array.isArray(value)) return null;
@@ -818,6 +819,233 @@ async function deleteProduct(req, res) {
   }
 }
 
+function generateProductCode(name, existingCodes) {
+  const ascii = (name || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+
+  const words = ascii.trim().split(/\s+/).filter(Boolean);
+  let prefix = words.map(w => w[0].toUpperCase()).join('').slice(0, 4);
+  if (!prefix || prefix.length < 2) prefix = 'MN';
+
+  let num = 1;
+  let code = `${prefix}${String(num).padStart(2, '0')}`;
+  while (existingCodes.has(code.toUpperCase())) {
+    num++;
+    code = `${prefix}${String(num).padStart(2, '0')}`;
+  }
+  existingCodes.add(code.toUpperCase());
+  return code;
+}
+
+function generateCategoryCode(name, existingCodes) {
+  const ascii = (name || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+  const words = ascii.trim().split(/\s+/).filter(Boolean);
+  let prefix = words.map(w => w[0].toUpperCase()).join('').slice(0, 4);
+  if (!prefix || prefix.length < 2) prefix = 'CAT';
+  let num = 1;
+  let code = `${prefix}${String(num).padStart(2, '0')}`;
+  while (existingCodes.has(code.toUpperCase())) {
+    num++;
+    code = `${prefix}${String(num).padStart(2, '0')}`;
+  }
+  existingCodes.add(code.toUpperCase());
+  return code;
+}
+
+async function extractFromImage(req, res) {
+  const storeId = req.storeId || parseInt(req.body.store_id, 10);
+  const { image, engine, apiKey } = req.body || {};
+
+  if (!image) {
+    return res.status(400).json({ success: false, message: 'Vui lòng cung cấp hình ảnh thực đơn (JPG, PNG, WebP)' });
+  }
+
+  try {
+    const result = await menuScanService.extractMenu(image, { engine, apiKey });
+    res.json({
+      success: true,
+      engine: result.engine,
+      items: result.items,
+      count: result.items.length
+    });
+  } catch (error) {
+    console.error('extractFromImage error:', error);
+    res.status(error.status || 500).json({
+      success: false,
+      message: error.message || 'Lỗi xử lý hình ảnh thực đơn'
+    });
+  }
+}
+
+async function createProductsBatch(req, res) {
+  const storeId = req.storeId || parseInt(req.body.store_id, 10);
+  const { products } = req.body || {};
+
+  if (!Array.isArray(products) || products.length === 0) {
+    return res.status(400).json({ success: false, message: 'Danh sách món ăn không được rỗng' });
+  }
+
+  try {
+    let inserted = [];
+
+    if (isPostgresConnected()) {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+
+        // 1. Fetch existing categories for store
+        const catRes = await client.query('SELECT id, name, code FROM categories WHERE store_id = $1', [storeId]);
+        const existingCats = new Map(catRes.rows.map(c => [c.name.trim().toLowerCase(), c]));
+        const catCodes = new Set(catRes.rows.map(c => (c.code || '').toUpperCase()));
+
+        // 2. Fetch existing product codes for store
+        const prodRes = await client.query('SELECT code FROM products WHERE store_id = $1', [storeId]);
+        const existingProdCodes = new Set(prodRes.rows.map(p => (p.code || '').toUpperCase()));
+
+        // 3. Process each product
+        for (const item of products) {
+          const name = String(item.name || '').trim();
+          if (!name) continue;
+
+          let categoryId = item.category_id ? Number(item.category_id) : null;
+          const categoryName = String(item.category_name || item.category || '').trim();
+
+          // If category_id not provided but categoryName is present, find or create category
+          if (!categoryId && categoryName) {
+            const lowerCat = categoryName.toLowerCase();
+            if (existingCats.has(lowerCat)) {
+              categoryId = existingCats.get(lowerCat).id;
+            } else {
+              const newCatCode = generateCategoryCode(categoryName, catCodes);
+              const newCatRes = await client.query(
+                `INSERT INTO categories (store_id, code, name, description, sort_order, is_active)
+                 VALUES ($1, $2, $3, '', 0, TRUE) RETURNING id, code, name`,
+                [storeId, newCatCode, categoryName]
+              );
+              const createdCat = newCatRes.rows[0];
+              existingCats.set(lowerCat, createdCat);
+              categoryId = createdCat.id;
+            }
+          }
+
+          // Generate unique product code if needed
+          let code = String(item.code || '').trim();
+          if (!code || existingProdCodes.has(code.toUpperCase())) {
+            code = generateProductCode(name, existingProdCodes);
+          } else {
+            existingProdCodes.add(code.toUpperCase());
+          }
+
+          let price = parseFloat(item.price);
+          if (isNaN(price) || price < 0) price = 0;
+          let costPrice = parseFloat(item.cost_price || 0);
+          if (isNaN(costPrice) || costPrice < 0) costPrice = 0;
+
+          const unit = String(item.unit || 'Phần').trim();
+          const imageUrl = String(item.image_url || '🍗').trim();
+          const kitchenType = item.kitchen_type === 'BAR' ? 'BAR' : 'KITCHEN';
+          const description = String(item.description || '').trim();
+
+          const insertRes = await client.query(
+            `INSERT INTO products (store_id, category_id, code, name, description, price, cost_price, unit, image_url, kitchen_type, is_active)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE) RETURNING *`,
+            [storeId, categoryId, code, name, description, price, costPrice, unit, imageUrl, kitchenType]
+          );
+          inserted.push(insertRes.rows[0]);
+        }
+
+        await client.query('COMMIT');
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
+    } else {
+      // Memory store fallback
+      const catCodes = new Set(memoryStore.categories.filter(c => c.store_id === storeId).map(c => (c.code || '').toUpperCase()));
+      const existingProdCodes = new Set(memoryStore.products.filter(p => p.store_id === storeId).map(p => (p.code || '').toUpperCase()));
+
+      for (const item of products) {
+        const name = String(item.name || '').trim();
+        if (!name) continue;
+
+        let categoryId = item.category_id ? Number(item.category_id) : null;
+        const categoryName = String(item.category_name || item.category || '').trim();
+
+        if (!categoryId && categoryName) {
+          const lowerCat = categoryName.toLowerCase();
+          const found = memoryStore.categories.find(c => c.store_id === storeId && c.name.trim().toLowerCase() === lowerCat);
+          if (found) {
+            categoryId = found.id;
+          } else {
+            const nextCatId = memoryStore.categories.length ? Math.max(...memoryStore.categories.map(c => c.id)) + 1 : 1;
+            const newCatCode = generateCategoryCode(categoryName, catCodes);
+            const newCat = {
+              id: nextCatId,
+              store_id: storeId,
+              code: newCatCode,
+              name: categoryName,
+              description: '',
+              sort_order: 0,
+              is_active: true
+            };
+            memoryStore.categories.push(newCat);
+            categoryId = newCat.id;
+          }
+        }
+
+        let code = String(item.code || '').trim();
+        if (!code || existingProdCodes.has(code.toUpperCase())) {
+          code = generateProductCode(name, existingProdCodes);
+        } else {
+          existingProdCodes.add(code.toUpperCase());
+        }
+
+        let price = parseFloat(item.price);
+        if (isNaN(price) || price < 0) price = 0;
+        let costPrice = parseFloat(item.cost_price || 0);
+        if (isNaN(costPrice) || costPrice < 0) costPrice = 0;
+
+        const nextProdId = memoryStore.products.length ? Math.max(...memoryStore.products.map(p => p.id)) + 1 : 1;
+        const newProd = {
+          id: nextProdId,
+          store_id: storeId,
+          category_id: categoryId,
+          code,
+          name,
+          description: String(item.description || '').trim(),
+          price,
+          cost_price: costPrice,
+          unit: String(item.unit || 'Phần').trim(),
+          image_url: String(item.image_url || '🍗').trim(),
+          kitchen_type: item.kitchen_type === 'BAR' ? 'BAR' : 'KITCHEN',
+          is_active: true
+        };
+        memoryStore.products.push(newProd);
+        inserted.push(newProd);
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `Đã thêm thành công ${inserted.length} món vào thực đơn`,
+      count: inserted.length,
+      products: inserted
+    });
+  } catch (error) {
+    console.error('createProductsBatch error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi thêm danh sách món ăn: ' + error.message });
+  }
+}
+
 module.exports = {
   getCategories,
   createCategory,
@@ -840,5 +1068,7 @@ module.exports = {
   getSizes,
   createSize,
   updateSize,
-  deleteSize
+  deleteSize,
+  extractFromImage,
+  createProductsBatch
 };

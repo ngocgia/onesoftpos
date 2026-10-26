@@ -54,6 +54,8 @@ router.put('/sizes/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN',
 router.delete('/sizes/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('DELETE', 'SIZE'), productController.deleteSize);
 
 
+router.post('/products/extract-from-image', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), productController.extractFromImage);
+router.post('/products/batch', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('CREATE_BATCH', 'PRODUCT'), productController.createProductsBatch);
 router.get('/products', authenticateToken, productController.getProducts);
 router.post('/products', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('CREATE', 'PRODUCT'), productController.createProduct);
 router.put('/products/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('UPDATE', 'PRODUCT'), productController.updateProduct);

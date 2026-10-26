@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="css/admin-workflow.css?v=20261025-onesoftpos">
   <link rel="stylesheet" href="css/admin-landing.css?v=20261025-onesoftpos">
   <link rel="stylesheet" href="css/product-images.css?v=20261025">
+  <link rel="stylesheet" href="css/menu-scanner.css?v=20261026">
 </head>
 <body>
   <aside class="sidebar" id="adminSidebar" aria-label="Menu quản trị">
@@ -175,6 +176,7 @@
         <button class="btn ghost" id="addCategoryBtn"><i class="fa-solid fa-folder-plus"></i>Quản lý danh mục</button>
         <button class="btn ghost" id="manageToppingsBtn"><i class="fa-solid fa-layer-group"></i>Quản lý topping</button>
         <button class="btn ghost" id="manageSizesBtn"><i class="fa-solid fa-ruler"></i>Quản lý kích cỡ</button>
+        <button class="btn secondary" id="scanMenuBtn" style="background:linear-gradient(135deg, #6366f1, #4f46e5);color:#fff;border:none;box-shadow:0 2px 8px rgba(99,102,241,0.35);font-weight:600;"><i class="fa-solid fa-wand-magic-sparkles"></i> Thêm menu từ ảnh</button>
         <button class="btn primary" id="addProductBtn"><i class="fa-solid fa-plus"></i>Thêm sản phẩm</button>
       </div>
       <div class="panel table-wrap">
@@ -417,11 +419,172 @@
     </div>
   </div>
 
+
+  <!-- Modal: Quét thực đơn nhanh từ hình ảnh -->
+  <div class="modal" id="scanMenuModal" role="dialog" aria-modal="true" aria-labelledby="scanModalTitle">
+    <div class="scan-modal-card">
+      <div class="scan-modal-header">
+        <div class="scan-modal-title-area">
+          <div class="scan-title-icon">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </div>
+          <div>
+            <h2 id="scanModalTitle">Thêm thực đơn nhanh từ hình ảnh</h2>
+            <p>Trích xuất tự động danh sách món ăn, giá và danh mục từ ảnh menu bằng AI / OCR</p>
+          </div>
+        </div>
+        <div class="scan-header-actions">
+          <label style="font-size:12px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:6px;">
+            Công nghệ:
+            <select id="scanEngineSelect" class="scan-engine-select" title="Chọn phương thức nhận diện hình ảnh">
+              <option value="auto">⚡ Tự động (Ưu tiên AI Gemini)</option>
+              <option value="gemini">✨ Google Gemini AI Vision</option>
+              <option value="ocr">📷 Tesseract OCR (Cục bộ)</option>
+            </select>
+          </label>
+          <button type="button" class="scan-close-btn" data-scan-close aria-label="Đóng">&times;</button>
+        </div>
+      </div>
+
+      <div class="scan-modal-body">
+        <!-- Bước 1: Tải lên hình ảnh -->
+        <div id="scanStepUpload" class="scan-step-upload">
+          <input type="file" id="scanFileInput" accept="image/jpeg,image/png,image/webp" style="display:none">
+          
+          <div id="scanDropzone" class="scan-dropzone">
+            <div class="scan-dropzone-icon">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+            </div>
+            <h3>Chọn hoặc kéo thả ảnh thực đơn vào đây</h3>
+            <p>Chụp ảnh thực đơn rõ nét từ điện thoại hoặc tải ảnh menu có sẵn (Hỗ trợ dán trực tiếp bằng <strong>Ctrl+V</strong>)</p>
+            <div class="scan-badge-formats">
+              <span>JPG</span>
+              <span>PNG</span>
+              <span>WEBP</span>
+              <span>TỐI ĐA 10MB</span>
+            </div>
+          </div>
+
+          <!-- Trạng thái đã chọn ảnh, chuẩn bị quét -->
+          <div id="scanUploadPreviewBox" class="scan-upload-preview-box" style="display:none">
+            <div class="scan-preview-header">
+              <div class="scan-preview-thumb-wrap">
+                <img id="scanPreviewThumb" alt="Ảnh menu xem trước">
+              </div>
+              <div class="scan-preview-meta">
+                <div id="scanPreviewFilename" class="scan-preview-filename">menu.jpg</div>
+                <div id="scanPreviewFilesize" class="scan-preview-size">0 KB</div>
+              </div>
+              <button type="button" id="scanReuploadBtn" class="scan-preview-reupload-btn">
+                <i class="fa-solid fa-rotate-left"></i> Đổi ảnh khác
+              </button>
+            </div>
+
+            <details class="scan-api-key-box">
+              <summary><i class="fa-solid fa-key"></i> Cấu hình Gemini API Key tùy chọn (nếu chưa lưu trong server .env)</summary>
+              <input type="password" id="scanCustomApiKey" placeholder="Nhập khóa AIzaSy... (để trống nếu đã cấu hình trong .env)">
+            </details>
+
+            <button type="button" id="btnStartScan" class="btn primary" style="padding:12px;font-size:15px;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:10px;font-weight:700;">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Bắt đầu phân tích & trích xuất món ăn
+            </button>
+          </div>
+
+          <!-- Trạng thái đang quét -->
+          <div id="scanLoadingBox" class="scan-loading-card" style="display:none">
+            <div class="scan-beam-container">
+              <img id="scanBeamImg" alt="Đang quét menu">
+              <div class="scan-beam-line"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:#0f172a;">
+              <div class="scan-loading-spinner"></div>
+              <span>Hệ thống đang đọc dữ liệu thực đơn...</span>
+            </div>
+            <p style="margin:0;font-size:13px;color:#64748b;max-width:400px;text-align:center;">
+              Đang nhận diện các nhóm danh mục, tên món ăn, đơn vị tính và giá tiền. Quá trình mất khoảng 3 - 6 giây.
+            </p>
+          </div>
+        </div>
+
+        <!-- Bước 2: Xem trước, đối chiếu & chỉnh sửa dữ liệu -->
+        <div id="scanStepReview" class="scan-step-review" style="display:none">
+          <!-- Cột trái: Ảnh menu gốc để đối chiếu -->
+          <div class="scan-image-panel">
+            <div class="scan-image-panel-head">
+              <span><i class="fa-solid fa-image"></i> Ảnh menu gốc</span>
+              <div class="scan-zoom-controls">
+                <button type="button" id="scanZoomOut" class="scan-zoom-btn" title="Thu nhỏ"><i class="fa-solid fa-minus"></i></button>
+                <span id="scanZoomLevel" style="font-size:11px;padding:4px;min-width:38px;text-align:center;font-weight:700;">100%</span>
+                <button type="button" id="scanZoomIn" class="scan-zoom-btn" title="Phóng to"><i class="fa-solid fa-plus"></i></button>
+                <button type="button" id="scanZoomReset" class="scan-zoom-btn" title="Về ban đầu"><i class="fa-solid fa-arrows-rotate"></i></button>
+              </div>
+            </div>
+            <div class="scan-image-scroll-box" id="scanImageScrollBox">
+              <img id="scanReviewImage" alt="Ảnh menu gốc để đối chiếu">
+            </div>
+          </div>
+
+          <!-- Cột phải: Bảng dữ liệu có thể sửa -->
+          <div class="scan-table-panel">
+            <div class="scan-table-toolbar">
+              <div class="scan-counts-badge">
+                <span id="scanSelectedCount" class="scan-count-pill">0/0 đã chọn</span>
+                <button type="button" id="scanAddRowBtn" class="btn ghost small" style="border:1px dashed #cbd5e1;padding:5px 10px;">
+                  <i class="fa-solid fa-plus"></i> Thêm dòng
+                </button>
+              </div>
+              <div class="scan-table-actions">
+                <input type="text" id="scanFilterInput" placeholder="🔍 Lọc kết quả...">
+              </div>
+            </div>
+
+            <div class="scan-table-wrap">
+              <table class="scan-items-table">
+                <thead>
+                  <tr>
+                    <th style="width:40px;text-align:center;">
+                      <input type="checkbox" id="scanSelectAll" title="Chọn tất cả / Bỏ chọn tất cả" checked>
+                    </th>
+                    <th>Tên món ăn <span style="color:var(--danger)">*</span></th>
+                    <th style="width:160px;">Danh mục</th>
+                    <th style="width:120px;text-align:right;">Giá bán (đ) <span style="color:var(--danger)">*</span></th>
+                    <th style="width:90px;">ĐVT</th>
+                    <th style="width:110px;">Nơi chế biến</th>
+                    <th style="width:40px;text-align:center;"></th>
+                  </tr>
+                </thead>
+                <tbody id="scanItemsTableBody">
+                  <!-- Dữ liệu render bằng JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scan-modal-footer" id="scanModalFooter" style="display:none">
+        <div class="scan-footer-status" id="scanEngineStatus">
+          <!-- Thông tin công nghệ -->
+        </div>
+        <div class="scan-footer-actions">
+          <button type="button" class="btn ghost" data-scan-close>Đóng</button>
+          <button type="button" id="btnScanRescan" class="btn secondary">
+            <i class="fa-solid fa-camera"></i> Tải ảnh khác
+          </button>
+          <button type="button" id="btnConfirmBatchSave" class="scan-btn-import">
+            <i class="fa-solid fa-circle-check"></i> Xác nhận thêm vào thực đơn
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="toast"></div>
 
   <script src="js/api.js?v=20261025-onesoftpos"></script>
   <script src="js/admin-landing.js?v=20261025-onesoftpos"></script>
   <script src="js/product-images.js?v=20261025"></script>
+  <script src="js/menu-scanner.js?v=20261026"></script>
   <script src="js/admin-page.js?v=20261025-product-photos"></script>
 </body>
 </html>

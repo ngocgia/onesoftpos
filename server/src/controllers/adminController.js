@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+const { DEFAULT_SESSION_DAYS, parseSessionDays, getSessionDays } = require('../services/sessionDuration');
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
 
 const ROLES = ['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER', 'ORDER_STAFF', 'CASHIER', 'KITCHEN'];
@@ -6,7 +7,7 @@ const ROLE_FEATURES = ['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', '
 
 function publicUser(user) {
   const { password_hash, ...safe } = user;
-  return safe;
+  return { ...safe, session_duration_days: getSessionDays(user.session_duration_days) };
 }
 
 function completedItemsOverride(value) {
@@ -138,7 +139,7 @@ async function getUsers(req, res) {
       const storesSql = process.env.DB_CLIENT === 'mysql'
         ? "CASE WHEN COUNT(s.id)=0 THEN JSON_ARRAY() ELSE JSON_ARRAYAGG(JSON_OBJECT('id',s.id,'name',s.name)) END"
         : "COALESCE(json_agg(json_build_object('id', s.id, 'name', s.name)) FILTER (WHERE s.id IS NOT NULL), '[]')";
-      const result = await pool.query(`SELECT u.id, u.username, u.email, u.full_name, u.phone, u.role, u.status,
+      const result = await pool.query(`SELECT u.id, u.username, u.email, u.full_name, u.phone, u.role, u.status, u.session_duration_days,
         u.completed_items_enabled AS completed_items_override,
         COALESCE(u.completed_items_enabled,
           (SELECT enabled FROM role_features rf WHERE rf.role=u.role AND rf.feature_code='COMPLETED_ITEMS'), TRUE) AS completed_items_enabled,
@@ -172,6 +173,7 @@ async function createUser(req, res) {
     return res.status(403).json({ success: false, message: 'Chỉ SUPER_ADMIN mới có thể quản lý tài khoản SUPER_ADMIN' });
   }
   try {
+    const sessionDays = parseSessionDays(req.body.session_duration_days);
     const completedAccess = completedItemsOverride(req.body.completed_items_enabled);
     const normalizedStoreIds = normalizeStoreIds(store_ids);
     assertStoreManagerAssignment(role, normalizedStoreIds);
@@ -181,9 +183,9 @@ async function createUser(req, res) {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
-        const result = await client.query(`INSERT INTO users (username, password_hash, email, full_name, phone, role, status, completed_items_enabled)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id, username, email, full_name, phone, role, status, completed_items_enabled, created_at`,
-          [username, passwordHash, email, full_name, phone, role, status, completedAccess.provided ? completedAccess.value : null]);
+        const result = await client.query(`INSERT INTO users (username, password_hash, email, full_name, phone, role, status, completed_items_enabled, session_duration_days)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id, username, email, full_name, phone, role, status, completed_items_enabled, session_duration_days, created_at`,
+          [username, passwordHash, email, full_name, phone, role, status, completedAccess.provided ? completedAccess.value : null, sessionDays ?? DEFAULT_SESSION_DAYS]);
         user = result.rows[0];
         for (let i = 0; i < normalizedStoreIds.length; i++) {
           await client.query(
@@ -196,7 +198,7 @@ async function createUser(req, res) {
     } else {
       if (memoryStore.users.some(u => u.username === username || u.email === email)) return res.status(409).json({ success: false, message: 'Tên đăng nhập hoặc email đã tồn tại' });
       const id = memoryStore.users.length ? Math.max(...memoryStore.users.map(u => u.id)) + 1 : 1;
-      user = { id, username, password_hash: passwordHash, email, full_name, phone, role, status, completed_items_enabled: completedAccess.provided ? completedAccess.value : null };
+      user = { id, username, password_hash: passwordHash, email, full_name, phone, role, status, completed_items_enabled: completedAccess.provided ? completedAccess.value : null, session_duration_days: sessionDays ?? DEFAULT_SESSION_DAYS };
       memoryStore.users.push(user);
       normalizedStoreIds.forEach((storeId, index) => memoryStore.user_stores.push({ user_id: id, store_id: storeId, is_default: index === 0 }));
     }
@@ -217,6 +219,7 @@ async function updateUser(req, res) {
   }
   if (id === req.user.id && status === 'INACTIVE') return res.status(400).json({ success: false, message: 'Không thể tự khóa tài khoản đang đăng nhập' });
   try {
+    const sessionDays = parseSessionDays(req.body.session_duration_days);
     const completedAccess = completedItemsOverride(req.body.completed_items_enabled);
     const normalizedStoreIds = Array.isArray(store_ids) ? normalizeStoreIds(store_ids) : null;
     const passwordHash = password ? await bcrypt.hash(password, 10) : null;
@@ -248,8 +251,9 @@ async function updateUser(req, res) {
           phone=COALESCE($3,phone), role=COALESCE($4,role), status=COALESCE($5,status),
           password_hash=COALESCE($6,password_hash),
           completed_items_enabled=CASE WHEN $7 THEN $8 ELSE completed_items_enabled END,
+          session_duration_days=COALESCE($10,session_duration_days),
           updated_at=CURRENT_TIMESTAMP WHERE id=$9 RETURNING id`,
-          [full_name, email, phone, role, status, passwordHash, completedAccess.provided, completedAccess.value, id]);
+          [full_name, email, phone, role, status, passwordHash, completedAccess.provided, completedAccess.value, id, sessionDays]);
         if (!result.rowCount) { const error = new Error('Không tìm thấy người dùng'); error.statusCode = 404; throw error; }
         if (normalizedStoreIds) {
           await client.query('DELETE FROM user_stores WHERE user_id=$1', [id]);
@@ -269,6 +273,7 @@ async function updateUser(req, res) {
       for (const key of ['full_name', 'email', 'phone', 'role', 'status']) if (req.body[key] !== undefined) user[key] = req.body[key];
       if (passwordHash) user.password_hash = passwordHash;
       if (completedAccess.provided) user.completed_items_enabled = completedAccess.value;
+      if (sessionDays !== undefined) user.session_duration_days = sessionDays;
       if (normalizedStoreIds) {
         memoryStore.user_stores = memoryStore.user_stores.filter(us => us.user_id !== id);
         normalizedStoreIds.forEach((storeId, index) => memoryStore.user_stores.push({ user_id: id, store_id: storeId, is_default: index === 0 }));

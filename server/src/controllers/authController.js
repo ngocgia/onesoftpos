@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
 const { JWT_SECRET } = require('../middleware/authMiddleware');
+const { getSessionDays } = require('../services/sessionDuration');
 
 const DEFAULT_ROLE_FEATURES = ['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT', 'COMPLETED_ITEMS'];
 
@@ -127,7 +128,7 @@ async function login(req, res) {
         ver: user.token_version || 0
       },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: getSessionDays(user.session_duration_days) * 24 * 60 * 60 }
     );
 
     return res.json({

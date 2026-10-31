@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+const { DEFAULT_SESSION_DAYS, parseSessionDays, getSessionDays } = require('../services/sessionDuration');
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
 
 const STAFF_ROLES = ['ORDER_STAFF', 'CASHIER', 'KITCHEN'];
@@ -7,7 +8,7 @@ const USER_STATUSES = ['ACTIVE', 'INACTIVE'];
 
 function publicUser(user) {
   const { password_hash, ...safe } = user;
-  return safe;
+  return { ...safe, session_duration_days: getSessionDays(user.session_duration_days) };
 }
 
 function completedItemsOverride(value) {
@@ -27,7 +28,7 @@ async function getStaff(req, res) {
   try {
     let staff;
     if (isPostgresConnected()) {
-      const result = await pool.query(`SELECT u.id,u.username,u.email,u.full_name,u.phone,u.role,u.status,u.created_at,
+      const result = await pool.query(`SELECT u.id,u.username,u.email,u.full_name,u.phone,u.role,u.status,u.session_duration_days,u.created_at,
         u.completed_items_enabled AS completed_items_override,
         COALESCE(u.completed_items_enabled, local_feature.enabled, base_feature.enabled, TRUE) AS completed_items_enabled
         FROM users u JOIN user_stores us ON us.user_id=u.id
@@ -57,15 +58,16 @@ async function createStaff(req, res) {
     return res.status(400).json({ success: false, message: 'Thiếu thông tin hoặc vai trò nhân viên không hợp lệ' });
   }
   try {
+    const sessionDays = parseSessionDays(req.body.session_duration_days);
     const passwordHash = await bcrypt.hash(password, 10);
     let user;
     if (isPostgresConnected()) {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
-        const result = await client.query(`INSERT INTO users (username,password_hash,email,full_name,phone,role,status,completed_items_enabled)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,username,email,full_name,phone,role,status,completed_items_enabled,created_at`,
-        [username, passwordHash, email, full_name, phone, role, status, completedAccess.provided ? completedAccess.value : null]);
+        const result = await client.query(`INSERT INTO users (username,password_hash,email,full_name,phone,role,status,completed_items_enabled,session_duration_days)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id,username,email,full_name,phone,role,status,completed_items_enabled,session_duration_days,created_at`,
+        [username, passwordHash, email, full_name, phone, role, status, completedAccess.provided ? completedAccess.value : null, sessionDays ?? DEFAULT_SESSION_DAYS]);
         user = result.rows[0];
         await client.query('INSERT INTO user_stores (user_id,store_id,is_default) VALUES ($1,$2,TRUE)', [user.id, req.storeId]);
         await client.query('COMMIT');
@@ -75,14 +77,14 @@ async function createStaff(req, res) {
         return res.status(409).json({ success: false, message: 'Tên đăng nhập hoặc email đã tồn tại' });
       }
       const id = memoryStore.users.length ? Math.max(...memoryStore.users.map(item => item.id)) + 1 : 1;
-      user = { id, username, password_hash: passwordHash, email, full_name, phone, role, status, completed_items_enabled: completedAccess.provided ? completedAccess.value : null, created_at: new Date().toISOString() };
+      user = { id, username, password_hash: passwordHash, email, full_name, phone, role, status, completed_items_enabled: completedAccess.provided ? completedAccess.value : null, session_duration_days: sessionDays ?? DEFAULT_SESSION_DAYS, created_at: new Date().toISOString() };
       memoryStore.users.push(user);
       memoryStore.user_stores.push({ user_id: id, store_id: req.storeId, is_default: true });
     }
     res.status(201).json({ success: true, message: 'Đã tạo tài khoản nhân viên', user: publicUser(user) });
   } catch (error) {
     console.error('createStoreStaff error:', error);
-    res.status(error.code === '23505' ? 409 : 500).json({ success: false, message: error.code === '23505' ? 'Tên đăng nhập hoặc email đã tồn tại' : 'Lỗi tạo nhân viên' });
+    res.status(error.statusCode || (error.code === '23505' ? 409 : 500)).json({ success: false, message: error.statusCode ? error.message : (error.code === '23505' ? 'Tên đăng nhập hoặc email đã tồn tại' : 'Lỗi tạo nhân viên') });
   }
 }
 
@@ -99,23 +101,26 @@ async function updateStaff(req, res) {
   if (role && !STAFF_ROLES.includes(role)) return res.status(400).json({ success: false, message: 'Vai trò nhân viên không hợp lệ' });
   if (status && !USER_STATUSES.includes(status)) return res.status(400).json({ success: false, message: 'Trạng thái nhân viên không hợp lệ' });
   try {
+    const sessionDays = parseSessionDays(req.body.session_duration_days);
     if (isPostgresConnected()) {
       if (!(await findManagedStaff(req.storeId, id))) return res.status(404).json({ success: false, message: 'Không tìm thấy nhân viên trong cửa hàng' });
       await pool.query(`UPDATE users SET full_name=COALESCE($1,full_name),email=COALESCE($2,email),phone=COALESCE($3,phone),
         role=COALESCE($4,role),status=COALESCE($5,status),
         completed_items_enabled=CASE WHEN $6 THEN $7 ELSE completed_items_enabled END,
-        updated_at=CURRENT_TIMESTAMP WHERE id=$8`, [full_name, email, phone, role, status, completedAccess.provided, completedAccess.value, id]);
+        session_duration_days=COALESCE($9,session_duration_days),
+        updated_at=CURRENT_TIMESTAMP WHERE id=$8`, [full_name, email, phone, role, status, completedAccess.provided, completedAccess.value, id, sessionDays]);
     } else {
       const assigned = memoryStore.user_stores.some(item => item.user_id === id && item.store_id === req.storeId);
       const user = memoryStore.users.find(item => item.id === id && STAFF_ROLES.includes(item.role));
       if (!assigned || !user) return res.status(404).json({ success: false, message: 'Không tìm thấy nhân viên trong cửa hàng' });
       for (const field of ['full_name', 'email', 'phone', 'role', 'status']) if (req.body[field] !== undefined) user[field] = req.body[field];
       if (completedAccess.provided) user.completed_items_enabled = completedAccess.value;
+      if (sessionDays !== undefined) user.session_duration_days = sessionDays;
     }
     res.json({ success: true, message: 'Đã cập nhật nhân viên' });
   } catch (error) {
     console.error('updateStoreStaff error:', error);
-    res.status(error.code === '23505' ? 409 : 500).json({ success: false, message: error.code === '23505' ? 'Email đã tồn tại' : 'Lỗi cập nhật nhân viên' });
+    res.status(error.statusCode || (error.code === '23505' ? 409 : 500)).json({ success: false, message: error.statusCode ? error.message : (error.code === '23505' ? 'Email đã tồn tại' : 'Lỗi cập nhật nhân viên') });
   }
 }
 

@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS users (
     status VARCHAR(20) DEFAULT 'ACTIVE',
     completed_items_enabled BOOLEAN DEFAULT NULL,
     token_version INT NOT NULL DEFAULT 0, -- bump to revoke every JWT issued earlier
+    session_duration_days INT NOT NULL DEFAULT 7,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

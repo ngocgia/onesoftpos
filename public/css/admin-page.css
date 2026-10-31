@@ -983,6 +983,7 @@ tr:nth-last-child(-n+2) .dropdown-menu {
   padding: 22px 24px;
   display: grid;
   grid-template-columns: 1fr 1fr;
+  align-items: start;
   gap: 16px;
   overflow-y: auto;
   max-height: calc(90vh - 140px);

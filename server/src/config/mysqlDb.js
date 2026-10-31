@@ -11,6 +11,7 @@ const COLUMN_MIGRATIONS = [
   ['products', 'sort_order', 'INT DEFAULT NULL'],
   ['users', 'completed_items_enabled', 'TINYINT(1) DEFAULT NULL'],
   ['users', 'token_version', 'INT NOT NULL DEFAULT 0'],
+  ['users', 'session_duration_days', 'INT NOT NULL DEFAULT 7'],
   ['order_items', 'variant_id', 'INT DEFAULT NULL'],
   ['product_options', 'group_id', 'INT DEFAULT NULL'],
   ['orders', 'confirmed_by', 'INT DEFAULT NULL'],

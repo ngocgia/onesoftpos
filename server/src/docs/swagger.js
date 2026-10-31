@@ -897,6 +897,7 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
                           phone: { type: 'string', example: '0912333444' },
                           role: { type: 'string', example: 'CASHIER' },
                           status: { type: 'string', example: 'ACTIVE' },
+                          session_duration_days: { type: 'integer', minimum: 1, maximum: 3650, default: 7, example: 30, description: 'Thời hạn đăng nhập theo tài khoản, áp dụng từ lần đăng nhập tiếp theo' },
                           completed_items_enabled: { type: 'boolean', example: true }
                         }
                       }
@@ -929,6 +930,7 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
                   phone: { type: 'string', example: '0933222111' },
                   role: { type: 'string', example: 'KITCHEN', enum: ['ORDER_STAFF', 'CASHIER', 'KITCHEN'] },
                   status: { type: 'string', example: 'ACTIVE', enum: ['ACTIVE', 'INACTIVE'] },
+                  session_duration_days: { type: 'integer', minimum: 1, maximum: 3650, default: 7, example: 30, description: 'Thời hạn đăng nhập theo tài khoản, áp dụng từ lần đăng nhập tiếp theo' },
                   completed_items_enabled: { type: 'boolean', example: true }
                 }
               }
@@ -957,6 +959,7 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
                   phone: { type: 'string', example: '0988776655' },
                   role: { type: 'string', example: 'CASHIER', enum: ['ORDER_STAFF', 'CASHIER', 'KITCHEN'] },
                   status: { type: 'string', example: 'ACTIVE', enum: ['ACTIVE', 'INACTIVE'] },
+                  session_duration_days: { type: 'integer', minimum: 1, maximum: 3650, default: 7, example: 30, description: 'Thời hạn đăng nhập theo tài khoản, áp dụng từ lần đăng nhập tiếp theo' },
                   completed_items_enabled: { type: 'boolean', example: false }
                 }
               }
@@ -2279,6 +2282,7 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
                   role: { type: 'string', example: 'STORE_MANAGER', enum: ['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER', 'ORDER_STAFF', 'CASHIER', 'KITCHEN'] },
                   status: { type: 'string', example: 'ACTIVE', enum: ['ACTIVE', 'INACTIVE'] },
                   store_ids: { type: 'array', items: { type: 'integer' }, example: [2] },
+                  session_duration_days: { type: 'integer', minimum: 1, maximum: 3650, default: 7, example: 30, description: 'Thời hạn đăng nhập theo tài khoản, áp dụng từ lần đăng nhập tiếp theo' },
                   completed_items_enabled: { type: 'boolean', example: true }
                 }
               }
@@ -2305,6 +2309,7 @@ Tài liệu đặc tả toàn bộ REST API cho hệ thống quản lý bán hà
                   role: { type: 'string', example: 'STORE_MANAGER' },
                   status: { type: 'string', example: 'ACTIVE' },
                   password: { type: 'string', example: 'newPassword123' },
+                  session_duration_days: { type: 'integer', minimum: 1, maximum: 3650, example: 30 },
                   store_ids: { type: 'array', items: { type: 'integer' }, example: [1] }
                 }
               }

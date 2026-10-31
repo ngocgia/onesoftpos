@@ -977,7 +977,7 @@ const adminApp = {
       rows
         .map(
           (u) =>
-            `<tr><td><div style="display:flex;align-items:center;gap:10px"><div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#ffedd5,#fed7aa);color:#ea580c;font-weight:800;font-size:12px;display:grid;place-items:center">${this.esc(u.full_name || "U").split(" ").map(w => w[0]).slice(-2).join("").toUpperCase()}</div><div><strong>${this.esc(u.full_name)}</strong><br><span class="muted">${this.esc(u.username)} · ${this.esc(u.email)}</span></div></div></td><td><span class="badge ${['SUPER_ADMIN', 'ADMIN'].includes(u.role) ? 'info' : u.role === 'STORE_MANAGER' ? 'warning' : 'active'}">${u.role}</span></td><td>${(u.stores || []).map((s) => this.esc(s.name)).join(", ") || '<span class="muted">Toàn hệ thống</span>'}</td><td><span class="badge ${u.status === "ACTIVE" ? "active" : "inactive"}">${u.status}</span></td><td><div class="dropdown"><button class="dropdown-toggle" type="button" title="Thao tác"><i class="fa-solid fa-ellipsis-vertical"></i></button><div class="dropdown-menu"><button class="btn ghost small" onclick="adminApp.editUser(${u.id})"><i class="fa-solid fa-user-pen"></i> Chỉnh sửa</button>${u.id === this.me.id ? "" : `<button class="btn danger small" onclick="adminApp.deleteUser(${u.id})"><i class="fa-solid fa-trash"></i> Xóa</button>`}</div></div></td></tr>`,
+            `<tr><td><div style="display:flex;align-items:center;gap:10px"><div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#ffedd5,#fed7aa);color:#ea580c;font-weight:800;font-size:12px;display:grid;place-items:center">${this.esc(u.full_name || "U").split(" ").map(w => w[0]).slice(-2).join("").toUpperCase()}</div><div><strong>${this.esc(u.full_name)}</strong><br><span class="muted">${this.esc(u.username)} · ${this.esc(u.email)} · Phiên: ${Number(u.session_duration_days) || 7} ngày</span></div></div></td><td><span class="badge ${['SUPER_ADMIN', 'ADMIN'].includes(u.role) ? 'info' : u.role === 'STORE_MANAGER' ? 'warning' : 'active'}">${u.role}</span></td><td>${(u.stores || []).map((s) => this.esc(s.name)).join(", ") || '<span class="muted">Toàn hệ thống</span>'}</td><td><span class="badge ${u.status === "ACTIVE" ? "active" : "inactive"}">${u.status}</span></td><td><div class="dropdown"><button class="dropdown-toggle" type="button" title="Thao tác"><i class="fa-solid fa-ellipsis-vertical"></i></button><div class="dropdown-menu"><button class="btn ghost small" onclick="adminApp.editUser(${u.id})"><i class="fa-solid fa-user-pen"></i> Chỉnh sửa</button>${u.id === this.me.id ? "" : `<button class="btn danger small" onclick="adminApp.deleteUser(${u.id})"><i class="fa-solid fa-trash"></i> Xóa</button>`}</div></div></td></tr>`,
         )
         .join("") ||
       '<tr><td class="empty" colspan="5">Không tìm thấy người dùng</td></tr>';
@@ -1009,6 +1009,7 @@ const adminApp = {
       ) +
       this.field("email", "Email", "email", u.email || "", null, false, true) +
       this.field("phone", "Số điện thoại", "text", u.phone || "") +
+      `<label class="field"><span>Thời gian đăng nhập (ngày)</span><input name="session_duration_days" type="number" min="1" max="3650" step="1" required value="${this.esc(u.session_duration_days ?? 7)}"></label>` +
       this.field("role", "Vai trò", "select", u.role || "CASHIER", roleOpts) +
       this.field(
         "status",
@@ -1051,6 +1052,7 @@ const adminApp = {
           throw new Error(
             "STORE_MANAGER phải được phân công đúng một cửa hàng",
           );
+        data.session_duration_days = Number(data.session_duration_days);
         if (!data.password) delete data.password;
         data.completed_items_enabled =
           data.completed_items_enabled === "inherit"

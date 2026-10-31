@@ -41,6 +41,9 @@ CREATE TABLE IF NOT EXISTS stores (
     closing_time VARCHAR(10) DEFAULT '22:00',
     currency VARCHAR(10) DEFAULT 'VND',
     status VARCHAR(20) DEFAULT 'ACTIVE',
+    activation_at DATETIME DEFAULT NULL,
+    expires_at DATETIME DEFAULT NULL,
+    usage_type VARCHAR(20) NOT NULL DEFAULT 'OFFICIAL',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (store_type_id) REFERENCES store_types(id)

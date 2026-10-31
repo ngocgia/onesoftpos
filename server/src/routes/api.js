@@ -43,12 +43,12 @@ router.delete('/store-types/:id', authenticateToken, requireRole(['SUPER_ADMIN',
 router.put('/store-types/:id/features', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), audit('UPDATE_FEATURE', 'STORE_TYPE'), storeController.updateStoreTypeFeature);
 
 // 3. Category & Product routes
-router.get('/categories', authenticateToken, productController.getCategories);
+router.get('/categories', authenticateToken, requireStoreContext(), productController.getCategories);
 router.post('/categories', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('CREATE', 'CATEGORY'), productController.createCategory);
 router.put('/categories/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('UPDATE', 'CATEGORY'), productController.updateCategory);
 router.delete('/categories/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('DELETE', 'CATEGORY'), productController.deleteCategory);
 
-router.get('/sizes', authenticateToken, productController.getSizes);
+router.get('/sizes', authenticateToken, requireStoreContext(), productController.getSizes);
 router.post('/sizes', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('CREATE', 'SIZE'), productController.createSize);
 router.put('/sizes/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('UPDATE', 'SIZE'), productController.updateSize);
 router.delete('/sizes/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('DELETE', 'SIZE'), productController.deleteSize);
@@ -56,12 +56,12 @@ router.delete('/sizes/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMI
 
 router.post('/products/extract-from-image', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), productController.extractFromImage);
 router.post('/products/batch', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('CREATE_BATCH', 'PRODUCT'), productController.createProductsBatch);
-router.get('/products', authenticateToken, productController.getProducts);
+router.get('/products', authenticateToken, requireStoreContext(), productController.getProducts);
 router.post('/products', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('CREATE', 'PRODUCT'), productController.createProduct);
 router.put('/products/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('UPDATE', 'PRODUCT'), productController.updateProduct);
 router.delete('/products/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('DELETE', 'PRODUCT'), productController.deleteProduct);
 router.put('/products/:id/toppings', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('UPDATE_TOPPINGS', 'PRODUCT'), productController.updateProductToppings);
-router.get('/products/options', authenticateToken, productController.getOptions);
+router.get('/products/options', authenticateToken, requireStoreContext(), productController.getOptions);
 
 router.get('/toppings', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), productController.getToppings);
 router.get('/topping-groups', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), productController.getToppingGroups);
@@ -81,45 +81,45 @@ router.get('/store/role-features', authenticateToken, requireRole(['STORE_MANAGE
 router.put('/store/role-features/:role', authenticateToken, requireRole(['STORE_MANAGER']), requireStoreContext(), audit('UPDATE_FEATURE', 'STORE_ROLE'), storeStaffController.updateStoreRoleFeature);
 
 // 4. Area & Table routes (Dine-in)
-router.get('/areas', authenticateToken, requireFeature('TABLES'), tableController.getAreas);
+router.get('/areas', authenticateToken, requireStoreContext(), requireFeature('TABLES'), tableController.getAreas);
 router.post('/areas', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('CREATE', 'AREA'), tableController.createArea);
 router.put('/areas/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('UPDATE', 'AREA'), tableController.updateArea);
 router.delete('/areas/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('DELETE', 'AREA'), tableController.deleteArea);
-router.get('/tables', authenticateToken, requireFeature('TABLES'), tableController.getTables);
+router.get('/tables', authenticateToken, requireStoreContext(), requireFeature('TABLES'), tableController.getTables);
 router.post('/tables', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('CREATE', 'TABLE'), tableController.createTable);
 router.put('/tables/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('UPDATE', 'TABLE'), tableController.updateTable);
 router.delete('/tables/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), requireStoreContext(), audit('DELETE', 'TABLE'), tableController.deleteTable);
-router.put('/tables/:id/status', authenticateToken, requireFeature('TABLES'), tableController.updateTableStatus);
-router.post('/tables/transfer', authenticateToken, requireFeature('TABLES'), tableController.transferTable);
-router.post('/tables/merge', authenticateToken, requireFeature('TABLES'), tableController.mergeTables);
+router.put('/tables/:id/status', authenticateToken, requireStoreContext(), requireFeature('TABLES'), tableController.updateTableStatus);
+router.post('/tables/transfer', authenticateToken, requireStoreContext(), requireFeature('TABLES'), tableController.transferTable);
+router.post('/tables/merge', authenticateToken, requireStoreContext(), requireFeature('TABLES'), tableController.mergeTables);
 
 // 5. Order routes
-router.get('/orders', authenticateToken, requireFeature('ORDERS'), orderController.getOrders);
-router.get('/orders/:id', authenticateToken, requireFeature('ORDERS'), orderController.getOrderById);
-router.post('/orders', authenticateToken, requireFeature('POS'), orderController.createOrder);
-router.put('/orders/:id/status', authenticateToken, requireFeature('ORDERS'), orderController.updateOrderStatus);
-router.post('/orders/:id/advance', authenticateToken, requireFeature('ORDERS'), orderController.advanceOrderWorkflow);
-router.post('/orders/:id/split', authenticateToken, requireFeature('ORDERS'), orderController.splitOrder);
+router.get('/orders', authenticateToken, requireStoreContext(), requireFeature('ORDERS'), orderController.getOrders);
+router.get('/orders/:id', authenticateToken, requireStoreContext(), requireFeature('ORDERS'), orderController.getOrderById);
+router.post('/orders', authenticateToken, requireStoreContext(), requireFeature('POS'), orderController.createOrder);
+router.put('/orders/:id/status', authenticateToken, requireStoreContext(), requireFeature('ORDERS'), orderController.updateOrderStatus);
+router.post('/orders/:id/advance', authenticateToken, requireStoreContext(), requireFeature('ORDERS'), orderController.advanceOrderWorkflow);
+router.post('/orders/:id/split', authenticateToken, requireStoreContext(), requireFeature('ORDERS'), orderController.splitOrder);
 router.put('/order-items/:itemId/cancel', authenticateToken, requireStoreContext(), requireRole(['STORE_MANAGER', 'CASHIER', 'KITCHEN']), kdsController.cancelOrderItem);
 
 // 6. Payment & VietQR routes
-router.post('/payments/process', authenticateToken, requireFeature('PAYMENT'), paymentController.processPayment);
+router.post('/payments/process', authenticateToken, requireStoreContext(), requireFeature('PAYMENT'), paymentController.processPayment);
 router.post('/payments/vietqr/receipt', authenticateToken, requireStoreContext(), paymentController.previewReceiptVietQR);
-router.get('/payments/vietqr/:orderId', authenticateToken, requireFeature('PAYMENT'), paymentController.getVietQR);
+router.get('/payments/vietqr/:orderId', authenticateToken, requireStoreContext(), requireFeature('PAYMENT'), paymentController.getVietQR);
 
 // 7. KDS routes
-router.get('/kds/orders', authenticateToken, requireFeature('KDS'), kdsController.getKdsOrders);
-router.get('/kds/history', authenticateToken, requireFeature('HISTORY'), kdsController.getKdsHistory);
+router.get('/kds/orders', authenticateToken, requireStoreContext(), requireFeature('KDS'), kdsController.getKdsOrders);
+router.get('/kds/history', authenticateToken, requireStoreContext(), requireFeature('HISTORY'), kdsController.getKdsHistory);
 router.get('/kds/completed-items', authenticateToken, requireStoreContext(), requireFeature('COMPLETED_ITEMS'), kdsController.getCompletedItems);
-router.put('/kds/items/:itemId/status', authenticateToken, requireFeature('KDS'), kdsController.updateKdsItemStatus);
+router.put('/kds/items/:itemId/status', authenticateToken, requireStoreContext(), requireFeature('KDS'), kdsController.updateKdsItemStatus);
 
 // 8. Shift routes
-router.get('/shifts/current', authenticateToken, requireFeature('SHIFT'), shiftController.getCurrentShift);
-router.post('/shifts/open', authenticateToken, requireFeature('SHIFT'), shiftController.openShift);
-router.post('/shifts/:id/close', authenticateToken, requireFeature('SHIFT'), shiftController.closeShift);
+router.get('/shifts/current', authenticateToken, requireStoreContext(), requireFeature('SHIFT'), shiftController.getCurrentShift);
+router.post('/shifts/open', authenticateToken, requireStoreContext(), requireFeature('SHIFT'), shiftController.openShift);
+router.post('/shifts/:id/close', authenticateToken, requireStoreContext(), requireFeature('SHIFT'), shiftController.closeShift);
 
 // 9. Report routes
-router.get('/reports/summary', authenticateToken, reportController.getSummary);
+router.get('/reports/summary', authenticateToken, requireStoreContext(), reportController.getSummary);
 
 // 9.1 Inventory routes (Quản lý kho: CRUD, nhập/xuất/cân bằng, tổng hợp & thống kê)
 router.get('/inventory/summary', authenticateToken, requireStoreContext(), requireRole(['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER']), inventoryController.getSummary);

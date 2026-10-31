@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
 const { JWT_SECRET } = require('../middleware/authMiddleware');
 const { getSessionDays } = require('../services/sessionDuration');
+const { storeAccessState, accessMessages, publicStoreLifecycle } = require('../services/storeLifecycle');
 
 const DEFAULT_ROLE_FEATURES = ['POS', 'TABLES', 'KDS', 'ORDERS', 'HISTORY', 'PAYMENT', 'ADMIN', 'SHIFT', 'DISCOUNT', 'COMPLETED_ITEMS'];
 
@@ -113,6 +114,15 @@ async function login(req, res) {
       }
     }
 
+    if (!['SUPER_ADMIN', 'ADMIN'].includes(user.role)) {
+      const available = stores.filter(store => storeAccessState(store) === 'ACTIVE');
+      if (stores.length && !available.length) {
+        const state = storeAccessState(stores[0]);
+        return res.status(403).json({ success: false, code: `STORE_${state}`, message: accessMessages[state] });
+      }
+      stores = available;
+    }
+    stores = stores.map(publicStoreLifecycle);
     const defaultStore = stores.find(s => s.is_default) || stores[0] || null;
     const roleFeatures = await getRoleFeatures(user.role, defaultStore?.id, user.id);
 
@@ -187,6 +197,8 @@ async function getMe(req, res) {
       }
     }
 
+    if (!['SUPER_ADMIN', 'ADMIN'].includes(user.role)) stores = stores.filter(store => storeAccessState(store) === 'ACTIVE');
+    stores = stores.map(publicStoreLifecycle);
     res.json({
       success: true,
       user,

@@ -558,6 +558,19 @@ const adminApp = {
         .join("");
     }
   },
+  storeDateInput(value) {
+    if (!value || !Number.isFinite(new Date(value).getTime())) return '';
+    return new Date(new Date(value).getTime() + 7 * 3600000).toISOString().slice(0, 16);
+  },
+  storeDateLabel(value) {
+    return value ? new Date(value).toLocaleString('vi-VN', { timeZone: 'Asia/Bangkok', dateStyle: 'short', timeStyle: 'short' }) : 'Không giới hạn';
+  },
+  storeAccessLabel(store) {
+    if (store.status !== 'ACTIVE') return 'TẠM KHÓA';
+    if (store.expires_at && Date.now() >= new Date(store.expires_at).getTime()) return 'HẾT HẠN';
+    if (store.activation_at && Date.now() < new Date(store.activation_at).getTime()) return 'CHƯA KÍCH HOẠT';
+    return 'HOẠT ĐỘNG';
+  },
   renderStores() {
     const q = document.getElementById("storeSearch").value.toLowerCase(),
       type = document.getElementById("storeTypeFilter").value;
@@ -570,7 +583,7 @@ const adminApp = {
       rows
         .map(
           (s) =>
-            `<article class="card"><div class="card-head"><div><h3>${this.esc(s.name)}</h3><p>${this.esc(s.code)} · ${this.esc(s.store_type_name || "Chưa phân loại")}</p></div><span class="badge ${s.status === "ACTIVE" ? "active" : "inactive"}">${s.status === "ACTIVE" ? "HOẠT ĐỘNG" : "TẠM KHÓA"}</span></div><div style="margin-top:14px;display:grid;gap:6px;font-size:12.5px;color:var(--muted)"><div style="display:flex;align-items:flex-start;gap:8px"><i class="fa-solid fa-location-dot" style="color:var(--primary);margin-top:3px;font-size:13px;width:14px"></i><span>${this.esc(s.address || "Chưa cập nhật")}</span></div><div style="display:flex;align-items:center;gap:8px"><i class="fa-solid fa-phone" style="color:#3b82f6;font-size:13px;width:14px"></i><span>${this.esc(s.phone || "Chưa cập nhật")}</span></div></div><div class="card-actions"><div class="dropdown"><button class="dropdown-toggle" type="button" title="Thao tác"><i class="fa-solid fa-ellipsis-vertical"></i></button><div class="dropdown-menu"><button class="btn ghost small" onclick="adminApp.configureKdsAnnouncement(${s.id})"><i class="fa-solid fa-volume-high"></i> Cấu hình loa KDS</button><button class="btn ghost small" onclick="adminApp.editStore(${s.id})"><i class="fa-solid fa-gear"></i> Sửa & cấu hình</button><button class="btn ${s.status === "ACTIVE" ? "danger" : "ghost"} small" onclick="adminApp.toggleStore(${s.id})"><i class="fa-solid ${s.status === "ACTIVE" ? "fa-lock" : "fa-unlock"}"></i> ${s.status === "ACTIVE" ? "Tạm khóa" : "Kích hoạt"}</button><button class="btn danger small" onclick="adminApp.deleteStore(${s.id})"><i class="fa-solid fa-trash"></i> Xóa</button></div></div></div></article>`,
+            `<article class="card"><div class="card-head"><div><h3>${this.esc(s.name)}</h3><p>${this.esc(s.code)} · ${this.esc(s.store_type_name || "Chưa phân loại")}</p><span class="badge ${s.usage_type === "TRIAL" ? "warning" : "info"}">${s.usage_type === "TRIAL" ? "Thử nghiệm" : "Chính thức"}</span></div><span class="badge ${this.storeAccessLabel(s) === "HOẠT ĐỘNG" ? "active" : "inactive"}">${this.storeAccessLabel(s)}</span></div><div style="margin-top:14px;display:grid;gap:6px;font-size:12.5px;color:var(--muted)"><div style="display:flex;align-items:flex-start;gap:8px"><i class="fa-solid fa-location-dot" style="color:var(--primary);margin-top:3px;font-size:13px;width:14px"></i><span>${this.esc(s.address || "Chưa cập nhật")}</span></div><div style="display:flex;align-items:center;gap:8px"><i class="fa-solid fa-phone" style="color:#3b82f6;font-size:13px;width:14px"></i><span>${this.esc(s.phone || "Chưa cập nhật")}</span></div><div>Kích hoạt: ${this.esc(this.storeDateLabel(s.activation_at))}</div><div>Kết thúc: ${this.esc(this.storeDateLabel(s.expires_at))}</div></div><div class="card-actions"><div class="dropdown"><button class="dropdown-toggle" type="button" title="Thao tác"><i class="fa-solid fa-ellipsis-vertical"></i></button><div class="dropdown-menu"><button class="btn ghost small" onclick="adminApp.configureKdsAnnouncement(${s.id})"><i class="fa-solid fa-volume-high"></i> Cấu hình loa KDS</button><button class="btn ghost small" onclick="adminApp.editStore(${s.id})"><i class="fa-solid fa-gear"></i> Sửa & cấu hình</button><button class="btn ${s.status === "ACTIVE" ? "danger" : "ghost"} small" onclick="adminApp.toggleStore(${s.id})"><i class="fa-solid ${s.status === "ACTIVE" ? "fa-lock" : "fa-unlock"}"></i> ${s.status === "ACTIVE" ? "Tạm khóa" : "Kích hoạt"}</button><button class="btn danger small" onclick="adminApp.deleteStore(${s.id})"><i class="fa-solid fa-trash"></i> Xóa</button></div></div></div></article>`,
         )
         .join("") || '<div class="panel empty">Không tìm thấy cửa hàng</div>';
   },
@@ -608,6 +621,11 @@ const adminApp = {
         true,
       ) +
       this.field("display_name", "Tên hiển thị", "text", s.display_name || "") +
+      this.field("usage_type", "Hình thức sử dụng", "select", s.usage_type || "OFFICIAL", [
+        { value: "TRIAL", label: "Thử nghiệm" }, { value: "OFFICIAL", label: "Chính thức" }
+      ]) +
+      this.field("activation_at", "Thời gian kích hoạt (UTC+7)", "datetime-local", this.storeDateInput(s.activation_at)) +
+      this.field("expires_at", "Thời gian kết thúc (UTC+7)", "datetime-local", this.storeDateInput(s.expires_at)) +
       this.field(
         "store_type_id",
         "Loại cửa hàng",
@@ -744,6 +762,10 @@ const adminApp = {
       id ? "Sửa và cấu hình cửa hàng" : "Thêm cửa hàng",
       html,
       async (data) => {
+        for (const field of ['activation_at', 'expires_at']) {
+          data[field] = data[field] ? new Date(data[field] + '+07:00').toISOString() : null;
+        }
+        if (data.activation_at && data.expires_at && data.expires_at <= data.activation_at) throw new Error('Thời gian kết thúc phải sau thời gian kích hoạt');
         if (id) {
           data.takeaway_workspace_enabled =
             data.takeaway_workspace_enabled === "true";

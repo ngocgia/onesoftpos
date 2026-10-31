@@ -240,6 +240,9 @@ async function testConnection() {
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS completed_items_enabled BOOLEAN DEFAULT NULL');
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INT NOT NULL DEFAULT 0');
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS session_duration_days INT NOT NULL DEFAULT 7');
+    await client.query('ALTER TABLE stores ADD COLUMN IF NOT EXISTS activation_at TIMESTAMP WITH TIME ZONE DEFAULT NULL');
+    await client.query('ALTER TABLE stores ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP WITH TIME ZONE DEFAULT NULL');
+    await client.query("ALTER TABLE stores ADD COLUMN IF NOT EXISTS usage_type VARCHAR(20) NOT NULL DEFAULT 'OFFICIAL'");
     await client.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT NULL');
     await client.query(`CREATE TABLE IF NOT EXISTS sizes (
       id SERIAL PRIMARY KEY,

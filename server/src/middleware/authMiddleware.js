@@ -1,6 +1,23 @@
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
+const { storeAccessState, accessMessages } = require('../services/storeLifecycle');
+
+async function enforceStoreLifecycle(storeId, res) {
+  const store = isPostgresConnected()
+    ? (await pool.query('SELECT id,status,activation_at,expires_at FROM stores WHERE id=$1', [storeId])).rows[0]
+    : memoryStore.stores.find(item => item.id === storeId);
+  if (!store) {
+    res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng' });
+    return false;
+  }
+  const state = storeAccessState(store);
+  if (state !== 'ACTIVE') {
+    res.status(403).json({ success: false, code: `STORE_${state}`, message: accessMessages[state] });
+    return false;
+  }
+  return true;
+}
 
 // Never fall back to a secret that ships in the repository. server.js refuses
 // to start without JWT_SECRET; this per-process value only covers direct
@@ -88,6 +105,8 @@ function requireStoreAccess(paramName = 'id') {
         });
       }
       req.storeId = storeId;
+      // Global administrators retain access to store configuration so they can renew a license.
+      if (!['SUPER_ADMIN', 'ADMIN'].includes(req.user.role) && !(await enforceStoreLifecycle(storeId, res))) return;
       next();
     } catch (error) {
       console.error('requireStoreAccess error:', error);
@@ -106,6 +125,7 @@ function requireStoreContext() {
       if (!(await userCanAccessStore(req.user, storeId))) {
         return res.status(403).json({ success: false, message: 'Bạn không có quyền quản lý cửa hàng này' });
       }
+      if (!(await enforceStoreLifecycle(storeId, res))) return;
       req.storeId = storeId;
       next();
     } catch (error) {

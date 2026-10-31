@@ -8,6 +8,9 @@ let connected = false;
 // BOOLEAN -> TINYINT(1), TIMESTAMP WITH TIME ZONE -> DATETIME, JSONB -> JSON
 // and TEXT/JSON literal defaults become parenthesized expressions (MySQL 8).
 const COLUMN_MIGRATIONS = [
+  ['stores', 'activation_at', 'DATETIME DEFAULT NULL'],
+  ['stores', 'expires_at', 'DATETIME DEFAULT NULL'],
+  ['stores', 'usage_type', "VARCHAR(20) NOT NULL DEFAULT 'OFFICIAL'"],
   ['products', 'sort_order', 'INT DEFAULT NULL'],
   ['users', 'completed_items_enabled', 'TINYINT(1) DEFAULT NULL'],
   ['users', 'token_version', 'INT NOT NULL DEFAULT 0'],

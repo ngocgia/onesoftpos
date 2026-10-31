@@ -46,7 +46,7 @@ test('HTTP upload enforces real auth, management role and store assignment, serv
       { id: 1, role: 'ADMIN', status: 'ACTIVE' },
       { id: 2, role: 'STORE_MANAGER', status: 'ACTIVE' },
       { id: 3, role: 'CASHIER', status: 'ACTIVE' }
-    ], user_stores: [{ user_id: 2, store_id: 11 }, { user_id: 3, store_id: 11 }]
+    ], stores: [{ id: 11, status: 'ACTIVE' }], user_stores: [{ user_id: 2, store_id: 11 }, { user_id: 3, store_id: 11 }]
   } };
   const authFile = path.join(__dirname, '../src/middleware/authMiddleware.js');
   const authRequire = createRequire(authFile);
@@ -89,6 +89,10 @@ test('HTTP upload enforces real auth, management role and store assignment, serv
   assert.match(image.headers.get('content-type'), /image\/png/);
   assert.equal(image.headers.get('x-content-type-options'), 'nosniff');
   assert.ok(Buffer.from(await image.arrayBuffer()).equals(decodeImage(png).bytes));
+  db.memoryStore.stores[0].expires_at = '2000-01-01T00:00:00Z';
+  const expired = await send(2, 11);
+  assert.equal(expired.status, 403);
+  assert.equal((await expired.json()).code, 'STORE_EXPIRED');
 });
 
 test('menu sorts Vietnamese names A-Z before names starting with numbers under category and search filters', async () => {

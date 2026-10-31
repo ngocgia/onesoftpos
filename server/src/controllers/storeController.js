@@ -1,5 +1,6 @@
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
 const { validateWorkflow } = require('../services/workflowService');
+const { parseLifecycle, publicStoreLifecycle } = require('../services/storeLifecycle');
 
 // Helper to format features as clean camelCase flags
 function formatFeatures(featureRows = []) {
@@ -69,7 +70,7 @@ async function getStores(req, res) {
       });
     }
 
-    res.json({ success: true, stores });
+    res.json({ success: true, stores: stores.map(publicStoreLifecycle) });
   } catch (error) {
     console.error('getStores error:', error);
     res.status(500).json({ success: false, message: 'Lỗi lấy danh sách cửa hàng' });
@@ -131,7 +132,7 @@ async function getStoreDetails(req, res) {
 
     res.json({
       success: true,
-      store,
+      store: publicStoreLifecycle(store),
       settings,
       storeType,
       features
@@ -149,15 +150,16 @@ async function createStore(req, res) {
   }
 
   try {
+    const lifecycle = parseLifecycle(req.body);
     let newStore = null;
     if (isPostgresConnected()) {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
         const insertRes = await client.query(
-          `INSERT INTO stores (code, name, display_name, store_type_id, phone, email, address, province, district, status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'ACTIVE') RETURNING *`,
-          [code, name, display_name || name, store_type_id, phone, email, address, province, district]
+          `INSERT INTO stores (code, name, display_name, store_type_id, phone, email, address, province, district, status, activation_at, expires_at, usage_type)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'ACTIVE', $10, $11, $12) RETURNING *`,
+          [code, name, display_name || name, store_type_id, phone, email, address, province, district, lifecycle.activation_at ? new Date(lifecycle.activation_at) : null, lifecycle.expires_at ? new Date(lifecycle.expires_at) : null, lifecycle.usage_type || 'OFFICIAL']
         );
         newStore = insertRes.rows[0];
 
@@ -187,6 +189,9 @@ async function createStore(req, res) {
         province,
         district,
         status: 'ACTIVE',
+        activation_at: lifecycle.activation_at || null,
+        expires_at: lifecycle.expires_at || null,
+        usage_type: lifecycle.usage_type || 'OFFICIAL',
         currency: 'VND'
       };
       memoryStore.stores.push(newStore);
@@ -206,45 +211,48 @@ async function createStore(req, res) {
     res.status(201).json({ success: true, message: 'Tạo cửa hàng thành công', store: newStore });
   } catch (error) {
     console.error('createStore error:', error);
-    res.status(500).json({ success: false, message: 'Lỗi tạo cửa hàng: ' + error.message });
+    res.status(error.statusCode || 500).json({ success: false, message: 'Lỗi tạo cửa hàng: ' + error.message });
   }
 }
 
 async function updateStore(req, res) {
-  const storeId = parseInt(req.params.id, 10);
+  const storeId = Number(req.params.id);
   const { name, display_name, store_type_id, phone, email, address, status } = req.body;
-
+  if (!['ADMIN', 'SUPER_ADMIN'].includes(req.user.role) && ['activation_at', 'expires_at', 'usage_type', 'status'].some(key => req.body[key] !== undefined)) {
+    return res.status(403).json({ success: false, message: 'Chỉ quản trị viên hệ thống được thay đổi thời hạn và trạng thái cửa hàng' });
+  }
   try {
     if (isPostgresConnected()) {
-      await pool.query(
-        `UPDATE stores 
-         SET name = COALESCE($1, name),
-             display_name = COALESCE($2, display_name),
-             store_type_id = COALESCE($3, store_type_id),
-             phone = COALESCE($4, phone),
-             email = COALESCE($5, email),
-             address = COALESCE($6, address),
-             status = COALESCE($7, status),
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = $8`,
-        [name, display_name, store_type_id, phone, email, address, status, storeId]
-      );
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const current = (await client.query('SELECT * FROM stores WHERE id=$1 FOR UPDATE', [storeId])).rows[0];
+        if (!current) throw Object.assign(new Error('Không tìm thấy cửa hàng'), { statusCode: 404 });
+        const patch = parseLifecycle(req.body, current);
+        await client.query(`UPDATE stores SET name=COALESCE($1,name), display_name=COALESCE($2,display_name),
+          store_type_id=COALESCE($3,store_type_id), phone=COALESCE($4,phone), email=COALESCE($5,email),
+          address=COALESCE($6,address), status=COALESCE($7,status),
+          activation_at=CASE WHEN $12 THEN $9 ELSE activation_at END,
+          expires_at=CASE WHEN $13 THEN $10 ELSE expires_at END,
+          usage_type=COALESCE($11,usage_type), updated_at=CURRENT_TIMESTAMP WHERE id=$8`,
+          [name, display_name, store_type_id, phone, email, address, status, storeId,
+            patch.activation_at ? new Date(patch.activation_at) : null,
+            patch.expires_at ? new Date(patch.expires_at) : null, patch.usage_type,
+            patch.activation_at !== undefined, patch.expires_at !== undefined]);
+        await client.query('COMMIT');
+      } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
     } else {
       const store = memoryStore.stores.find(s => s.id === storeId);
       if (!store) return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng' });
-      if (name) store.name = name;
-      if (display_name) store.display_name = display_name;
-      if (store_type_id) store.store_type_id = parseInt(store_type_id, 10);
-      if (phone) store.phone = phone;
-      if (email) store.email = email;
-      if (address) store.address = address;
-      if (status) store.status = status;
+      const patch = parseLifecycle(req.body, store);
+      for (const key of ['name', 'display_name', 'phone', 'email', 'address', 'status']) if (req.body[key] !== undefined) store[key] = req.body[key];
+      if (store_type_id) store.store_type_id = Number(store_type_id);
+      Object.assign(store, patch);
     }
-
     res.json({ success: true, message: 'Cập nhật thông tin cửa hàng thành công' });
   } catch (error) {
-    console.error('updateStore error:', error);
-    res.status(500).json({ success: false, message: 'Lỗi cập nhật cửa hàng' });
+    if (!error.statusCode) console.error('updateStore error:', error);
+    res.status(error.statusCode || 500).json({ success: false, message: error.statusCode ? error.message : 'Lỗi cập nhật cửa hàng' });
   }
 }
 

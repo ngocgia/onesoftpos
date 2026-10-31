@@ -146,6 +146,7 @@ CREATE TABLE IF NOT EXISTS sizes (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS products (
+    sort_order INT DEFAULT NULL,
     id INT AUTO_INCREMENT PRIMARY KEY,
     store_id INT,
     category_id INT,

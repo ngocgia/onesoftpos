@@ -1494,7 +1494,7 @@ const adminApp = {
       rows
         .map(
           (p) =>
-            `<tr><td><strong><span class="admin-product-thumb">${window.productImages.render(p.image_url,p.name)}</span> ${this.esc(p.name)}</strong><br><span class="muted">${this.esc(p.code)} · ${p.options?.length || 0} topping</span></td><td>${this.esc(p.category_name || "-")}</td><td><strong style="color:var(--primary);font-variant-numeric:tabular-nums">${this.money(p.price)}</strong></td><td>${p.kitchen_type === "BAR" ? '<span class="badge info">Pha chế</span>' : '<span class="badge active">Bếp</span>'}</td><td><span class="badge ${p.is_active ? "active" : "inactive"}">${p.is_active ? "ĐANG BÁN" : "NGỪNG BÁN"}</span></td><td><div class="dropdown"><button class="dropdown-toggle" type="button" title="Thao tác"><i class="fa-solid fa-ellipsis-vertical"></i></button><div class="dropdown-menu"><button class="btn ghost small" onclick="adminApp.editProduct(${p.id})"><i class="fa-solid fa-pen"></i> Sửa</button><button class="btn danger small" onclick="adminApp.deleteProduct(${p.id})"><i class="fa-solid fa-trash"></i> Xóa</button></div></div></td></tr>`,
+            `<tr><td><strong><span class="admin-product-thumb">${window.productImages.render(p.image_url,p.name)}</span> ${this.esc(p.name)}</strong><br><span class="muted">${this.esc(p.code)} · Thứ tự: ${p.sort_order ?? "A–Z"} · ${p.options?.length || 0} topping</span></td><td>${this.esc(p.category_name || "-")}</td><td><strong style="color:var(--primary);font-variant-numeric:tabular-nums">${this.money(p.price)}</strong></td><td>${p.kitchen_type === "BAR" ? '<span class="badge info">Pha chế</span>' : '<span class="badge active">Bếp</span>'}</td><td><span class="badge ${p.is_active ? "active" : "inactive"}">${p.is_active ? "ĐANG BÁN" : "NGỪNG BÁN"}</span></td><td><div class="dropdown"><button class="dropdown-toggle" type="button" title="Thao tác"><i class="fa-solid fa-ellipsis-vertical"></i></button><div class="dropdown-menu"><button class="btn ghost small" onclick="adminApp.editProduct(${p.id})"><i class="fa-solid fa-pen"></i> Sửa</button><button class="btn danger small" onclick="adminApp.deleteProduct(${p.id})"><i class="fa-solid fa-trash"></i> Xóa</button></div></div></td></tr>`,
         )
         .join("") ||
       '<tr><td class="empty" colspan="6">Chưa có sản phẩm</td></tr>';
@@ -1545,6 +1545,7 @@ const adminApp = {
         false,
         true,
       ) +
+      this.field("sort_order", "Số thứ tự (để trống: A–Z)", "number", p.sort_order ?? "") +
       this.field("cost_price", "Giá vốn", "number", p.cost_price || 0) +
       this.field("unit", "Đơn vị", "text", p.unit || "Phần") +
       window.productImages.field(p.image_url) +
@@ -1606,6 +1607,7 @@ const adminApp = {
           ...form.querySelectorAll('[name="product_topping"]:checked'),
         ].map((input) => Number(input.value));
         data.category_id = data.category_id ? Number(data.category_id) : null;
+        data.sort_order = data.sort_order === "" ? null : Number(data.sort_order);
         data.price = Number(data.price);
         data.cost_price = Number(data.cost_price || 0);
         let productId = id;

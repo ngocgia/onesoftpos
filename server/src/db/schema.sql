@@ -185,6 +185,7 @@ CREATE TABLE IF NOT EXISTS sizes (
 );
 
 CREATE TABLE IF NOT EXISTS products (
+    sort_order INT DEFAULT NULL,
     id SERIAL PRIMARY KEY,
     store_id INT REFERENCES stores(id) ON DELETE CASCADE,
     category_id INT REFERENCES categories(id) ON DELETE SET NULL,

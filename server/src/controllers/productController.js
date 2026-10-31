@@ -1,6 +1,17 @@
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
 const menuScanService = require('../services/menuScanService');
 
+function parseProductSortOrder(value) {
+  if (value == null || (typeof value === 'string' && !value.trim())) return null;
+  const number = Number(value);
+  if (!['string', 'number'].includes(typeof value) || !Number.isInteger(number) || number < 0 || number > 2147483647) {
+    const error = new Error('Số thứ tự phải là số nguyên từ 0 đến 2147483647 hoặc để trống');
+    error.statusCode = 400;
+    throw error;
+  }
+  return number;
+}
+
 function normalizeProductIds(value) {
   if (!Array.isArray(value)) return null;
   return [...new Set(value.map(Number).filter(id => Number.isInteger(id) && id > 0))];
@@ -320,7 +331,10 @@ async function getProducts(req, res) {
     products.sort((a, b) => {
       const nameA = String(a.name || '').trim();
       const nameB = String(b.name || '').trim();
-      return Number(/^\d/.test(nameA)) - Number(/^\d/.test(nameB))
+      const orderA = a.sort_order == null ? Infinity : Number(a.sort_order);
+      const orderB = b.sort_order == null ? Infinity : Number(b.sort_order);
+      return (orderA - orderB)
+        || Number(/^\d/.test(nameA)) - Number(/^\d/.test(nameB))
         || nameA.localeCompare(nameB, 'vi', { sensitivity: 'base', numeric: true })
         || Number(a.id) - Number(b.id);
     });
@@ -340,15 +354,16 @@ async function createProduct(req, res) {
   }
 
   try {
+    const sortOrder = parseProductSortOrder(req.body.sort_order);
     let newProduct = null;
     if (isPostgresConnected()) {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
         const prodRes = await client.query(
-          `INSERT INTO products (store_id, category_id, code, name, description, price, cost_price, unit, image_url, kitchen_type, is_active)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE) RETURNING *`,
-          [storeId, category_id || null, code, name, description || '', price, cost_price || 0, unit || 'Phần', image_url || '🍗', kitchen_type || 'KITCHEN']
+          `INSERT INTO products (store_id, category_id, code, name, description, price, cost_price, unit, image_url, kitchen_type, sort_order, is_active)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, TRUE) RETURNING *`,
+          [storeId, category_id || null, code, name, description || '', price, cost_price || 0, unit || 'Phần', image_url || '🍗', kitchen_type || 'KITCHEN', sortOrder]
         );
         newProduct = prodRes.rows[0];
 
@@ -382,6 +397,7 @@ async function createProduct(req, res) {
         unit: unit || 'Phần',
         image_url: image_url || '🍗',
         kitchen_type: kitchen_type || 'KITCHEN',
+        sort_order: sortOrder,
         is_active: true
       };
       memoryStore.products.push(newProduct);
@@ -402,7 +418,7 @@ async function createProduct(req, res) {
     res.status(201).json({ success: true, message: 'Thêm món thành công', product: newProduct });
   } catch (error) {
     console.error('createProduct error:', error);
-    res.status(500).json({ success: false, message: 'Lỗi tạo món: ' + error.message });
+    res.status(error.statusCode || 500).json({ success: false, message: 'Lỗi tạo món: ' + error.message });
   }
 }
 
@@ -429,6 +445,8 @@ async function updateProduct(req, res) {
   const { variants } = req.body;
   const fields = ['category_id','code','name','description','price','cost_price','unit','image_url','kitchen_type','is_active'];
   try {
+    const hasSortOrder = Object.prototype.hasOwnProperty.call(req.body, 'sort_order');
+    const sortOrder = hasSortOrder ? parseProductSortOrder(req.body.sort_order) : null;
     if (isPostgresConnected()) {
       const client = await pool.connect();
       try {
@@ -437,8 +455,9 @@ async function updateProduct(req, res) {
         const result = await client.query(`UPDATE products SET category_id=CASE WHEN $13 THEN $1 ELSE category_id END, code=COALESCE($2,code),
           name=COALESCE($3,name), description=COALESCE($4,description), price=COALESCE($5,price),
           cost_price=COALESCE($6,cost_price), unit=COALESCE($7,unit), image_url=COALESCE($8,image_url),
-          kitchen_type=COALESCE($9,kitchen_type), is_active=COALESCE($10,is_active), updated_at=CURRENT_TIMESTAMP
-          WHERE id=$11 AND store_id=$12 RETURNING id`, [...values, id, storeId, Object.prototype.hasOwnProperty.call(req.body, 'category_id')]);
+          kitchen_type=COALESCE($9,kitchen_type), is_active=COALESCE($10,is_active),
+          sort_order=CASE WHEN $15 THEN $14 ELSE sort_order END, updated_at=CURRENT_TIMESTAMP
+          WHERE id=$11 AND store_id=$12 RETURNING id`, [...values, id, storeId, Object.prototype.hasOwnProperty.call(req.body, 'category_id'), sortOrder, hasSortOrder]);
         if (!result.rowCount) {
           await client.query('ROLLBACK');
           return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm' });
@@ -464,6 +483,7 @@ async function updateProduct(req, res) {
     } else {
       const product = memoryStore.products.find(item => item.id === id && item.store_id === storeId);
       if (!product) return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm' });
+      if (hasSortOrder) product.sort_order = sortOrder;
       for (const key of fields) if (req.body[key] !== undefined) product[key] = key === 'category_id' && req.body[key] === null
         ? null
         : (['category_id','price','cost_price'].includes(key) ? Number(req.body[key]) : req.body[key]);
@@ -484,7 +504,7 @@ async function updateProduct(req, res) {
     res.json({ success: true, message: 'Cập nhật sản phẩm thành công' });
   } catch (error) {
     console.error('updateProduct error:', error);
-    res.status(error.code === '23505' ? 409 : 500).json({ success: false, message: error.code === '23505' ? 'Mã sản phẩm đã tồn tại' : 'Lỗi cập nhật sản phẩm' });
+    res.status(error.statusCode || (error.code === '23505' ? 409 : 500)).json({ success: false, message: error.statusCode ? error.message : (error.code === '23505' ? 'Mã sản phẩm đã tồn tại' : 'Lỗi cập nhật sản phẩm') });
   }
 }
 

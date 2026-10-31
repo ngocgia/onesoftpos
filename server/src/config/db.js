@@ -239,6 +239,7 @@ async function testConnection() {
     )`);
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS completed_items_enabled BOOLEAN DEFAULT NULL');
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INT NOT NULL DEFAULT 0');
+    await client.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT NULL');
     await client.query(`CREATE TABLE IF NOT EXISTS sizes (
       id SERIAL PRIMARY KEY,
       store_id INT REFERENCES stores(id) ON DELETE CASCADE,

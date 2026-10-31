@@ -426,7 +426,10 @@ window.posModule = {
     let filtered = [...this.products].sort((a, b) => {
       const nameA = String(a.name || '').trim();
       const nameB = String(b.name || '').trim();
-      return Number(/^\d/.test(nameA)) - Number(/^\d/.test(nameB))
+      const orderA = a.sort_order == null ? Infinity : Number(a.sort_order);
+      const orderB = b.sort_order == null ? Infinity : Number(b.sort_order);
+      return (orderA - orderB)
+        || Number(/^\d/.test(nameA)) - Number(/^\d/.test(nameB))
         || nameA.localeCompare(nameB, 'vi', { sensitivity: 'base', numeric: true })
         || Number(a.id) - Number(b.id);
     });

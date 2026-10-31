@@ -92,7 +92,7 @@ test('root opens landing; Android URL and POS assets remain available; admin con
   assert.equal((await fetch(base + '/js/invoice.js')).status, 200);
   for (const path of ['/api/admin/landing', '/api/admin/landing/leads']) {
     assert.equal((await fetch(base + path)).status, 401);
-    const token = jwt.sign({ id: 3 }, JWT_SECRET);
+    const token = jwt.sign({ id: 3, ver: 0 }, JWT_SECRET);
     assert.equal((await fetch(base + path, { headers: { Authorization: 'Bearer ' + token } })).status, 403);
   }
 });

@@ -72,7 +72,7 @@ test('HTTP upload enforces real auth, management role and store assignment, serv
   t.after(() => new Promise(resolve => server.close(resolve)));
   const origin = `http://127.0.0.1:${server.address().port}`;
   const send = (user, store, image = png) => fetch(`${origin}/api/product-images`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', ...(user ? { Authorization: `Bearer ${jwt.sign({ id: user }, 'image-test-secret')}` } : {}), ...(store ? { 'X-Store-Id': String(store) } : {}) },
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...(user ? { Authorization: `Bearer ${jwt.sign({ id: user, ver: 0 }, 'image-test-secret')}` } : {}), ...(store ? { 'X-Store-Id': String(store) } : {}) },
     body: JSON.stringify({ image })
   });
   assert.equal((await send(null, 11)).status, 401);

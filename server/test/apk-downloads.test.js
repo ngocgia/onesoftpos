@@ -126,7 +126,8 @@ test('download HTTP sends APK attachments publicly while administration requires
   const base = `http://127.0.0.1:${server.address().port}`;
   const admin = db.memoryStore.users.find(user => ['SUPER_ADMIN', 'ADMIN'].includes(user.role) && user.status === 'ACTIVE');
   const cashier = db.memoryStore.users.find(user => user.role === 'CASHIER' && user.status === 'ACTIVE');
-  const auth = user => ({ Authorization: `Bearer ${jwt.sign({ id: user.id }, JWT_SECRET)}` });
+  // Tokens must carry the token_version claim that authenticateToken now enforces.
+  const auth = user => ({ Authorization: `Bearer ${jwt.sign({ id: user.id, ver: 0 }, JWT_SECRET)}` });
   assert.equal((await fetch(`${base}/api/admin/apks`)).status, 401);
   for (const method of ['GET', 'POST', 'PUT', 'DELETE']) {
     const url = `${base}/api/admin/apks${['PUT', 'DELETE'].includes(method) ? '/fake-id' : ''}`;

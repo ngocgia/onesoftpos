@@ -472,17 +472,17 @@ window.posModule = {
       </div>
     `).join('');
 
-    // The plus button follows the store setting; the card still allows customization.
+    // Every catalog click follows the same store setting.
     grid.querySelectorAll('.product-card').forEach(card => {
       card.querySelector('.btn-add-prod')?.addEventListener('click', event => {
         event.stopPropagation();
         const product = this.products.find(p => p.id === Number(card.getAttribute('data-id')));
         if (product) this.addProductFromCatalog(product, event.currentTarget);
       });
-      card.addEventListener('click', () => {
+      card.addEventListener('click', event => {
         const prodId = parseInt(card.getAttribute('data-id'), 10);
         const prod = this.products.find(p => p.id === prodId);
-        if (prod) this.openModifierModal(prod);
+        if (prod) this.addProductFromCatalog(prod, event.currentTarget);
       });
     });
   },

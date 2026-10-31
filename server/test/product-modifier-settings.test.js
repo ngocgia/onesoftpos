@@ -19,7 +19,7 @@ function posHarness(settings = {}) {
   const effects = [], popups = [];
   pos.animateAddToCart = (...args) => effects.push(args);
   pos.openModifierModal = product => popups.push(product);
-  return { pos, state, toasts, effects, popups, document };
+  return { pos, state, toasts, effects, popups, document, window };
 }
 
 const product = {
@@ -65,6 +65,40 @@ test('quick add supports no variants and falls back to the first variant', () =>
   assert.equal(h.state.cart.items[0].subtotal, 32000);
   assert.equal(h.state.cart.items[1].variant_id, 3);
   assert.equal(h.state.cart.items[1].subtotal, 42000);
+});
+
+test('image, title, card and plus clicks all respect the popup setting and add only once', () => {
+  for (const enabled of [false, true]) {
+    const h = posHarness({ product_modifier_popup_enabled: enabled });
+    const handlers = {};
+    const plus = { addEventListener: (type, handler) => { handlers.plus = handler; } };
+    const card = { getAttribute: () => String(product.id), querySelector: () => plus,
+      addEventListener: (type, handler) => { handlers.card = handler; } };
+    const grid = { innerHTML: '', querySelectorAll: () => [card] };
+    h.document.getElementById = id => id === 'productsGrid' ? grid : null;
+    h.window.api.formatMoney = String;
+    h.window.productImages = { render: () => '' };
+    h.pos.products = [product];
+    h.pos.renderProducts();
+    for (const target of [{ tagName: 'IMG' }, { tagName: 'H4' }, card, plus]) {
+      let stopped = false;
+      const event = { target, currentTarget: target === plus ? plus : card, stopPropagation() { stopped = true; } };
+      if (target === plus) handlers.plus(event);
+      if (!stopped) handlers.card(event);
+    }
+    assert.equal(h.popups.length, enabled ? 4 : 0);
+    assert.equal(h.state.cart.items.length, enabled ? 0 : 1);
+    if (!enabled) {
+      assert.equal(h.state.cart.items[0].quantity, 4);
+      assert.equal(h.state.cart.items[0].variant_id, 2);
+      assert.equal(h.state.cart.items[0].note, '');
+      assert.equal(h.state.cart.items[0].options.length, 0);
+    }
+    h.pos.sendingOrder = true;
+    handlers.card({ currentTarget: card });
+    assert.equal(h.popups.length, enabled ? 4 : 0);
+    if (!enabled) assert.equal(h.state.cart.items[0].quantity, 4);
+  }
 });
 
 test('modal confirmation preserves quantity, note and toppings with add feedback', () => {

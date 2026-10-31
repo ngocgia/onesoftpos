@@ -709,7 +709,7 @@ const adminApp = {
         ) +
         this.field(
           "product_modifier_popup_enabled",
-          "Popup ghi chú / tùy chọn món khi bấm dấu cộng",
+          "Popup ghi chú / tùy chọn khi chọn món",
           "select",
           String(settings.product_modifier_popup_enabled !== false),
           [
@@ -719,7 +719,7 @@ const adminApp = {
           false,
           true,
         ) +
-        `<p class="field full muted">Khi tắt, dấu cộng thêm 1 món với kích cỡ mặc định, không topping và không ghi chú. Bấm vào thẻ món để chọn tùy chọn hoặc ghi chú khi cần.</p>` +
+        `<p class="field full muted">Khi tắt, bấm ảnh, tên món hoặc dấu cộng đều thêm 1 món vào giỏ với kích cỡ mặc định, không topping và không ghi chú.</p>` +
         this.field(
           "allow_cancel_item",
           "Cho phép đầu bếp hủy món",

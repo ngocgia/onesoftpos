@@ -42,11 +42,11 @@ try {
 // Memory fallback store if Postgres is unavailable locally
 const memoryStore = {
   users: [
-    { id: 1, username: 'admin', email: 'admin@onesoftpos.com', full_name: 'Quản trị viên Hệ Thống', role: 'SUPER_ADMIN', status: 'ACTIVE', phone: '0900000001' },
-    { id: 2, username: 'manager', email: 'manager@onesoftpos.com', full_name: 'Nguyễn Quản Lý', role: 'STORE_MANAGER', status: 'ACTIVE', phone: '0900000002' },
-    { id: 3, username: 'cashier', email: 'cashier@onesoftpos.com', full_name: 'Trần Thu Ngân', role: 'CASHIER', status: 'ACTIVE', phone: '0900000003' },
-    { id: 4, username: 'kitchen', email: 'kitchen@onesoftpos.com', full_name: 'Lê Đầu Bếp', role: 'KITCHEN', status: 'ACTIVE', phone: '0900000004' },
-    { id: 5, username: 'order', email: 'order@onesoftpos.com', full_name: 'Phạm Nhân Viên Order', role: 'ORDER_STAFF', status: 'ACTIVE', phone: '0900000005' }
+    { id: 1, username: 'admin', email: 'admin@onesoftpos.com', password_hash: SEEDED_PASSWORD_HASH, full_name: 'Quản trị viên Hệ Thống', role: 'SUPER_ADMIN', status: 'ACTIVE', phone: '0900000001' },
+    { id: 2, username: 'manager', email: 'manager@onesoftpos.com', password_hash: SEEDED_PASSWORD_HASH, full_name: 'Nguyễn Quản Lý', role: 'STORE_MANAGER', status: 'ACTIVE', phone: '0900000002' },
+    { id: 3, username: 'cashier', email: 'cashier@onesoftpos.com', password_hash: SEEDED_PASSWORD_HASH, full_name: 'Trần Thu Ngân', role: 'CASHIER', status: 'ACTIVE', phone: '0900000003' },
+    { id: 4, username: 'kitchen', email: 'kitchen@onesoftpos.com', password_hash: SEEDED_PASSWORD_HASH, full_name: 'Lê Đầu Bếp', role: 'KITCHEN', status: 'ACTIVE', phone: '0900000004' },
+    { id: 5, username: 'order', email: 'order@onesoftpos.com', password_hash: SEEDED_PASSWORD_HASH, full_name: 'Phạm Nhân Viên Order', role: 'ORDER_STAFF', status: 'ACTIVE', phone: '0900000005' }
   ],
   store_types: [
     { id: 1, code: 'TAKEAWAY', name: 'Chỉ bán mang đi', description: 'Mô hình Kiot chuyên mang đi', is_active: true },
@@ -253,7 +253,8 @@ async function testConnection() {
       product_id INT REFERENCES products(id) ON DELETE CASCADE,
       size_name VARCHAR(50) NOT NULL,
       price_adjustment NUMERIC(15, 2) DEFAULT 0,
-      is_default BOOLEAN DEFAULT FALSE
+      is_default BOOLEAN DEFAULT FALSE,
+      CONSTRAINT uq_product_variants_product_size UNIQUE (product_id, size_name)
     )`);
     await client.query('ALTER TABLE order_items ADD COLUMN IF NOT EXISTS variant_id INT REFERENCES product_variants(id) ON DELETE SET NULL');
     await client.query(`CREATE TABLE IF NOT EXISTS store_role_features (
@@ -297,6 +298,56 @@ async function testConnection() {
         SELECT option.id, product.id FROM product_options option
         JOIN products product ON product.store_id=option.store_id
         ON CONFLICT DO NOTHING`);
+    }
+    // Older seeds inserted duplicate sizes/toppings because product_variants
+    // and product_options had no unique constraint. Point references at the
+    // kept row, drop duplicates, then enforce the constraints.
+    await client.query(`UPDATE order_items oi SET variant_id = duplicate.keeper_id
+      FROM (
+        SELECT dup.id AS dup_id, MIN(keeper.id) AS keeper_id
+        FROM product_variants dup JOIN product_variants keeper
+          ON keeper.id < dup.id AND keeper.product_id = dup.product_id AND keeper.size_name = dup.size_name
+        GROUP BY dup.id
+      ) duplicate WHERE oi.variant_id = duplicate.dup_id`);
+    await client.query(`UPDATE order_item_options oio SET option_id = duplicate.keeper_id
+      FROM (
+        SELECT dup.id AS dup_id, MIN(keeper.id) AS keeper_id
+        FROM product_options dup JOIN product_options keeper
+          ON keeper.id < dup.id AND keeper.store_id = dup.store_id
+          AND keeper.group_id IS NOT DISTINCT FROM dup.group_id AND keeper.name = dup.name
+        GROUP BY dup.id
+      ) duplicate WHERE oio.option_id = duplicate.dup_id`);
+    await client.query(`UPDATE product_option_products pop SET option_id = duplicate.keeper_id
+      FROM (
+        SELECT dup.id AS dup_id, MIN(keeper.id) AS keeper_id
+        FROM product_options dup JOIN product_options keeper
+          ON keeper.id < dup.id AND keeper.store_id = dup.store_id
+          AND keeper.group_id IS NOT DISTINCT FROM dup.group_id AND keeper.name = dup.name
+        GROUP BY dup.id
+      ) duplicate
+      WHERE pop.option_id = duplicate.dup_id
+        AND NOT EXISTS (
+          SELECT 1 FROM product_option_products existing
+          WHERE existing.option_id = duplicate.keeper_id AND existing.product_id = pop.product_id
+        )`);
+    await client.query(`DELETE FROM product_variants duplicate
+      USING product_variants keeper
+      WHERE duplicate.id > keeper.id
+        AND duplicate.product_id = keeper.product_id AND duplicate.size_name = keeper.size_name`);
+    await client.query(`DELETE FROM product_options duplicate
+      USING product_options keeper
+      WHERE duplicate.id > keeper.id
+        AND duplicate.store_id = keeper.store_id
+        AND duplicate.group_id IS NOT DISTINCT FROM keeper.group_id
+        AND duplicate.name = keeper.name`);
+    for (const [table, constraint, definition] of [
+      ['product_variants', 'uq_product_variants_product_size', 'UNIQUE (product_id, size_name)'],
+      ['product_options', 'uq_product_options_store_group_name', 'UNIQUE (store_id, group_id, name)']
+    ]) {
+      const exists = await client.query('SELECT 1 FROM pg_constraint WHERE conname = $1', [constraint]);
+      if (!exists.rowCount) {
+        await client.query(`ALTER TABLE ${table} ADD CONSTRAINT ${constraint} ${definition}`);
+      }
     }
     await client.query(`WITH ranked_assignments AS (
       SELECT us.id, ROW_NUMBER() OVER (

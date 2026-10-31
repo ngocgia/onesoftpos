@@ -56,6 +56,9 @@ app.get('*', (req, res) => {
 
 // Start server after the configured database is ready.
 async function start() {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is required. Copy server/.env.example to server/.env and set a long random secret.');
+  }
   const connected = await testConnection();
   if (connected) await require('./db/menuPreferences').ensureMenuPreferences(require('./config/db').pool);
   if (process.env.DB_CLIENT === 'mysql' && !connected) {

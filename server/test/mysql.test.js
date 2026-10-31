@@ -68,7 +68,10 @@ test('normalizes common MySQL constraint errors for existing controllers', () =>
 test('generates a MySQL schema and clean seed for the fresh database', () => {
   const schema = statements();
   const seed = seedStatements();
-  assert.equal(schema.length, 26);
+  assert.equal(schema.filter(sql => /^CREATE TABLE/i.test(sql)).length, 26);
+  // Indexes from schema.sql must survive the conversion (they were dropped before).
+  assert.equal(schema.filter(sql => /^CREATE (UNIQUE )?INDEX /i.test(sql)).length, 12);
+  assert.ok(schema.some(sql => sql.startsWith('CREATE INDEX idx_orders_store ON orders')));
   assert.ok(schema.some(sql => sql.includes("CREATE TABLE IF NOT EXISTS menu_preferences")));
   assert.ok(seed.length > 10);
   assert.ok(schema.every(sql => !/SERIAL|JSONB|TIMESTAMP WITH TIME ZONE|::jsonb/.test(sql)));

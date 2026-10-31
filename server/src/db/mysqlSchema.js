@@ -2,11 +2,11 @@ const fs = require('fs');
 const path = require('path');
 
 // The PostgreSQL schema remains the source of truth for table and column names.
-// Convert its CREATE TABLE statements for a fresh MySQL 8 database.
+// Convert its CREATE TABLE and CREATE INDEX statements for a fresh MySQL 8 database.
 function statements() {
   const source = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
   const tables = source.match(/CREATE TABLE IF NOT EXISTS [\s\S]*?\n\);/g) || [];
-  return tables.map(block => {
+  const tableStatements = tables.map(block => {
     const lines = block.replace(/\r/g, '').split('\n');
     const references = [];
     const converted = lines.map(line => {
@@ -34,6 +34,12 @@ function statements() {
     if (references.length) sql = sql.replace(/\n\);$/, `,\n${references.join(',\n')}\n);`);
     return sql.replace(/;$/, '') + ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
   });
+  // MySQL 8 has no "CREATE INDEX IF NOT EXISTS"; callers tolerate duplicate
+  // index names (ER_DUP_KEYNAME) so re-running against an initialized
+  // database stays safe. Indexes go after every table so their table exists.
+  const indexes = (source.match(/CREATE (?:UNIQUE )?INDEX IF NOT EXISTS \w+\s+ON\s+\w+\s*\([^)]+\);/g) || [])
+    .map(sql => sql.replace(' IF NOT EXISTS', '').replace(/\s+/g, ' ').replace(/;\s*$/, ''));
+  return [...tableStatements, ...indexes];
 }
 
 module.exports = { statements };

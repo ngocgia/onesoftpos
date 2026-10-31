@@ -206,7 +206,8 @@ CREATE TABLE IF NOT EXISTS product_variants (
     product_id INT REFERENCES products(id) ON DELETE CASCADE,
     size_name VARCHAR(50) NOT NULL, -- S, M, L, Tiêu chuẩn
     price_adjustment NUMERIC(15, 2) DEFAULT 0, -- Chênh lệch so với giá gốc
-    is_default BOOLEAN DEFAULT FALSE
+    is_default BOOLEAN DEFAULT FALSE,
+    CONSTRAINT uq_product_variants_product_size UNIQUE (product_id, size_name)
 );
 
 CREATE TABLE IF NOT EXISTS topping_groups (
@@ -225,7 +226,8 @@ CREATE TABLE IF NOT EXISTS product_options (
     group_id INT REFERENCES topping_groups(id) ON DELETE SET NULL,
     name VARCHAR(100) NOT NULL, -- Trân châu, Phô mai, Trứng ốp la
     price NUMERIC(15, 2) NOT NULL DEFAULT 0,
-    is_active BOOLEAN DEFAULT TRUE
+    is_active BOOLEAN DEFAULT TRUE,
+    CONSTRAINT uq_product_options_store_group_name UNIQUE (store_id, group_id, name)
 );
 
 ALTER TABLE product_options

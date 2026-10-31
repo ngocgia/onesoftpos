@@ -65,14 +65,11 @@ async function login(req, res) {
       return res.status(401).json({ success: false, message: 'Tên đăng nhập hoặc mật khẩu không chính xác' });
     }
 
-    // Compare password (support default 123456)
+    // Only bcrypt-verifiable passwords are accepted; an account without a
+    // password_hash cannot log in until an admin sets one.
     let isMatch = false;
     if (user.password_hash) {
       isMatch = await bcrypt.compare(password, user.password_hash);
-    }
-    // Fallback for simple demo logins
-    if (!isMatch && !user.password_hash && (password === '123456' || password === 'admin' || password === user.username)) {
-      isMatch = true;
     }
 
     if (!isMatch) {

@@ -135,7 +135,7 @@ INSERT INTO product_variants (product_id, size_name, price_adjustment, is_defaul
 (5, 'Size M', 0, TRUE),
 (5, 'Size L (+5k)', 5000, FALSE),
 (6, 'Ly Tiêu Chuẩn', 0, TRUE)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (product_id, size_name) DO NOTHING;
 
 -- 10. PRODUCT OPTIONS (Toppings)
 INSERT INTO topping_groups (store_id, name, description, sort_order, is_active) VALUES
@@ -151,7 +151,7 @@ INSERT INTO product_options (store_id, group_id, name, price, is_active) VALUES
 (1, (SELECT id FROM topping_groups WHERE store_id=1 AND name='Món thêm'), 'Thêm 1 Trứng ốp la', 7000, TRUE),
 (1, (SELECT id FROM topping_groups WHERE store_id=1 AND name='Món thêm'), 'Thêm Cơm trắng xối mỡ', 5000, TRUE),
 (2, (SELECT id FROM topping_groups WHERE store_id=2 AND name='Topping đồ uống'), 'Thêm Trân châu', 5000, TRUE)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (store_id, group_id, name) DO NOTHING;
 
 -- Configure which menu items may use each topping.
 INSERT INTO product_option_products (option_id, product_id)

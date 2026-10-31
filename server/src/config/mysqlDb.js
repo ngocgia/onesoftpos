@@ -1,5 +1,35 @@
 const { pool } = require('./mysql');
+const { statements } = require('../db/mysqlSchema');
 let connected = false;
+
+async function ensureSchemaUpgrades() {
+  // Mirror the PostgreSQL boot migrations: add schema indexes that older
+  // installations are missing (MySQL has no CREATE INDEX IF NOT EXISTS).
+  const indexStatements = statements().filter(sql => /^CREATE (?:UNIQUE )?INDEX /i.test(sql));
+  if (indexStatements.length) {
+    const existing = await pool.query("SELECT DISTINCT INDEX_NAME AS name FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE()");
+    const known = new Set(existing.rows.map(row => row.name));
+    for (const sql of indexStatements) {
+      const name = sql.match(/^CREATE (?:UNIQUE )?INDEX (\w+) ON/i)[1];
+      if (!known.has(name)) await pool.query(sql);
+    }
+  }
+  for (const sql of [
+    'ALTER TABLE product_variants ADD CONSTRAINT uq_product_variants_product_size UNIQUE (product_id, size_name)',
+    'ALTER TABLE product_options ADD CONSTRAINT uq_product_options_store_group_name UNIQUE (store_id, group_id, name)'
+  ]) {
+    try {
+      await pool.query(sql);
+    } catch (error) {
+      if (error.code === 'ER_DUP_ENTRY') {
+        // Legacy duplicate rows exist; clean them up manually, then restart.
+        console.warn('[MySQL] Skipped unique constraint (duplicate rows present):', error.message);
+      } else if (error.code !== 'ER_DUP_KEYNAME') {
+        throw error;
+      }
+    }
+  }
+}
 
 async function testConnection() {
   try {
@@ -13,6 +43,7 @@ async function testConnection() {
         if (error.code !== 'ER_DUP_FIELDNAME') throw error;
       }
     }
+    await ensureSchemaUpgrades();
     connected = true;
     console.log('[MySQL] Connected successfully.');
     return true;

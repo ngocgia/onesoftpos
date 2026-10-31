@@ -1,8 +1,11 @@
-const { LEGACY_JWT_SECRET } = require('../config/legacyBrand');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { pool, isPostgresConnected, memoryStore } = require('../config/db');
 
-const JWT_SECRET = process.env.JWT_SECRET || LEGACY_JWT_SECRET;
+// Never fall back to a secret that ships in the repository. server.js refuses
+// to start without JWT_SECRET; this per-process value only covers direct
+// module use in tests and invalidates tokens on restart by design.
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
 
 async function userCanAccessStore(user, storeId) {
   if (['SUPER_ADMIN', 'ADMIN'].includes(user.role)) return true;

@@ -171,6 +171,7 @@ CREATE TABLE IF NOT EXISTS product_variants (
     size_name VARCHAR(50) NOT NULL,
     price_adjustment NUMERIC(15, 2) DEFAULT 0,
     is_default TINYINT(1) DEFAULT 0,
+    CONSTRAINT uq_product_variants_product_size UNIQUE (product_id, size_name),
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -192,6 +193,7 @@ CREATE TABLE IF NOT EXISTS product_options (
     name VARCHAR(100) NOT NULL,
     price NUMERIC(15, 2) NOT NULL DEFAULT 0,
     is_active TINYINT(1) DEFAULT 1,
+    CONSTRAINT uq_product_options_store_group_name UNIQUE (store_id, group_id, name),
     FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE,
     FOREIGN KEY (group_id) REFERENCES topping_groups(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -388,10 +390,34 @@ CREATE TABLE IF NOT EXISTS menu_preferences (
     owner_type VARCHAR(10) NOT NULL,
     owner_id INTEGER NOT NULL,
     section VARCHAR(32) NOT NULL,
-    payload TEXT NOT NULL,
+    payload MEDIUMTEXT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (owner_type, owner_id, section)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_product_option_products_product ON product_option_products(product_id);
+
+CREATE INDEX idx_stores_status ON stores(status);
+
+CREATE INDEX idx_products_store ON products(store_id, is_active);
+
+CREATE INDEX idx_categories_store ON categories(store_id, is_active);
+
+CREATE INDEX idx_tables_store ON tables(store_id, status);
+
+CREATE INDEX idx_orders_store ON orders(store_id, order_status, created_at);
+
+CREATE INDEX idx_order_items_order ON order_items(order_id);
+
+CREATE INDEX idx_order_items_prepared_by ON order_items(prepared_by, prepared_at DESC);
+
+CREATE INDEX idx_sizes_store ON sizes(store_id, is_active);
+
+CREATE INDEX idx_inventory_items_store ON inventory_items(store_id, is_active);
+
+CREATE INDEX idx_inventory_trans_store_created ON inventory_transactions(store_id, created_at DESC);
+
+CREATE INDEX idx_inventory_trans_item ON inventory_transactions(item_id);
 
 INSERT INTO store_types (id, code, name, description, is_active) VALUES
 (1, 'TAKEAWAY', 'Chỉ bán mang đi', 'Mô hình Kiot, Takeaway chuyên biệt, không có quản lý bàn', TRUE),

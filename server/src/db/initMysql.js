@@ -16,7 +16,15 @@ function seedStatements() {
 async function initMysql() {
   const connection = await mysqlPool.getConnection();
   try {
-    for (const sql of statements()) await connection.query(sql);
+    for (const sql of statements()) {
+      try {
+        await connection.query(sql);
+      } catch (error) {
+        // MySQL lacks CREATE INDEX IF NOT EXISTS; re-created indexes on a
+        // re-run against an initialized database are not a failure.
+        if (error.code !== 'ER_DUP_KEYNAME') throw error;
+      }
+    }
     const [[{ count }]] = await connection.query('SELECT COUNT(*) AS count FROM stores');
     if (count) {
       console.log('MySQL schema ready; existing data was left intact.');

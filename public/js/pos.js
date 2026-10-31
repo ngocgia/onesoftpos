@@ -400,7 +400,7 @@ window.posModule = {
       const count = this.products.filter(p => p.category_id === cat.id).length;
       html += `
         <button class="cat-pill ${this.selectedCategory === String(cat.id) ? 'active' : ''}" data-id="${cat.id}">
-          ${cat.name} (${count})
+          ${this.escapeHtml(cat.name)} (${count})
         </button>
       `;
     });
@@ -458,8 +458,8 @@ window.posModule = {
           <div class="product-emoji">${window.productImages.render(prod.image_url, prod.name)}</div>
           <span class="product-badge-kitchen">${prod.kitchen_type === 'BAR' ? 'Pha chế' : 'Bếp nấu'}</span>
         </div>
-        <h4 class="product-title">${prod.name}</h4>
-        <p class="product-desc">${prod.description || prod.code}</p>
+        <h4 class="product-title">${this.escapeHtml(prod.name)}</h4>
+        <p class="product-desc">${this.escapeHtml(prod.description || prod.code)}</p>
         <div class="product-card-bottom">
           <span class="product-price">${window.api.formatMoney(prod.price)}</span>
           <button type="button" class="btn-add-prod" title="Thêm vào giỏ">
@@ -580,7 +580,7 @@ window.posModule = {
 
       sizeOptions.innerHTML = product.variants.map(v => `
         <button type="button" class="size-option-btn ${v.id === this.selectedVariant.id ? 'active' : ''}" data-id="${v.id}">
-          <strong>${v.size_name}</strong>
+          <strong>${this.escapeHtml(v.size_name)}</strong>
           <span>${v.price_adjustment > 0 ? '+' + window.api.formatMoney(v.price_adjustment) : 'Chuẩn'}</span>
         </button>
       `).join('');
@@ -605,8 +605,8 @@ window.posModule = {
       toppingsList.innerHTML = productOptions.map(opt => `
         <label class="topping-checkbox-item">
           <div>
-            <input type="checkbox" class="opt-check" data-id="${opt.id}" data-name="${opt.name}" data-price="${opt.price}">
-            <span style="margin-left: 6px;">${opt.name}</span>
+            <input type="checkbox" class="opt-check" data-id="${opt.id}" data-name="${this.escapeHtml(opt.name)}" data-price="${opt.price}">
+            <span style="margin-left: 6px;">${this.escapeHtml(opt.name)}</span>
           </div>
           <strong>+${window.api.formatMoney(opt.price)}</strong>
         </label>
@@ -714,12 +714,12 @@ window.posModule = {
       itemsList.innerHTML = sentHtml + items.map((item, idx) => `
         <div class="cart-item-row" data-index="${idx}" data-product-id="${item.product_id}">
           <div class="cart-item-info">
-            <h4 class="cart-item-name">${item.product_name}</h4>
+            <h4 class="cart-item-name">${this.escapeHtml(item.product_name)}</h4>
             <div class="cart-item-tags">
-              ${item.variant_name ? `<span class="cart-item-tag">${item.variant_name}</span>` : ''}
-              ${(item.options || []).map(o => `<span class="cart-item-tag">+${o.option_name}</span>`).join('')}
+              ${item.variant_name ? `<span class="cart-item-tag">${this.escapeHtml(item.variant_name)}</span>` : ''}
+              ${(item.options || []).map(o => `<span class="cart-item-tag">+${this.escapeHtml(o.option_name)}</span>`).join('')}
             </div>
-            ${item.note ? `<p class="cart-item-note"><i class="fa-regular fa-note-sticky"></i> ${item.note}</p>` : ''}
+            ${item.note ? `<p class="cart-item-note"><i class="fa-regular fa-note-sticky"></i> ${this.escapeHtml(item.note)}</p>` : ''}
           </div>
           <div class="cart-item-right">
             <span class="cart-item-price">${window.api.formatMoney(item.subtotal)}</span>
@@ -794,7 +794,7 @@ window.posModule = {
     if (btnSendKitchen) {
       btnSendKitchen.style.display = canCreate && !isTakeaway ? 'inline-flex' : 'none';
       btnSendKitchen.disabled = !itemCount || !!this.sendingOrder;
-      btnSendKitchen.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ${nextStep ? `Chuyển: ${nextStep.name}` : 'Chuyển món cho bếp'}`;
+      btnSendKitchen.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ${nextStep ? `Chuyển: ${this.escapeHtml(nextStep.name)}` : 'Chuyển món cho bếp'}`;
     }
     if (btnPrintDraft) {
       btnPrintDraft.style.display = this.isTakeawayOnlyOrder() ? 'inline-flex' : 'none';

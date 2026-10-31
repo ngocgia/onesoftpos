@@ -13,11 +13,12 @@ window.tablesModule = {
     const cart = state.cart.orderType === 'DINE_IN' && Number(state.cart.selectedTable?.id) === Number(table.id)
       ? state.cart : state.getTableCart(table.id);
     const hasDraft = !!cart?.items?.length;
-    const subtotal = (cart?.items || []).reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
-    const discount = Number(cart?.discountCash || 0) + subtotal * Number(cart?.discountPercent || 0) / 100;
+    // VND has no minor unit: keep every money figure an integer dong amount (sync with state.js).
+    const subtotal = Math.round((cart?.items || []).reduce((sum, item) => sum + Number(item.subtotal || 0), 0));
+    const discount = Math.round(Math.max(0, Math.min(subtotal, Number(cart?.discountCash || 0) + subtotal * Number(cart?.discountPercent || 0) / 100)));
     return {
       hasDraft,
-      total: Number(orderTotal || 0) + Math.max(0, subtotal - Math.min(subtotal, discount)),
+      total: Math.round(Number(orderTotal || 0)) + Math.max(0, subtotal - discount),
       status: hasDraft ? 'OCCUPIED' : table.status
     };
   },
@@ -241,6 +242,42 @@ window.tablesModule = {
     return String(value ?? '').replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));
   },
 
+  discardTableCartDraft(tableId) {
+    // state.js chỉ tự dọn giỏ nháp qua saveTableCart() cho bàn đang mở, nên sau khi
+    // chuyển/gộp/thanh toán phải chủ động xóa key localStorage của bàn nguồn để bàn
+    // về EMPTY không hồi sinh giỏ nháp cũ của đơn đã xử lý khi bấm vào lại.
+    const appState = window.appState;
+    const cart = appState?.cart;
+    if (cart && cart.orderType === 'DINE_IN' && Number(cart.selectedTable?.id) === Number(tableId)) {
+      // Giỏ trong bộ nhớ đang gắn với bàn này: reset trước để clearCart() ->
+      // saveTableCart() không ghi lại key, và setSelectedTable(null) thay giỏ mới.
+      cart.sentItems = [];
+      cart.sentOrder = null;
+      appState.clearCart();
+      appState.setSelectedTable(null);
+    }
+    const key = typeof appState?.tableCartKey === 'function'
+      ? appState.tableCartKey(tableId)
+      : `onesoftpos_table_cart_${window.api.getCurrentStoreId()}_${appState?.user?.id || 'staff'}_${tableId}`;
+    try { localStorage.removeItem(key); } catch (_) {}
+  },
+
+  cleanupStaleTableDrafts() {
+    // Bàn đã EMPTY trên server nhưng localStorage còn giỏ nháp (đơn đã được chuyển/
+    // gộp/thanh toán ở thiết bị khác hoặc chính máy này, ví dụ qua checkout.js gọi
+    // loadAreasAndTables() sau thanh toán): dọn key để không hồi sinh giỏ cũ.
+    const storeId = window.api.getCurrentStoreId();
+    const cart = window.appState?.cart;
+    this.tables.forEach(table => {
+      if (table.status !== 'EMPTY' || table.current_order_id) return;
+      const isLiveDraft = cart?.orderType === 'DINE_IN' && Number(cart.selectedTable?.id) === Number(table.id)
+        && cart.items.length > 0 && !cart.existingOrderId;
+      // Giữ giỏ nháp thuần chưa gửi (chưa có đơn) khi đồng bộ trạng thái nháp còn đang chạy hoặc vừa lỗi.
+      if (isLiveDraft || this.draftStatusQueue.has(`${storeId}:${table.id}`)) return;
+      this.discardTableCartDraft(table.id);
+    });
+  },
+
   field(name, label, type = 'text', value = '', options = null, required = false) {
     if (type === 'select') return `<div class="form-group"><label>${label}</label><select class="form-input" name="${name}" ${required ? 'required' : ''}>${options.map(option => `<option value="${this.escape(option.value)}" ${String(option.value) === String(value) ? 'selected' : ''}>${this.escape(option.label)}</option>`).join('')}</select></div>`;
     return `<div class="form-group"><label>${label}</label><input class="form-input" name="${name}" type="${type}" value="${this.escape(value)}" ${required ? 'required' : ''}></div>`;
@@ -329,6 +366,8 @@ window.tablesModule = {
       this.areas = areaRes.areas || [];
       this.tables = tableRes.tables || [];
 
+      this.cleanupStaleTableDrafts();
+
       this.renderAreaTabs();
       this.renderTables();
       this.renderAdminManagement();
@@ -357,7 +396,7 @@ window.tablesModule = {
       const count = this.tables.filter(t => t.area_id === area.id).length;
       html += `
         <button class="area-tab ${this.selectedAreaId === String(area.id) ? 'active' : ''}" data-id="${area.id}">
-          ${area.name} (${count})
+          ${this.escape(area.name)} (${count})
         </button>
       `;
     });
@@ -396,15 +435,15 @@ window.tablesModule = {
       return `
         <div class="table-card status-${summary.status}" data-id="${t.id}">
           <div class="table-card-header">
-            <span class="table-code-badge">${t.code}</span>
+            <span class="table-code-badge">${this.escape(t.code)}</span>
             <span class="table-status-pill">${statusText}</span>
           </div>
           <div class="table-card-body">
-            <div class="text-sub" style="font-size: 11px;">${t.name} (${t.seats || 4} chỗ)</div>
+            <div class="text-sub" style="font-size: 11px;">${this.escape(t.name)} (${t.seats || 4} chỗ)</div>
             ${isOccupied ? `
               <div class="table-order-info">
                 <span class="table-amount">${window.api.formatMoney(summary.total)}</span>
-                <div class="text-muted" style="font-size: 10px;">${t.order_code || ''}${summary.hasDraft ? ' · Món chưa gửi' : ''}</div>
+                <div class="text-muted" style="font-size: 10px;">${this.escape(t.order_code || '')}${summary.hasDraft ? ' · Món chưa gửi' : ''}</div>
               </div>
             ` : `
               <div class="table-order-info text-muted">
@@ -574,8 +613,8 @@ window.tablesModule = {
             ${item.note ? `<small>Ghi chú: ${this.escape(item.note)}</small>` : ''}
           </div>
           <div class="table-order-item-side">
-            <span class="order-item-status status-${this.escape(String(item.status || '').toLowerCase())}">${this.itemStatusLabel(item.status)}</span>
-            <strong>${window.api.formatMoney(item.subtotal || 0)}</strong>
+            <span class="order-item-status status-${this.escape(String(item.status || '').toLowerCase())}">${this.escape(this.itemStatusLabel(item.status))}</span>
+            <strong>${window.api.formatMoney(Math.round(item.subtotal || 0))}</strong>
             ${canCancel ? `<button type="button" class="btn-cancel-order-item" data-item-id="${item.id}" data-item-name="${this.escape(item.product_name)}"><i class="fa-solid fa-ban"></i> Hủy món</button>` : ''}
           </div>
         </div>`;
@@ -620,8 +659,8 @@ window.tablesModule = {
 
     select.innerHTML = emptyTables.map(t => {
       const area = this.areas.find(a => a.id === t.area_id);
-      const areaName = area ? ` [${area.name}]` : '';
-      return `<option value="${t.id}">${t.code} – ${t.name}${areaName} (${t.seats || 4} chỗ)</option>`;
+      const areaName = area ? ` [${this.escape(area.name)}]` : '';
+      return `<option value="${t.id}">${this.escape(t.code)} – ${this.escape(t.name)}${areaName} (${t.seats || 4} chỗ)</option>`;
     }).join('');
   },
 
@@ -638,9 +677,9 @@ window.tablesModule = {
 
     select.innerHTML = otherOccupied.map(t => {
       const area = this.areas.find(a => a.id === t.area_id);
-      const areaName = area ? ` [${area.name}]` : '';
-      const amountStr = window.api.formatMoney(t.total_amount || 0);
-      return `<option value="${t.id}">${t.code} – ${t.name}${areaName} · Đơn: ${amountStr}</option>`;
+      const areaName = area ? ` [${this.escape(area.name)}]` : '';
+      const amountStr = window.api.formatMoney(Math.round(t.total_amount || 0));
+      return `<option value="${t.id}">${this.escape(t.code)} – ${this.escape(t.name)}${areaName} · Đơn: ${amountStr}</option>`;
     }).join('');
   },
 
@@ -661,11 +700,14 @@ window.tablesModule = {
     }
 
     try {
+      const sourceTableId = this.activeTableForAction.id;
       await window.api.post('/tables/transfer', {
-        from_table_id: this.activeTableForAction.id,
+        from_table_id: sourceTableId,
         to_table_id: parseInt(targetId, 10)
       });
 
+      // Món đã theo đơn sang bàn đích: dọn giỏ nháp của bàn nguồn.
+      this.discardTableCartDraft(sourceTableId);
       window.api.showToast(`Đã chuyển sang ${targetName} thành công!`, 'success');
       document.getElementById('tableActionModal').style.display = 'none';
       await this.loadAreasAndTables();
@@ -691,11 +733,14 @@ window.tablesModule = {
     }
 
     try {
+      const sourceTableId = this.activeTableForAction.id;
       await window.api.post('/tables/merge', {
-        source_table_id: this.activeTableForAction.id,
+        source_table_id: sourceTableId,
         target_table_id: parseInt(targetId, 10)
       });
 
+      // Đơn đã gộp sang bàn đích: dọn giỏ nháp của bàn nguồn bị gộp.
+      this.discardTableCartDraft(sourceTableId);
       window.api.showToast(`Đã ghép vào ${targetName} thành công!`, 'success');
       document.getElementById('tableActionModal').style.display = 'none';
       await this.loadAreasAndTables();

@@ -308,6 +308,10 @@ async function updateKdsItemStatus(req, res) {
           await client.query('ROLLBACK');
           return res.status(403).json({ success: false, message: 'Quản trị viên đã tắt quyền hủy món của đầu bếp' });
         }
+        if (status === 'CANCELLED' && item.payment_status === 'PAID') {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ success: false, message: 'Đơn đã thanh toán, cần hoàn tiền trước khi hủy món' });
+        }
         if (['COMPLETED', 'CANCELLED'].includes(item.order_status)) {
           await client.query('ROLLBACK');
           return res.status(409).json({ success: false, message: 'Đơn hàng đã kết thúc, không thể cập nhật KDS' });
@@ -428,6 +432,9 @@ async function updateKdsItemStatus(req, res) {
       const storeSettings = memoryStore.store_settings.find(current => current.store_id === storeId);
       if (status === 'CANCELLED' && req.user?.role === 'KITCHEN' && storeSettings?.allow_cancel_item === false) {
         return res.status(403).json({ success: false, message: 'Quản trị viên đã tắt quyền hủy món của đầu bếp' });
+      }
+      if (status === 'CANCELLED' && order.payment_status === 'PAID') {
+        return res.status(400).json({ success: false, message: 'Đơn đã thanh toán, cần hoàn tiền trước khi hủy món' });
       }
       if (['COMPLETED', 'CANCELLED'].includes(order.order_status)) {
         return res.status(409).json({ success: false, message: 'Đơn hàng đã kết thúc, không thể cập nhật KDS' });

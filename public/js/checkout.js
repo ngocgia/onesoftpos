@@ -74,7 +74,15 @@ window.checkoutModule = {
       window.api.showToast('Không thể thanh toán đơn hàng đã hủy', 'error');
       return;
     }
-    this.currentOrder = existingOrder;
+    // Reuse the draft order already created for this cart (e.g. retrying a
+    // failed payment) so one cart never spawns more than one order before it
+    // is paid. Only drop the reference when the cart has changed since the
+    // order was created.
+    if (existingOrder) {
+      this.currentOrder = existingOrder;
+    } else if (this.currentOrder && this.currentOrderCartSignature !== this.getCartSignature()) {
+      this.currentOrder = null;
+    }
     this.openedFromExistingOrder = !!existingOrder;
     this.isRepayment = isRepayment;
     this.selectedMethod = 'CASH';
@@ -138,6 +146,26 @@ window.checkoutModule = {
     }
   },
 
+  // Snapshot of every cart field that feeds the POST /orders payload. Used to
+  // detect whether the draft order (currentOrder) still matches the cart.
+  getCartSignature() {
+    const cart = window.appState.cart;
+    return JSON.stringify({
+      orderType: cart.orderType,
+      tableId: cart.selectedTable?.id || null,
+      existingOrderId: cart.existingOrderId || null,
+      items: cart.items,
+      discountCash: cart.discountCash,
+      discountPercent: cart.discountPercent,
+      note: cart.note,
+      fulfillmentType: cart.fulfillmentType,
+      customerName: cart.customerName,
+      customerPhone: cart.customerPhone,
+      deliveryAddress: cart.deliveryAddress,
+      scheduledAt: cart.scheduledAt
+    });
+  },
+
   async loadDynamicVietQR() {
     const qrImg = document.getElementById('vietQrImg');
     const qrLoading = document.getElementById('vietQrLoading');
@@ -150,27 +178,31 @@ window.checkoutModule = {
     if (qrImg) qrImg.style.display = 'none';
 
     try {
-      let orderId = this.currentOrder ? this.currentOrder.id : null;
-
-      // If no order yet, create order first
-      if (!orderId) {
-        const orderPayload = {
-          order_type: window.appState.cart.orderType,
-          table_id: window.appState.cart.selectedTable ? window.appState.cart.selectedTable.id : null,
-          note: window.appState.cart.note,
-          discount_amount: window.appState.getCartDiscount(),
-          items: window.appState.cart.items,
-          ...(window.posModule?.getFulfillmentPayload?.() || {})
-        };
-        const orderRes = await window.api.post('/orders', orderPayload);
-        this.currentOrder = orderRes.order;
-        orderId = this.currentOrder.id;
-
+      // Preview only. This must never create a real order: closing the modal
+      // without paying would leave an orphan UNPAID order behind. The order is
+      // created in executePayment when the cashier confirms the payment.
+      let qrData;
+      let isEstimate = false;
+      if (this.currentOrder?.id) {
+        // An order already exists for this cart (e.g. retrying a failed
+        // payment): reuse it instead of creating a duplicate.
+        qrData = await window.api.get(`/payments/vietqr/${this.currentOrder.id}`);
         const orderCodeEl = document.getElementById('checkoutOrderCode');
-        if (orderCodeEl) orderCodeEl.textContent = this.currentOrder.order_code;
+        if (orderCodeEl && this.currentOrder.order_code) orderCodeEl.textContent = this.currentOrder.order_code;
+      } else {
+        // No order yet: render a temporary estimate built from the cart total
+        // via the order-less receipt preview API (POST /payments/vietqr/receipt).
+        isEstimate = true;
+        qrData = await window.api.post('/payments/vietqr/receipt', {
+          amount: Math.round(this.totalAmount),
+          memo: 'TAM TINH'
+        });
+        if (qrData.configured === false) {
+          if (qrLoading) qrLoading.style.display = 'none';
+          window.api.showToast('Cửa hàng chưa cấu hình tài khoản ngân hàng cho VietQR', 'error');
+          return;
+        }
       }
-
-      const qrData = await window.api.get(`/payments/vietqr/${orderId}`);
 
       if (qrImg) {
         qrImg.src = qrData.qrUrl;
@@ -183,7 +215,11 @@ window.checkoutModule = {
       if (qrBankName) qrBankName.textContent = qrData.bankName;
       if (qrAccountNo) qrAccountNo.textContent = qrData.bankAccount;
       if (qrAccountHolder) qrAccountHolder.textContent = qrData.accountHolder;
-      if (qrMemo) qrMemo.textContent = qrData.memo;
+      if (qrMemo) {
+        qrMemo.textContent = isEstimate
+          ? 'Tạm tính — mã chính thức sẽ tạo khi xác nhận thanh toán'
+          : qrData.memo;
+      }
     } catch (err) {
       if (qrLoading) qrLoading.style.display = 'none';
       window.api.showToast('Lỗi tạo mã VietQR: ' + err.message, 'error');
@@ -202,11 +238,13 @@ window.checkoutModule = {
     try {
       let order = this.currentOrder;
 
-      // If order not created yet, create it now
+      // If order not created yet, create it now (the only place a checkout
+      // order is created — the VietQR preview never creates one).
       if (!order) {
         const orderPayload = {
           order_type: window.appState.cart.orderType,
           table_id: window.appState.cart.selectedTable ? window.appState.cart.selectedTable.id : null,
+          existing_order_id: window.appState.cart.existingOrderId || null,
           note: window.appState.cart.note,
           discount_amount: window.appState.getCartDiscount(),
           items: window.appState.cart.items,
@@ -214,6 +252,10 @@ window.checkoutModule = {
         };
         const orderRes = await window.api.post('/orders', orderPayload);
         order = orderRes.order;
+        // Remember the order so payment retries and the QR preview reuse it
+        // instead of creating a duplicate for the same cart.
+        this.currentOrder = order;
+        this.currentOrderCartSignature = this.getCartSignature();
       }
 
       const transactionCodeInput = document.getElementById('transactionCodeInput');
@@ -246,9 +288,17 @@ window.checkoutModule = {
       } else if (!this.openedFromExistingOrder) {
         window.appState.clearCart();
       }
-      window.appState.setSelectedTable(null);
+      // Only reset the table selection when no takeaway draft is active:
+      // setSelectedTable(null) replaces appState.cart with a brand-new cart
+      // object, which would sever the link between the active takeaway draft
+      // and the cart that completeActiveTakeawayDraft/activateTakeawayDraft
+      // just set up (the draft would keep holding the old cart object).
+      if (!window.appState.getActiveTakeawayDraft()) {
+        window.appState.setSelectedTable(null);
+      }
 
       this.currentOrder = null;
+      this.currentOrderCartSignature = null;
       this.openedFromExistingOrder = false;
       this.isRepayment = false;
       const tableModal = document.getElementById('tableActionModal');

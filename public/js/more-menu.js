@@ -43,6 +43,10 @@ window.moreMenuModule = {
     });
   },
 
+  escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+  },
+
   // Cập nhật thông tin User & Store trên Header của Hub
   updateUserInfo() {
     const user = window.appState?.user || {};
@@ -64,7 +68,7 @@ window.moreMenuModule = {
     }
 
     if (storeEl) {
-      storeEl.innerHTML = `<i class="fa-solid fa-store"></i> ${store.name || 'Chi nhánh OnesoftPOS'}`;
+      storeEl.innerHTML = `<i class="fa-solid fa-store"></i> ${this.escapeHtml(store.name || 'Chi nhánh OnesoftPOS')}`;
     }
 
     if (roleBadgeEl) {
@@ -573,11 +577,11 @@ window.moreMenuModule = {
               <div class="store-card-icon"><i class="fa-solid fa-store"></i></div>
               <div class="store-card-info">
                 <div class="store-card-name">
-                  <strong>${st.name}</strong>
+                  <strong>${this.escapeHtml(st.name)}</strong>
                   ${isCurrent ? '<span class="badge-pill store-type-pill" style="margin-left:6px;background:#10b981;color:#fff">Đang chọn</span>' : ''}
                 </div>
-                <div class="text-muted" style="font-size:12px;margin-top:2px"><i class="fa-solid fa-location-dot"></i> ${st.address || 'Chưa cập nhật địa chỉ'}</div>
-                <div class="text-muted" style="font-size:12px"><i class="fa-solid fa-phone"></i> ${st.phone || '-'}</div>
+                <div class="text-muted" style="font-size:12px;margin-top:2px"><i class="fa-solid fa-location-dot"></i> ${this.escapeHtml(st.address || 'Chưa cập nhật địa chỉ')}</div>
+                <div class="text-muted" style="font-size:12px"><i class="fa-solid fa-phone"></i> ${this.escapeHtml(st.phone || '-')}</div>
               </div>
             </div>
             <div class="store-card-right">

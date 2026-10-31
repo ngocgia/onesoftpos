@@ -83,11 +83,13 @@ async function dashboard(req, res) {
       const [stores, users, summary, month, topStores] = await Promise.all([
         dashboardQuery('active stores', "SELECT COUNT(*)::int AS count FROM stores WHERE status = 'ACTIVE'", [], [{ count: 0 }]),
         dashboardQuery('active users', "SELECT COUNT(*)::int AS count FROM users WHERE status = 'ACTIVE'", [], [{ count: 0 }]),
-        dashboardQuery('range summary', "SELECT COUNT(*)::int AS orders, COALESCE(SUM(total_amount), 0) AS revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= $1 AND created_at < $2", rangeParams, [{ orders: 0, revenue: 0 }]),
-        dashboardQuery('month revenue', "SELECT COALESCE(SUM(total_amount), 0) AS revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= $1", [monthStart], [{ revenue: 0 }]),
+        // Exclude cancelled orders (e.g. merged-table source orders) from revenue so it is not double counted.
+        dashboardQuery('range summary', "SELECT COUNT(*)::int AS orders, COALESCE(SUM(total_amount), 0) AS revenue FROM orders WHERE payment_status = 'PAID' AND order_status <> 'CANCELLED' AND created_at >= $1 AND created_at < $2", rangeParams, [{ orders: 0, revenue: 0 }]),
+        dashboardQuery('month revenue', "SELECT COALESCE(SUM(total_amount), 0) AS revenue FROM orders WHERE payment_status = 'PAID' AND order_status <> 'CANCELLED' AND created_at >= $1", [monthStart], [{ revenue: 0 }]),
         dashboardQuery('store ranking', `SELECT s.id, s.name, COUNT(o.id)::int AS order_count,
                     COALESCE(SUM(o.total_amount), 0) AS revenue
                     FROM stores s LEFT JOIN orders o ON o.store_id = s.id AND o.payment_status = 'PAID'
+                      AND o.order_status <> 'CANCELLED'
                       AND o.created_at >= $1 AND o.created_at < $2
                     GROUP BY s.id, s.name ORDER BY revenue DESC`, rangeParams, [])
       ]);
@@ -96,7 +98,8 @@ async function dashboard(req, res) {
         monthRevenue: Number(month.rows[0].revenue), stores: topStores.rows });
     }
 
-    const paid = memoryStore.orders.filter(o => o.payment_status === 'PAID');
+    // Exclude cancelled orders (e.g. merged-table source orders) so revenue is not double counted.
+    const paid = memoryStore.orders.filter(o => o.payment_status === 'PAID' && o.order_status !== 'CANCELLED');
     const today = new Date().toISOString().slice(0, 10);
     const month = today.slice(0, 7);
     
@@ -164,6 +167,10 @@ async function createUser(req, res) {
   if (!username || !password || !email || !full_name || !ROLES.includes(role)) {
     return res.status(400).json({ success: false, message: 'Thiếu thông tin bắt buộc hoặc vai trò không hợp lệ' });
   }
+  // Only SUPER_ADMIN may create SUPER_ADMIN accounts; ADMIN must not escalate privileges.
+  if (role === 'SUPER_ADMIN' && req.user.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ success: false, message: 'Chỉ SUPER_ADMIN mới có thể quản lý tài khoản SUPER_ADMIN' });
+  }
   try {
     const completedAccess = completedItemsOverride(req.body.completed_items_enabled);
     const normalizedStoreIds = normalizeStoreIds(store_ids);
@@ -204,6 +211,10 @@ async function updateUser(req, res) {
   const id = Number(req.params.id);
   const { full_name, email, phone, role, status, password, store_ids } = req.body;
   if (role && !ROLES.includes(role)) return res.status(400).json({ success: false, message: 'Vai trò không hợp lệ' });
+  // Only SUPER_ADMIN may promote anyone (including self) to SUPER_ADMIN.
+  if (role === 'SUPER_ADMIN' && req.user.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ success: false, message: 'Chỉ SUPER_ADMIN mới có thể quản lý tài khoản SUPER_ADMIN' });
+  }
   if (id === req.user.id && status === 'INACTIVE') return res.status(400).json({ success: false, message: 'Không thể tự khóa tài khoản đang đăng nhập' });
   try {
     const completedAccess = completedItemsOverride(req.body.completed_items_enabled);
@@ -223,6 +234,12 @@ async function updateUser(req, res) {
           [id]
         );
         if (!current.rowCount) { const error = new Error('Không tìm thấy người dùng'); error.statusCode = 404; throw error; }
+        // Only SUPER_ADMIN may modify an existing SUPER_ADMIN account.
+        if (current.rows[0].role === 'SUPER_ADMIN' && req.user.role !== 'SUPER_ADMIN') {
+          const error = new Error('Chỉ SUPER_ADMIN mới có thể quản lý tài khoản SUPER_ADMIN');
+          error.statusCode = 403;
+          throw error;
+        }
         const effectiveRole = role || current.rows[0].role;
         const currentStoreIds = current.rows[0].store_ids;
         const effectiveStoreIds = normalizedStoreIds || (typeof currentStoreIds === 'string' ? JSON.parse(currentStoreIds) : currentStoreIds).map(Number);
@@ -243,6 +260,10 @@ async function updateUser(req, res) {
     } else {
       const user = memoryStore.users.find(u => u.id === id);
       if (!user) return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+      // Only SUPER_ADMIN may modify an existing SUPER_ADMIN account.
+      if (user.role === 'SUPER_ADMIN' && req.user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ success: false, message: 'Chỉ SUPER_ADMIN mới có thể quản lý tài khoản SUPER_ADMIN' });
+      }
       const currentStoreIds = memoryStore.user_stores.filter(us => us.user_id === id).map(us => us.store_id);
       assertStoreManagerAssignment(role || user.role, normalizedStoreIds || currentStoreIds);
       for (const key of ['full_name', 'email', 'phone', 'role', 'status']) if (req.body[key] !== undefined) user[key] = req.body[key];
@@ -268,6 +289,14 @@ async function deleteUser(req, res) {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        const target = await client.query('SELECT role FROM users WHERE id = $1', [id]);
+        if (!target.rowCount) { const error = new Error('Không tìm thấy người dùng'); error.statusCode = 404; throw error; }
+        // Only SUPER_ADMIN may delete a SUPER_ADMIN account.
+        if (target.rows[0].role === 'SUPER_ADMIN' && req.user.role !== 'SUPER_ADMIN') {
+          const error = new Error('Chỉ SUPER_ADMIN mới có thể quản lý tài khoản SUPER_ADMIN');
+          error.statusCode = 403;
+          throw error;
+        }
         await client.query('UPDATE shifts SET user_id=NULL WHERE user_id=$1', [id]);
         await client.query('UPDATE orders SET cashier_id=NULL WHERE cashier_id=$1', [id]);
         await client.query('UPDATE orders SET confirmed_by=NULL WHERE confirmed_by=$1', [id]);
@@ -277,7 +306,12 @@ async function deleteUser(req, res) {
         await client.query('COMMIT');
       } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
     } else {
-      if (!memoryStore.users.some(user => user.id === id)) return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+      const targetUser = memoryStore.users.find(user => user.id === id);
+      if (!targetUser) return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+      // Only SUPER_ADMIN may delete a SUPER_ADMIN account.
+      if (targetUser.role === 'SUPER_ADMIN' && req.user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ success: false, message: 'Chỉ SUPER_ADMIN mới có thể quản lý tài khoản SUPER_ADMIN' });
+      }
       memoryStore.users = memoryStore.users.filter(user => user.id !== id);
       memoryStore.user_stores = memoryStore.user_stores.filter(link => link.user_id !== id);
       memoryStore.shifts.forEach(item => { if (item.user_id === id) item.user_id = null; });

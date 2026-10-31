@@ -11,6 +11,27 @@ const options = {
 
 const mysqlPool = mysql.createPool({ ...options, waitForConnections: true, connectionLimit: 10, decimalNumbers: true, timezone: 'Z' });
 
+// The client-side `timezone: 'Z'` option only controls how this process
+// serializes/parses dates. `DATETIME DEFAULT CURRENT_TIMESTAMP` values are
+// materialized by the MySQL server using its session time_zone, which on
+// Vietnamese hosting defaults to +07:00 and would shift DB-created rows by
+// 7 hours. Switch every pooled session to UTC before its first query.
+const utcConfiguredConnections = new WeakSet();
+
+async function ensureUtcTimeZone(connection) {
+  // mysqlPool.getConnection() returns a NEW PromisePoolConnection wrapper on
+  // every checkout, so a WeakSet keyed on the wrapper could never remember a
+  // recycled connection. The underlying core connection object
+  // (connection.connection) is reused by the pool for the same physical
+  // session, making it the stable identity. If the core handle is ever
+  // unavailable, falling back to the wrapper only costs one redundant (no-op)
+  // SET per checkout, never a wrong time zone.
+  const core = connection.connection || connection;
+  if (utcConfiguredConnections.has(core)) return;
+  await connection.query("SET time_zone = '+00:00'");
+  utcConfiguredConnections.add(core);
+}
+
 function translate(sql, values = []) {
   let statement = sql.trim();
   let params = [];
@@ -122,13 +143,22 @@ async function run(connection, sql, values) {
 const pool = {
   async query(sql, values) {
     const connection = await mysqlPool.getConnection();
-    try { return await run(connection, sql, values); } finally { connection.release(); }
+    try {
+      await ensureUtcTimeZone(connection);
+      return await run(connection, sql, values);
+    } finally { connection.release(); }
   },
   async connect() {
     const connection = await mysqlPool.getConnection();
+    try {
+      await ensureUtcTimeZone(connection);
+    } catch (error) {
+      connection.release();
+      throw error;
+    }
     return { query: (sql, values) => run(connection, sql, values), release: () => connection.release() };
   },
   end: () => mysqlPool.end(),
 };
 
-module.exports = { pool, mysqlPool, translate, run, normalizeError };
+module.exports = { pool, mysqlPool, translate, run, normalizeError, ensureUtcTimeZone };

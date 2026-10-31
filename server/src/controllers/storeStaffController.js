@@ -127,12 +127,14 @@ async function resetPassword(req, res) {
     const passwordHash = await bcrypt.hash(password, 10);
     if (isPostgresConnected()) {
       if (!(await findManagedStaff(req.storeId, id))) return res.status(404).json({ success: false, message: 'Không tìm thấy nhân viên trong cửa hàng' });
-      await pool.query('UPDATE users SET password_hash=$1,updated_at=CURRENT_TIMESTAMP WHERE id=$2', [passwordHash, id]);
+      // Bumping token_version revokes every JWT the staff member still holds.
+      await pool.query('UPDATE users SET password_hash=$1,token_version=token_version+1,updated_at=CURRENT_TIMESTAMP WHERE id=$2', [passwordHash, id]);
     } else {
       const assigned = memoryStore.user_stores.some(item => item.user_id === id && item.store_id === req.storeId);
       const user = memoryStore.users.find(item => item.id === id && STAFF_ROLES.includes(item.role));
       if (!assigned || !user) return res.status(404).json({ success: false, message: 'Không tìm thấy nhân viên trong cửa hàng' });
       user.password_hash = passwordHash;
+      user.token_version = (user.token_version || 0) + 1;
     }
     res.json({ success: true, message: 'Đã đặt lại mật khẩu nhân viên' });
   } catch (error) {

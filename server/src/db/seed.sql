@@ -102,6 +102,17 @@ INSERT INTO role_features (role, feature_code, enabled) VALUES
 ('KITCHEN', 'PAYMENT', FALSE)
 ON CONFLICT (role, feature_code) DO UPDATE SET enabled = EXCLUDED.enabled;
 
+-- Complete the matrix with the only missing feature (INVENTORY) so no
+-- (role, feature_code) pair is absent: missing rows now DENY access instead
+-- of allowing it. DO NOTHING keeps any value an operator has customized.
+INSERT INTO role_features (role, feature_code, enabled) VALUES
+('ADMIN', 'INVENTORY', TRUE),
+('STORE_MANAGER', 'INVENTORY', TRUE),
+('CASHIER', 'INVENTORY', FALSE),
+('KITCHEN', 'INVENTORY', FALSE),
+('ORDER_STAFF', 'INVENTORY', FALSE)
+ON CONFLICT (role, feature_code) DO NOTHING;
+
 -- 7. CATEGORIES
 INSERT INTO categories (id, store_id, code, name, description, sort_order) VALUES
 (1, 1, 'GA', 'Gà Rán & Cơm Gà', 'Các món gà rán thơm giòn vàng rụm', 1),

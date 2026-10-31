@@ -264,33 +264,44 @@ async function updateTableStatus(req, res) {
 // Rule 22: Chuyển bàn (Bàn A -> Bàn B)
 async function transferTable(req, res) {
   const { from_table_id, to_table_id } = req.body;
+  const storeId = req.storeId || parseInt(req.body.store_id, 10);
   if (!from_table_id || !to_table_id) {
     return res.status(400).json({ success: false, message: 'Vui lòng chọn bàn nguồn và bàn đích' });
   }
+  if (!storeId) return res.status(400).json({ success: false, message: 'Vui lòng chọn cửa hàng' });
 
   try {
     if (isPostgresConnected()) {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
-        const fromRes = await client.query('SELECT * FROM tables WHERE id = $1', [from_table_id]);
-        const toRes = await client.query('SELECT * FROM tables WHERE id = $1', [to_table_id]);
+        // Both tables must belong to the caller's store; block cross-store transfers.
+        const fromRes = await client.query('SELECT * FROM tables WHERE id = $1 AND store_id = $2', [from_table_id, storeId]);
+        const toRes = await client.query('SELECT * FROM tables WHERE id = $1 AND store_id = $2', [to_table_id, storeId]);
 
         if (fromRes.rows.length === 0 || toRes.rows.length === 0) {
-          throw new Error('Không tìm thấy bàn yêu cầu');
+          const error = new Error('Không tìm thấy bàn yêu cầu');
+          error.statusCode = 404;
+          throw error;
         }
 
         const fromTable = fromRes.rows[0];
         const toTable = toRes.rows[0];
 
         if (toTable.status === 'OCCUPIED') {
-          throw new Error('Bàn đích đang có khách, không thể chuyển sang!');
+          const error = new Error('Bàn đích đang có khách, không thể chuyển sang!');
+          error.statusCode = 400;
+          throw error;
         }
 
         const orderId = fromTable.current_order_id;
-        if (orderId) {
-          await client.query('UPDATE orders SET table_id = $1 WHERE id = $2', [to_table_id, orderId]);
+        if (!orderId) {
+          // Nothing to move when the source table holds no active order.
+          const error = new Error('Bàn nguồn chưa có đơn hàng');
+          error.statusCode = 400;
+          throw error;
         }
+        await client.query('UPDATE orders SET table_id = $1 WHERE id = $2', [to_table_id, orderId]);
 
         // Cập nhật trạng thái bàn theo Rule 22
         await client.query('UPDATE tables SET status = $1, current_order_id = NULL WHERE id = $2', ['EMPTY', from_table_id]);
@@ -304,8 +315,8 @@ async function transferTable(req, res) {
         client.release();
       }
     } else {
-      const fromTable = memoryStore.tables.find(t => t.id === parseInt(from_table_id, 10));
-      const toTable = memoryStore.tables.find(t => t.id === parseInt(to_table_id, 10));
+      const fromTable = memoryStore.tables.find(t => t.id === parseInt(from_table_id, 10) && t.store_id === storeId);
+      const toTable = memoryStore.tables.find(t => t.id === parseInt(to_table_id, 10) && t.store_id === storeId);
 
       if (!fromTable || !toTable) {
         return res.status(404).json({ success: false, message: 'Không tìm thấy bàn yêu cầu' });
@@ -315,10 +326,12 @@ async function transferTable(req, res) {
       }
 
       const orderId = fromTable.current_order_id;
-      if (orderId) {
-        const order = memoryStore.orders.find(o => o.id === orderId);
-        if (order) order.table_id = toTable.id;
+      if (!orderId) {
+        return res.status(400).json({ success: false, message: 'Bàn nguồn chưa có đơn hàng' });
       }
+
+      const order = memoryStore.orders.find(o => o.id === orderId);
+      if (order) order.table_id = toTable.id;
 
       fromTable.status = 'EMPTY';
       fromTable.current_order_id = null;
@@ -329,42 +342,68 @@ async function transferTable(req, res) {
     res.json({ success: true, message: 'Chuyển bàn thành công' });
   } catch (error) {
     console.error('transferTable error:', error);
-    res.status(500).json({ success: false, message: error.message || 'Lỗi chuyển bàn' });
+    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Lỗi chuyển bàn' });
   }
 }
 
 // Rule 23: Ghép bàn (Ghép bàn A vào bàn B)
 async function mergeTables(req, res) {
   const { source_table_id, target_table_id } = req.body;
+  const storeId = req.storeId || parseInt(req.body.store_id, 10);
   if (!source_table_id || !target_table_id) {
     return res.status(400).json({ success: false, message: 'Vui lòng chọn bàn cần ghép' });
   }
+  if (!storeId) return res.status(400).json({ success: false, message: 'Vui lòng chọn cửa hàng' });
 
   try {
     if (isPostgresConnected()) {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
-        const sRes = await client.query('SELECT * FROM tables WHERE id = $1', [source_table_id]);
-        const tRes = await client.query('SELECT * FROM tables WHERE id = $1', [target_table_id]);
+        // Both tables must belong to the caller's store; block cross-store merges.
+        const sRes = await client.query('SELECT * FROM tables WHERE id = $1 AND store_id = $2', [source_table_id, storeId]);
+        const tRes = await client.query('SELECT * FROM tables WHERE id = $1 AND store_id = $2', [target_table_id, storeId]);
 
         const sourceTable = sRes.rows[0];
         const targetTable = tRes.rows[0];
+        if (!sourceTable || !targetTable) {
+          const error = new Error('Không tìm thấy bàn yêu cầu');
+          error.statusCode = 404;
+          throw error;
+        }
 
         if (sourceTable.current_order_id && targetTable.current_order_id) {
+          // Load both orders (store-scoped) so the merge cannot touch another store's data.
+          const srcOrderRes = await client.query('SELECT * FROM orders WHERE id = $1 AND store_id = $2', [sourceTable.current_order_id, storeId]);
+          const tgtOrderRes = await client.query('SELECT * FROM orders WHERE id = $1 AND store_id = $2', [targetTable.current_order_id, storeId]);
+          const sourceOrder = srcOrderRes.rows[0];
+          const targetOrder = tgtOrderRes.rows[0];
+          if (!sourceOrder || !targetOrder) {
+            const error = new Error('Không tìm thấy đơn hàng cần ghép');
+            error.statusCode = 404;
+            throw error;
+          }
+
           // Gộp các món từ order nguồn sang order đích
           await client.query(
             'UPDATE order_items SET order_id = $1 WHERE order_id = $2',
-            [targetTable.current_order_id, sourceTable.current_order_id]
+            [targetOrder.id, sourceOrder.id]
           );
 
-          // Cập nhật lại tổng tiền đơn đích
-          const sumRes = await client.query('SELECT SUM(subtotal) as subtotal FROM order_items WHERE order_id = $1', [targetTable.current_order_id]);
-          const newSubtotal = sumRes.rows[0].subtotal || 0;
-          await client.query('UPDATE orders SET subtotal = $1, total_amount = $1 WHERE id = $2', [newSubtotal, targetTable.current_order_id]);
+          // Merge totals: subtotal of both orders minus both discounts plus both taxes.
+          // Accumulate discount/tax on the target order and keep its own shift_id.
+          const mergedSubtotal = Number(sourceOrder.subtotal || 0) + Number(targetOrder.subtotal || 0);
+          const mergedDiscount = Number(sourceOrder.discount_amount || 0) + Number(targetOrder.discount_amount || 0);
+          const mergedTax = Number(sourceOrder.tax_amount || 0) + Number(targetOrder.tax_amount || 0);
+          const mergedTotal = Math.max(0, mergedSubtotal - mergedDiscount + mergedTax);
+          await client.query(
+            `UPDATE orders SET subtotal = $1, discount_amount = $2, tax_amount = $3, total_amount = $4, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $5`,
+            [mergedSubtotal, mergedDiscount, mergedTax, mergedTotal, targetOrder.id]
+          );
 
           // Hủy đơn nguồn đã gộp
-          await client.query('UPDATE orders SET order_status = $1 WHERE id = $2', ['CANCELLED', sourceTable.current_order_id]);
+          await client.query('UPDATE orders SET order_status = $1 WHERE id = $2', ['CANCELLED', sourceOrder.id]);
         }
 
         await client.query('UPDATE tables SET status = $1, current_order_id = NULL WHERE id = $2', ['EMPTY', source_table_id]);
@@ -376,28 +415,36 @@ async function mergeTables(req, res) {
         client.release();
       }
     } else {
-      const sTable = memoryStore.tables.find(t => t.id === parseInt(source_table_id, 10));
-      const tTable = memoryStore.tables.find(t => t.id === parseInt(target_table_id, 10));
+      const sTable = memoryStore.tables.find(t => t.id === parseInt(source_table_id, 10) && t.store_id === storeId);
+      const tTable = memoryStore.tables.find(t => t.id === parseInt(target_table_id, 10) && t.store_id === storeId);
 
-      if (sTable && tTable && sTable.current_order_id && tTable.current_order_id) {
+      if (!sTable || !tTable) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy bàn yêu cầu' });
+      }
+
+      if (sTable.current_order_id && tTable.current_order_id) {
         const sOrderId = sTable.current_order_id;
         const tOrderId = tTable.current_order_id;
+        const sourceOrder = memoryStore.orders.find(o => o.id === sOrderId && o.store_id === storeId);
+        const targetOrder = memoryStore.orders.find(o => o.id === tOrderId && o.store_id === storeId);
+        if (!sourceOrder || !targetOrder) {
+          return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng cần ghép' });
+        }
 
         memoryStore.order_items.forEach(item => {
           if (item.order_id === sOrderId) item.order_id = tOrderId;
         });
 
-        const newItems = memoryStore.order_items.filter(i => i.order_id === tOrderId);
-        const newTotal = newItems.reduce((acc, cur) => acc + (cur.subtotal || 0), 0);
+        // Merge totals the same way as the Postgres branch; keep the target order's shift_id.
+        const mergedSubtotal = Number(sourceOrder.subtotal || 0) + Number(targetOrder.subtotal || 0);
+        const mergedDiscount = Number(sourceOrder.discount_amount || 0) + Number(targetOrder.discount_amount || 0);
+        const mergedTax = Number(sourceOrder.tax_amount || 0) + Number(targetOrder.tax_amount || 0);
+        targetOrder.subtotal = mergedSubtotal;
+        targetOrder.discount_amount = mergedDiscount;
+        targetOrder.tax_amount = mergedTax;
+        targetOrder.total_amount = Math.max(0, mergedSubtotal - mergedDiscount + mergedTax);
 
-        const targetOrder = memoryStore.orders.find(o => o.id === tOrderId);
-        if (targetOrder) {
-          targetOrder.subtotal = newTotal;
-          targetOrder.total_amount = newTotal;
-        }
-
-        const sourceOrder = memoryStore.orders.find(o => o.id === sOrderId);
-        if (sourceOrder) sourceOrder.order_status = 'CANCELLED';
+        sourceOrder.order_status = 'CANCELLED';
 
         sTable.status = 'EMPTY';
         sTable.current_order_id = null;
@@ -407,7 +454,7 @@ async function mergeTables(req, res) {
     res.json({ success: true, message: 'Ghép bàn thành công' });
   } catch (error) {
     console.error('mergeTables error:', error);
-    res.status(500).json({ success: false, message: error.message || 'Lỗi ghép bàn' });
+    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Lỗi ghép bàn' });
   }
 }
 

@@ -263,27 +263,34 @@ async function getVietQR(req, res) {
     let settings = null;
 
     if (isPostgresConnected()) {
-      const oRes = await pool.query('SELECT * FROM orders WHERE id = $1', [orderId]);
+      // Scope both the order and its bank settings to the caller's store.
+      const oRes = await pool.query('SELECT * FROM orders WHERE id = $1 AND store_id = $2', [orderId, storeId]);
       order = oRes.rows[0];
 
-      const sRes = await pool.query('SELECT * FROM store_settings WHERE store_id = $1', [storeId || (order && order.store_id)]);
+      const sRes = await pool.query('SELECT * FROM store_settings WHERE store_id = $1', [storeId]);
       settings = sRes.rows[0];
     } else {
-      order = memoryStore.orders.find(o => o.id === orderId);
-      settings = memoryStore.store_settings.find(s => s.store_id === (storeId || (order && order.store_id)));
+      order = memoryStore.orders.find(o => o.id === orderId && o.store_id === storeId);
+      settings = memoryStore.store_settings.find(s => Number(s.store_id) === Number(storeId));
     }
 
     if (!order) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng trong cửa hàng hiện tại' });
     }
 
-    const bankName = (settings && settings.bank_name) || 'MB Bank';
-    const bankAccount = (settings && settings.bank_account_number) || '090123456789';
-    const accountHolder = (settings && settings.bank_account_holder) || 'ONESOFTPOS';
-    const amount = parseInt(order.total_amount, 10);
+    // Reject when the store has no usable bank configuration, same policy as previewReceiptVietQR.
+    const bankName = String(settings?.bank_name || '').trim();
+    const bankAccount = String(settings?.bank_account_number || '').trim();
+    const accountHolder = String(settings?.bank_account_holder || '').trim();
+    const bin = Object.entries(BANK_BIN_MAP).find(([name]) => name.toLowerCase().replace(/\s/g, '') === bankName.toLowerCase().replace(/\s/g, ''))?.[1]
+      || (/^\d{6}$/.test(bankName) ? bankName : null);
+    if (!bin || !/^[a-zA-Z0-9]{1,50}$/.test(bankAccount) || !accountHolder) {
+      return res.status(400).json({ success: false, message: 'Cửa hàng chưa cấu hình tài khoản ngân hàng' });
+    }
+
+    const amount = Number(order.total_amount);
     const memo = `${order.order_code}`;
 
-    const bin = BANK_BIN_MAP[bankName] || '970422'; // Default MBBank
     const encodedHolder = encodeURIComponent(accountHolder);
     const encodedMemo = encodeURIComponent(memo);
 

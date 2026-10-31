@@ -52,8 +52,9 @@ async function createOrder(req, res) {
     let appendedToExistingOrder = false;
     let workflowDefinition;
     let takeawayWorkspaceEnabled = false;
+    let allowCustomPrice = false;
     if (isPostgresConnected()) {
-      const workflowResult = await pool.query(`SELECT ss.workflow_definition,
+      const workflowResult = await pool.query(`SELECT ss.workflow_definition, ss.allow_custom_price,
         COALESCE(ss.takeaway_workspace_enabled,
           EXISTS (SELECT 1 FROM store_type_features f WHERE f.store_type_id=s.store_type_id AND f.feature_code='TAKEAWAY' AND f.enabled=TRUE)
           AND NOT EXISTS (SELECT 1 FROM store_type_features f WHERE f.store_type_id=s.store_type_id AND f.feature_code='DINE_IN' AND f.enabled=TRUE)
@@ -63,6 +64,7 @@ async function createOrder(req, res) {
         WHERE s.id=$1`, [storeId]);
       workflowDefinition = workflowResult.rows[0]?.workflow_definition;
       takeawayWorkspaceEnabled = !!workflowResult.rows[0]?.takeaway_workspace_enabled;
+      allowCustomPrice = workflowResult.rows[0]?.allow_custom_price === true;
       const channelResult = await pool.query("SELECT payload FROM menu_preferences WHERE owner_type='store' AND owner_id=$1 AND section='workflow'", [storeId]);
       if (channelResult.rows[0]) {
         const channels = JSON.parse(channelResult.rows[0].payload);
@@ -75,6 +77,7 @@ async function createOrder(req, res) {
     } else {
       const settings = memoryStore.store_settings.find(item => item.store_id === storeId);
       workflowDefinition = settings?.workflow_definition;
+      allowCustomPrice = settings?.allow_custom_price === true;
       const store = memoryStore.stores.find(item => item.id === storeId);
       const featureEnabled = code => memoryStore.store_type_features
         .some(item => item.store_type_id === store?.store_type_id && item.feature_code === code && item.enabled);
@@ -111,13 +114,60 @@ async function createOrder(req, res) {
       });
     }
 
+    // Server-side validation: never trust prices/quantities sent by the client.
+    const parsedDiscount = parseFloat(discount_amount) || 0;
+    const parsedTax = parseFloat(tax_amount) || 0;
+    if (parsedDiscount < 0) {
+      return res.status(400).json({ success: false, message: 'Số tiền giảm giá không được âm' });
+    }
+    if (parsedTax < 0) {
+      return res.status(400).json({ success: false, message: 'Số tiền thuế không được âm' });
+    }
+    const productIds = [...new Set(items.map(item => Number(item.product_id)).filter(Number.isInteger))];
+    const productPriceById = new Map();
+    if (productIds.length) {
+      if (isPostgresConnected()) {
+        const priceResult = await pool.query('SELECT id, price FROM products WHERE store_id = $1 AND id = ANY($2::int[])', [storeId, productIds]);
+        priceResult.rows.forEach(row => productPriceById.set(Number(row.id), Number(row.price)));
+      } else {
+        memoryStore.products
+          .filter(product => product.store_id === storeId && productIds.includes(Number(product.id)))
+          .forEach(product => productPriceById.set(Number(product.id), Number(product.price)));
+      }
+    }
+    for (const item of items) {
+      const itemLabel = item.product_name || `#${item.product_id || ''}`;
+      const quantity = Number(item.quantity === undefined || item.quantity === null ? 1 : item.quantity);
+      if (!Number.isFinite(quantity) || !Number.isInteger(quantity) || quantity <= 0) {
+        return res.status(400).json({ success: false, message: `Số lượng của món ${itemLabel} phải là số nguyên lớn hơn 0` });
+      }
+      let unitPrice = parseFloat(item.unit_price);
+      if (!Number.isFinite(unitPrice)) unitPrice = 0;
+      if (unitPrice < 0) {
+        return res.status(400).json({ success: false, message: `Đơn giá của món ${itemLabel} không được âm` });
+      }
+      if (item.product_id !== undefined && item.product_id !== null) {
+        const dbPrice = productPriceById.get(Number(item.product_id));
+        if (dbPrice === undefined) {
+          return res.status(400).json({ success: false, message: 'Sản phẩm không thuộc cửa hàng này' });
+        }
+        // Store disallows custom prices: the database price always wins.
+        if (!allowCustomPrice && Math.abs(unitPrice - dbPrice) > 0.001) unitPrice = dbPrice;
+      }
+      item.quantity = quantity;
+      item.unit_price = unitPrice;
+    }
+
     let subtotal = 0;
     items.forEach(item => {
       const optionTotal = (item.options || []).reduce((sum, option) => sum + Number(option.price || 0), 0);
-      item.calculatedSubtotal = ((parseFloat(item.unit_price) || 0) + optionTotal) * (item.quantity || 1);
+      item.calculatedSubtotal = (item.unit_price + optionTotal) * item.quantity;
       subtotal += item.calculatedSubtotal;
     });
-    const totalAmount = Math.max(0, subtotal - parseFloat(discount_amount || 0) + parseFloat(tax_amount || 0));
+    // Discounts larger than the order value clamp to the order value (existing
+    // behaviour); a discount can never make the total negative or increase it.
+    const effectiveDiscount = Math.min(parsedDiscount, subtotal);
+    const totalAmount = Math.max(0, subtotal - effectiveDiscount + parsedTax);
     const parsedSchedule = scheduled_at ? new Date(scheduled_at) : null;
     const takeawayDetails = {
       fulfillment_type: String(fulfillment_type || '').trim().toUpperCase(),
@@ -204,7 +254,7 @@ async function createOrder(req, res) {
           RETURNING *`,
           [orderCode, storeId, shiftId, order_type, takeawayDetails.fulfillment_type, table_id || null,
             takeawayDetails.customer_name, takeawayDetails.customer_phone, takeawayDetails.delivery_address,
-            takeawayDetails.scheduled_at, cashierId, subtotal, discount_amount, tax_amount, totalAmount,
+            takeawayDetails.scheduled_at, cashierId, subtotal, effectiveDiscount, parsedTax, totalAmount,
             initialStatus, initialStageIndex, JSON.stringify(workflow), note]
         );
         createdOrder = existingOrder || orderRes.rows[0];
@@ -246,8 +296,9 @@ async function createOrder(req, res) {
 
         if (existingOrder) {
           const nextSubtotal = Number(existingOrder.subtotal || 0) + subtotal;
-          const nextDiscount = Number(existingOrder.discount_amount || 0) + Number(discount_amount || 0);
-          const nextTax = Number(existingOrder.tax_amount || 0) + Number(tax_amount || 0);
+          // Clamp the merged discount to the merged subtotal (same rule as new orders).
+          const nextDiscount = Math.min(Number(existingOrder.discount_amount || 0) + parsedDiscount, nextSubtotal);
+          const nextTax = Number(existingOrder.tax_amount || 0) + parsedTax;
           const nextTotal = Math.max(0, nextSubtotal - nextDiscount + nextTax);
           const updated = await client.query(
             `UPDATE orders SET subtotal=$1, discount_amount=$2, tax_amount=$3,
@@ -309,8 +360,8 @@ async function createOrder(req, res) {
         scheduled_at: takeawayDetails.scheduled_at,
         cashier_id: cashierId,
         subtotal,
-        discount_amount: parseFloat(discount_amount || 0),
-        tax_amount: parseFloat(tax_amount || 0),
+        discount_amount: effectiveDiscount,
+        tax_amount: parsedTax,
         total_amount: totalAmount,
         payment_status: 'UNPAID',
         order_status: initialStatus,
@@ -361,8 +412,8 @@ async function createOrder(req, res) {
 
       if (existingOrder) {
         existingOrder.subtotal = Number(existingOrder.subtotal || 0) + subtotal;
-        existingOrder.discount_amount = Number(existingOrder.discount_amount || 0) + Number(discount_amount || 0);
-        existingOrder.tax_amount = Number(existingOrder.tax_amount || 0) + Number(tax_amount || 0);
+        existingOrder.discount_amount = Math.min(Number(existingOrder.discount_amount || 0) + parsedDiscount, existingOrder.subtotal);
+        existingOrder.tax_amount = Number(existingOrder.tax_amount || 0) + parsedTax;
         existingOrder.total_amount = Math.max(0, existingOrder.subtotal - existingOrder.discount_amount + existingOrder.tax_amount);
         existingOrder.order_status = initialStatus;
         existingOrder.workflow_stage_index = initialStageIndex;
@@ -579,26 +630,27 @@ async function updateOrderStatus(req, res) {
       const current = await pool.query('SELECT * FROM orders WHERE id = $1 AND store_id = $2', [orderId, storeId]);
       if (!current.rows.length) return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
       const order = current.rows[0];
-      if (order.order_status === 'PENDING_CONFIRMATION' && status === 'CONFIRMED') {
-        if (!['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER', 'CASHIER'].includes(req.user.role)) {
-          return res.status(403).json({ success: false, message: 'Chỉ thu ngân hoặc quản lý được xác nhận đơn' });
-        }
-        await pool.query(`UPDATE orders SET order_status='CONFIRMED', confirmed_by=$1, confirmed_at=CURRENT_TIMESTAMP,
-          updated_at=CURRENT_TIMESTAMP WHERE id=$2`, [req.user.id, orderId]);
-      } else {
-        await pool.query('UPDATE orders SET order_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [status, orderId]);
+      // Paid orders must be refunded before they can be cancelled.
+      if (order.payment_status === 'PAID') {
+        return res.status(400).json({ success: false, message: 'Đơn đã thanh toán, không thể hủy. Vui lòng hoàn tiền trước.' });
       }
+      await pool.query('UPDATE orders SET order_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [status, orderId]);
+      // Release the table currently holding this order, if any.
+      await pool.query("UPDATE tables SET status = 'EMPTY', current_order_id = NULL WHERE current_order_id = $1", [orderId]);
     } else {
       const order = memoryStore.orders.find(o => o.id === orderId && o.store_id === storeId);
       if (!order) return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
-      if (order.order_status === 'PENDING_CONFIRMATION' && status === 'CONFIRMED') {
-        if (!['SUPER_ADMIN', 'ADMIN', 'STORE_MANAGER', 'CASHIER'].includes(req.user.role)) {
-          return res.status(403).json({ success: false, message: 'Chỉ thu ngân hoặc quản lý được xác nhận đơn' });
-        }
-        order.confirmed_by = req.user.id;
-        order.confirmed_at = new Date().toISOString();
+      if (order.payment_status === 'PAID') {
+        return res.status(400).json({ success: false, message: 'Đơn đã thanh toán, không thể hủy. Vui lòng hoàn tiền trước.' });
       }
       order.order_status = status;
+      order.updated_at = new Date().toISOString();
+      // Release the table currently holding this order, if any.
+      const table = memoryStore.tables.find(t => t.current_order_id === orderId);
+      if (table) {
+        table.status = 'EMPTY';
+        table.current_order_id = null;
+      }
     }
 
     res.json({ success: true, message: 'Cập nhật trạng thái đơn thành công' });
@@ -611,9 +663,11 @@ async function updateOrderStatus(req, res) {
 // Rule 24: Tách hóa đơn
 async function splitOrder(req, res) {
   const orderId = parseInt(req.params.id, 10);
+  const storeId = req.storeId || parseInt(req.body.store_id, 10);
   const { item_ids = [] } = req.body; // array of order_item_id to split off
+  const normalizedItemIds = [...new Set(item_ids.map(Number).filter(Number.isInteger))];
 
-  if (!item_ids.length) {
+  if (!normalizedItemIds.length) {
     return res.status(400).json({ success: false, message: 'Vui lòng chọn các món cần tách' });
   }
 
@@ -625,19 +679,35 @@ async function splitOrder(req, res) {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
-        const origRes = await client.query('SELECT * FROM orders WHERE id = $1', [orderId]);
+        const origRes = await client.query('SELECT * FROM orders WHERE id = $1 AND store_id = $2 FOR UPDATE', [orderId, storeId]);
+        if (!origRes.rows.length) {
+          const error = new Error('Không tìm thấy đơn hàng gốc');
+          error.statusCode = 404;
+          throw error;
+        }
         const original = origRes.rows[0];
+        if (original.payment_status === 'PAID') {
+          const error = new Error('Không thể tách đơn đã thanh toán');
+          error.statusCode = 400;
+          throw error;
+        }
+        const itemRes = await client.query('SELECT id FROM order_items WHERE order_id = $1 AND id = ANY($2::int[])', [original.id, normalizedItemIds]);
+        if (itemRes.rows.length !== normalizedItemIds.length) {
+          const error = new Error('Có món không thuộc đơn hàng gốc, vui lòng tải lại đơn');
+          error.statusCode = 400;
+          throw error;
+        }
 
-        // Create new order
+        // Create new order inheriting shift, type, store and table from the original
         const newOrderRes = await client.query(
           `INSERT INTO orders (
-            order_code, store_id, order_type, fulfillment_type, table_id, customer_name, customer_phone,
+            order_code, store_id, shift_id, order_type, fulfillment_type, table_id, customer_name, customer_phone,
             delivery_address, scheduled_at,
-            cashier_id, subtotal, total_amount, payment_status, order_status,
+            cashier_id, subtotal, discount_amount, tax_amount, total_amount, payment_status, order_status,
             workflow_stage_index, workflow_snapshot, note
-          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,0,0,'UNPAID',$11,$12,$13,$14)
+          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,0,0,0,0,'UNPAID',$12,$13,$14,$15)
           RETURNING *`,
-          [newOrderCode, original.store_id, original.order_type, original.fulfillment_type, original.table_id,
+          [newOrderCode, original.store_id, original.shift_id, original.order_type, original.fulfillment_type, original.table_id,
             original.customer_name, original.customer_phone, original.delivery_address, original.scheduled_at,
             original.cashier_id, original.order_status, original.workflow_stage_index, original.workflow_snapshot,
             'Tách từ đơn ' + original.order_code]
@@ -645,16 +715,20 @@ async function splitOrder(req, res) {
         newOrder = newOrderRes.rows[0];
 
         // Move items to new order
-        for (let itemId of item_ids) {
+        for (let itemId of normalizedItemIds) {
           await client.query('UPDATE order_items SET order_id = $1 WHERE id = $2', [newOrder.id, itemId]);
         }
 
-        // Recalculate subtotals for both orders
-        const sumNew = await client.query('SELECT COALESCE(SUM(subtotal), 0) as total FROM order_items WHERE order_id = $1', [newOrder.id]);
-        await client.query('UPDATE orders SET subtotal = $1, total_amount = $1 WHERE id = $2', [sumNew.rows[0].total, newOrder.id]);
+        // Recalculate both orders: total = subtotal - discount + tax; the new order starts with no discount/tax.
+        const sumNew = await client.query("SELECT COALESCE(SUM(subtotal) FILTER (WHERE status <> 'CANCELLED'), 0) as total FROM order_items WHERE order_id = $1", [newOrder.id]);
+        await client.query(`UPDATE orders SET subtotal = $1,
+          total_amount = GREATEST(0, $1 - COALESCE(discount_amount, 0) + COALESCE(tax_amount, 0)),
+          updated_at = CURRENT_TIMESTAMP WHERE id = $2`, [sumNew.rows[0].total, newOrder.id]);
 
-        const sumOrig = await client.query('SELECT COALESCE(SUM(subtotal), 0) as total FROM order_items WHERE order_id = $1', [original.id]);
-        await client.query('UPDATE orders SET subtotal = $1, total_amount = $1 WHERE id = $2', [sumOrig.rows[0].total, original.id]);
+        const sumOrig = await client.query("SELECT COALESCE(SUM(subtotal) FILTER (WHERE status <> 'CANCELLED'), 0) as total FROM order_items WHERE order_id = $1", [original.id]);
+        await client.query(`UPDATE orders SET subtotal = $1,
+          total_amount = GREATEST(0, $1 - COALESCE(discount_amount, 0) + COALESCE(tax_amount, 0)),
+          updated_at = CURRENT_TIMESTAMP WHERE id = $2`, [sumOrig.rows[0].total, original.id]);
 
         await client.query('COMMIT');
       } catch (err) {
@@ -664,8 +738,15 @@ async function splitOrder(req, res) {
         client.release();
       }
     } else {
-      const original = memoryStore.orders.find(o => o.id === orderId);
+      const original = memoryStore.orders.find(o => o.id === orderId && o.store_id === storeId);
       if (!original) return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng gốc' });
+      if (original.payment_status === 'PAID') {
+        return res.status(400).json({ success: false, message: 'Không thể tách đơn đã thanh toán' });
+      }
+      const ownedIds = memoryStore.order_items.filter(i => i.order_id === original.id).map(i => i.id);
+      if (!normalizedItemIds.every(id => ownedIds.includes(id))) {
+        return res.status(400).json({ success: false, message: 'Có món không thuộc đơn hàng gốc, vui lòng tải lại đơn' });
+      }
 
       const newId = memoryStore.orders.length ? Math.max(...memoryStore.orders.map(o => o.id)) + 1 : 1;
       newOrder = {
@@ -673,30 +754,35 @@ async function splitOrder(req, res) {
         id: newId,
         order_code: newOrderCode,
         note: 'Tách từ đơn ' + original.order_code,
-        payment_status: 'UNPAID'
+        payment_status: 'UNPAID',
+        subtotal: 0,
+        discount_amount: 0,
+        tax_amount: 0,
+        total_amount: 0,
+        created_at: new Date().toISOString()
       };
       memoryStore.orders.unshift(newOrder);
 
       memoryStore.order_items.forEach(item => {
-        if (item_ids.includes(item.id)) {
+        if (normalizedItemIds.includes(item.id)) {
           item.order_id = newId;
         }
       });
 
-      // Recalculate totals
-      const newItems = memoryStore.order_items.filter(i => i.order_id === newId);
-      newOrder.subtotal = newItems.reduce((acc, cur) => acc + (cur.subtotal || 0), 0);
-      newOrder.total_amount = newOrder.subtotal;
+      // Recalculate totals: total = subtotal - discount + tax; the new order starts with no discount/tax.
+      const newItems = memoryStore.order_items.filter(i => i.order_id === newId && i.status !== 'CANCELLED');
+      newOrder.subtotal = newItems.reduce((acc, cur) => acc + Number(cur.subtotal || 0), 0);
+      newOrder.total_amount = Math.max(0, newOrder.subtotal - Number(newOrder.discount_amount || 0) + Number(newOrder.tax_amount || 0));
 
-      const origItems = memoryStore.order_items.filter(i => i.order_id === original.id);
-      original.subtotal = origItems.reduce((acc, cur) => acc + (cur.subtotal || 0), 0);
-      original.total_amount = original.subtotal;
+      const origItems = memoryStore.order_items.filter(i => i.order_id === original.id && i.status !== 'CANCELLED');
+      original.subtotal = origItems.reduce((acc, cur) => acc + Number(cur.subtotal || 0), 0);
+      original.total_amount = Math.max(0, original.subtotal - Number(original.discount_amount || 0) + Number(original.tax_amount || 0));
     }
 
     res.json({ success: true, message: 'Tách hóa đơn thành công', newOrder });
   } catch (error) {
     console.error('splitOrder error:', error);
-    res.status(500).json({ success: false, message: 'Lỗi tách hóa đơn: ' + error.message });
+    res.status(error.statusCode || 500).json({ success: false, message: error.statusCode ? error.message : 'Lỗi tách hóa đơn: ' + error.message });
   }
 }
 

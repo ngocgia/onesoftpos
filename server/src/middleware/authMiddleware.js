@@ -36,13 +36,18 @@ async function authenticateToken(req, res, next) {
     const decoded = jwt.verify(token, JWT_SECRET);
     let currentUser;
     if (isPostgresConnected()) {
-      const result = await pool.query('SELECT id,username,email,full_name,role,status FROM users WHERE id=$1', [decoded.id]);
+      const result = await pool.query('SELECT id,username,email,full_name,role,status,token_version FROM users WHERE id=$1', [decoded.id]);
       currentUser = result.rows[0];
     } else {
       currentUser = memoryStore.users.find(user => user.id === decoded.id);
     }
     if (!currentUser || currentUser.status !== 'ACTIVE') {
       return res.status(403).json({ success: false, message: 'Tài khoản đã bị khóa hoặc không còn tồn tại' });
+    }
+    // Reject tokens minted before the last password change/reset: bumping
+    // users.token_version invalidates every still-unexpired JWT.
+    if (decoded.ver !== (currentUser.token_version || 0)) {
+      return res.status(401).json({ success: false, message: 'Phiên đăng nhập đã hết hiệu lực, vui lòng đăng nhập lại' });
     }
     req.user = { ...decoded, ...currentUser };
 
@@ -155,7 +160,13 @@ function requireFeature(featureCode) {
           || memoryStore.role_features.find(item => item.role === req.user.role && item.feature_code === featureCode);
       }
       if (typeof userOverride === 'boolean') setting = { enabled: userOverride };
-      if (setting && !setting.enabled) {
+      if (!setting) {
+        // Fail closed: a missing (role, feature_code) row used to allow
+        // access, which turned a wiped or half-seeded role_features table
+        // into an implicit "allow everything". SUPER_ADMIN is exempt above.
+        return res.status(403).json({ success: false, message: 'Bạn không có quyền sử dụng tính năng này' });
+      }
+      if (!setting.enabled) {
         return res.status(403).json({ success: false, message: 'Nhóm người dùng của bạn không được cấp chức năng này' });
       }
       next();

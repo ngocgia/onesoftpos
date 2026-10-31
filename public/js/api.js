@@ -70,6 +70,11 @@ async function apiRequest(endpoint, options = {}) {
   }
 }
 
+// Escape HTML for safe innerHTML insertion (message may contain backend data: order/product names...)
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+}
+
 // Toast helper
 function showToast(message, type = 'info') {
   const container = document.getElementById('toastContainer');
@@ -81,7 +86,7 @@ function showToast(message, type = 'info') {
   if (type === 'success') icon = '<i class="fa-solid fa-circle-check text-success"></i>';
   if (type === 'error') icon = '<i class="fa-solid fa-circle-exclamation text-danger"></i>';
 
-  toast.innerHTML = `${icon} <span>${message}</span>`;
+  toast.innerHTML = `${icon} <span>${escapeHtml(message)}</span>`;
   container.appendChild(toast);
 
   setTimeout(() => {

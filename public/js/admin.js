@@ -1,4 +1,9 @@
 // Store administration for STORE_MANAGER. Every request is scoped by X-Store-Id.
+
+// toISOString() converts to UTC and returns yesterday's date between 00:00 and
+// 06:59 in GMT+7, so date filters must be formatted in the local timezone.
+const toLocalDate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 window.adminModule = {
   stores: [], products: [], categories: [], toppings: [], toppingGroups: [], staff: [], editorSubmit: null,
   inventoryItems: [], inventorySummary: null, inventoryTransactions: [], inventoryReports: null,
@@ -141,8 +146,8 @@ window.adminModule = {
   workflowRow(step){return `<div class="manager-workflow-row store-type-card" data-id="${this.esc(step.id||'')}">${this.field('step_name','Tên bước','text',step.name||'',null,true)}${this.field('step_type','Loại','select',step.type||'APPROVAL',[{value:'CREATE',label:'Tạo đơn'},{value:'APPROVAL',label:'Phê duyệt'},{value:'KITCHEN',label:'Bếp'},{value:'PAYMENT',label:'Thanh toán'}])}${this.field('step_roles','Vai trò (phân cách bằng dấu phẩy)','text',(step.roles||[]).join(', '),null,true)}<button type="button" class="btn-secondary btn-sm" onclick="this.closest('.manager-workflow-row').remove()">Xóa bước</button></div>`},
 
   async loadInventory() {
-    const today = new Date().toISOString().slice(0, 10);
-    const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+    const today = toLocalDate(new Date());
+    const firstDay = toLocalDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
     const startInput = document.getElementById('invReportStartDate');
     const endInput = document.getElementById('invReportEndDate');
     if (startInput && !startInput.value) startInput.value = firstDay;
@@ -170,14 +175,14 @@ window.adminModule = {
 
   setInvDateRange(preset) {
     const now = new Date();
-    const today = now.toISOString().slice(0, 10);
+    const today = toLocalDate(now);
     let start = today;
     if (preset === '7days') {
       const d = new Date();
       d.setDate(d.getDate() - 7);
-      start = d.toISOString().slice(0, 10);
+      start = toLocalDate(d);
     } else if (preset === 'thisMonth') {
-      start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+      start = toLocalDate(new Date(now.getFullYear(), now.getMonth(), 1));
     }
     const sEl = document.getElementById('invReportStartDate');
     const eEl = document.getElementById('invReportEndDate');

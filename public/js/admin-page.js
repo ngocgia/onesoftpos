@@ -1,3 +1,7 @@
+// toISOString() converts to UTC and returns yesterday's date between 00:00 and
+// 06:59 in GMT+7, so date filters must be formatted in the local timezone.
+const toLocalDate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 const adminApp = {
   bindSidebar() {
     const sidebar = document.getElementById("adminSidebar");
@@ -1882,8 +1886,8 @@ const adminApp = {
     select.value = currentStoreId;
     window.api.setCurrentStoreId(select.value);
 
-    const today = new Date().toISOString().slice(0, 10);
-    const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+    const today = toLocalDate(new Date());
+    const firstDay = toLocalDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
     const sInput = document.getElementById("adminInvStartDate");
     const eInput = document.getElementById("adminInvEndDate");
     if (sInput && !sInput.value) sInput.value = firstDay;
@@ -1894,14 +1898,14 @@ const adminApp = {
 
   setInvDateRange(preset) {
     const now = new Date();
-    const today = now.toISOString().slice(0, 10);
+    const today = toLocalDate(now);
     let start = today;
     if (preset === '7days') {
       const d = new Date();
       d.setDate(d.getDate() - 7);
-      start = d.toISOString().slice(0, 10);
+      start = toLocalDate(d);
     } else if (preset === 'thisMonth') {
-      start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+      start = toLocalDate(new Date(now.getFullYear(), now.getMonth(), 1));
     }
     const sEl = document.getElementById("adminInvStartDate");
     const eEl = document.getElementById("adminInvEndDate");

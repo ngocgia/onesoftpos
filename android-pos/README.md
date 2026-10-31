@@ -55,6 +55,8 @@ Thiết lập lưu trong WebView trên từng máy, dùng chung cho nhân viên 
 
 Từ terminal có Android SDK: `gradlew.bat assembleDebug` trên Windows, hoặc `sh ./gradlew assembleDebug` trên macOS/Linux. APK đầu ra là `app/build/outputs/apk/debug/app-debug.apk`. Bản debug đã kiểm tra được chép thành `OnesoftPOS-POS-debug.apk` ở thư mục này.
 
+Lưu ý: các artifact build — `.apk` ở thư mục `android-pos/` (kể cả `OnesoftPOS-POS-debug.apk`) và `.aab` trong `android-pos/app/release/` — **không còn được track trong git** (đã bỏ khỏi index và thêm vào `.gitignore`). Không commit lại các file này; cần bản APK/AAB thì build lại bằng Gradle theo các bước trên.
+
 ## Phát hành lên Google Play
 
 Bản release dùng upload key được cấu hình riêng trong `keystore.properties`. File thuộc tính và thư mục `keystore/` đã bị loại khỏi Git vì chứa bí mật. Phải sao lưu cả `keystore/upload-key.jks`, alias và mật khẩu ở nơi an toàn; các lần cập nhật sau phải dùng lại cùng upload key.

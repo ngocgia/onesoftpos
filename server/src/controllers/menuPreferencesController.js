@@ -143,7 +143,8 @@ async function changePassword(req, res) {
     const hash = result.rows[0]?.password_hash;
     if (!hash || !await bcrypt.compare(old_password, hash)) return res.status(400).json({ success: false, message: 'Mật khẩu hiện tại không đúng' });
     const nextHash = await bcrypt.hash(new_password, 10);
-    const updated = await db.pool.query('UPDATE users SET password_hash=$1, updated_at=CURRENT_TIMESTAMP WHERE id=$2 AND password_hash=$3', [nextHash, req.user.id, hash]);
+    // Bump token_version so every previously issued JWT stops working.
+    const updated = await db.pool.query('UPDATE users SET password_hash=$1, token_version=token_version+1, updated_at=CURRENT_TIMESTAMP WHERE id=$2 AND password_hash=$3', [nextHash, req.user.id, hash]);
     if (!updated.rowCount) return res.status(409).json({ success: false, message: 'Mật khẩu đã thay đổi; vui lòng thử lại' });
     res.json({ success: true });
   } catch (error) { res.status(500).json({ success: false, message: 'Không thể đổi mật khẩu' }); }

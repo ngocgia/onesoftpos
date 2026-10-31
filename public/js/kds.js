@@ -46,6 +46,10 @@ window.kdsModule = {
     window.audioModule?.speak(message, { kind: 'kitchen' });
   },
 
+  escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+  },
+
   async loadKdsOrders(silent = false) {
     if (this.isLoading || this.updatingItems.size > 0) return;
     this.isLoading = true;
@@ -98,9 +102,9 @@ window.kdsModule = {
         <div class="kds-card">
           <div class="kds-card-header">
             <div>
-              <span class="kds-order-title">${ord.order_code}</span>
+              <span class="kds-order-title">${this.escapeHtml(ord.order_code)}</span>
               <span style="font-size: 11px; margin-left: 6px; color: var(--text-muted);">
-                (${ord.order_type === 'DINE_IN' ? (ord.table_code || 'Bàn') : ({SHIP_DELIVERY:'Ship mang về',CUSTOMER_PICKUP:'Khách tới lấy',APP_DELIVERY:'Ship qua app'}[ord.fulfillment_type] || 'Mang đi')})
+                (${ord.order_type === 'DINE_IN' ? this.escapeHtml(ord.table_code || 'Bàn') : ({SHIP_DELIVERY:'Ship mang về',CUSTOMER_PICKUP:'Khách tới lấy',APP_DELIVERY:'Ship qua app'}[ord.fulfillment_type] || 'Mang đi')})
               </span>
             </div>
             <span class="kds-timer" style="${isUrgent ? 'color: var(--danger); font-weight: 800;' : ''}">
@@ -114,10 +118,10 @@ window.kdsModule = {
                   <div class="kds-item-left">
                     <span class="kds-qty-circle">${item.quantity}</span>
                     <div>
-                      <strong style="font-size: 13px;">${item.product_name}</strong>
-                      ${item.variant_name ? `<span style="font-size: 11px; color: var(--primary);"> (${item.variant_name})</span>` : ''}
-                      ${(item.options || []).map(o => `<div style="font-size: 10px; color: var(--text-muted);">+ ${o.option_name}</div>`).join('')}
-                      ${item.note ? `<div style="font-size: 11px; color: var(--accent);"><i class="fa-regular fa-note-sticky"></i> ${item.note}</div>` : ''}
+                      <strong style="font-size: 13px;">${this.escapeHtml(item.product_name)}</strong>
+                      ${item.variant_name ? `<span style="font-size: 11px; color: var(--primary);"> (${this.escapeHtml(item.variant_name)})</span>` : ''}
+                      ${(item.options || []).map(o => `<div style="font-size: 10px; color: var(--text-muted);">+ ${this.escapeHtml(o.option_name)}</div>`).join('')}
+                      ${item.note ? `<div style="font-size: 11px; color: var(--accent);"><i class="fa-regular fa-note-sticky"></i> ${this.escapeHtml(item.note)}</div>` : ''}
                     </div>
                   </div>
                   <div class="kds-item-actions">
@@ -125,7 +129,7 @@ window.kdsModule = {
                       Xong món
                     </button>
                     ${canCancel && ['PENDING', 'PREPARING', 'READY'].includes(item.status) ? `
-                      <button type="button" class="btn-kds-cancel" data-cancel-item-id="${item.id}" data-item-name="${item.product_name}" title="Hủy món" aria-label="Hủy món">
+                      <button type="button" class="btn-kds-cancel" data-cancel-item-id="${item.id}" data-item-name="${this.escapeHtml(item.product_name)}" title="Hủy món" aria-label="Hủy món">
                         <i class="fa-solid fa-ban" aria-hidden="true"></i>
                       </button>` : ''}
                   </div>

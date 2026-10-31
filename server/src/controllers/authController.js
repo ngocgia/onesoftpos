@@ -26,7 +26,10 @@ async function getRoleFeatures(role, storeId = null, userId = null) {
   }
   const features = Object.fromEntries(DEFAULT_ROLE_FEATURES.map(code => {
     const found = rows.find(item => item.feature_code === code);
-    return [code, found ? !!found.enabled : true];
+    // Fail closed: a missing role_features row denies the feature instead of
+    // silently granting it. Boot migrations backfill the full matrix so a
+    // healthy database never relies on this default.
+    return [code, found ? !!found.enabled : false];
   }));
   let completedItemsOverride;
   if (userId && isPostgresConnected()) {
@@ -112,14 +115,16 @@ async function login(req, res) {
     const defaultStore = stores.find(s => s.is_default) || stores[0] || null;
     const roleFeatures = await getRoleFeatures(user.role, defaultStore?.id, user.id);
 
-    // Generate JWT
+    // Generate JWT. The `ver` claim pins the token to the user's current
+    // token_version; bumping that column (password change/reset) revokes it.
     const token = jwt.sign(
       {
         id: user.id,
         username: user.username,
         email: user.email,
         full_name: user.full_name,
-        role: user.role
+        role: user.role,
+        ver: user.token_version || 0
       },
       JWT_SECRET,
       { expiresIn: '7d' }
@@ -193,7 +198,46 @@ async function getMe(req, res) {
   }
 }
 
+async function changePassword(req, res) {
+  const { old_password, new_password } = req.body;
+  if (typeof old_password !== 'string' || typeof new_password !== 'string'
+    || new_password.length < 6 || Buffer.byteLength(new_password) > 72 || Buffer.byteLength(old_password) > 72) {
+    return res.status(400).json({ success: false, message: 'Mật khẩu mới cần ít nhất 6 ký tự và tối đa 72 byte' });
+  }
+  try {
+    let user;
+    if (isPostgresConnected()) {
+      const result = await pool.query('SELECT id, password_hash FROM users WHERE id=$1', [req.user.id]);
+      user = result.rows[0];
+    } else {
+      user = memoryStore.users.find(item => item.id === req.user.id);
+    }
+    if (!user || !user.password_hash || !(await bcrypt.compare(old_password, user.password_hash))) {
+      return res.status(400).json({ success: false, message: 'Mật khẩu hiện tại không đúng' });
+    }
+    const nextHash = await bcrypt.hash(new_password, 10);
+    if (isPostgresConnected()) {
+      // Bumping token_version revokes every JWT issued before this change.
+      const updated = await pool.query(
+        'UPDATE users SET password_hash=$1, token_version=token_version+1, updated_at=CURRENT_TIMESTAMP WHERE id=$2 AND password_hash=$3',
+        [nextHash, req.user.id, user.password_hash]
+      );
+      if (!updated.rowCount) {
+        return res.status(409).json({ success: false, message: 'Mật khẩu đã thay đổi; vui lòng thử lại' });
+      }
+    } else {
+      user.password_hash = nextHash;
+      user.token_version = (user.token_version || 0) + 1;
+    }
+    return res.json({ success: true, message: 'Đã đổi mật khẩu. Vui lòng đăng nhập lại.' });
+  } catch (error) {
+    console.error('changePassword error:', error);
+    return res.status(500).json({ success: false, message: 'Không thể đổi mật khẩu' });
+  }
+}
+
 module.exports = {
   login,
-  getMe
+  getMe,
+  changePassword
 };

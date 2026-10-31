@@ -41,6 +41,15 @@ import java.util.concurrent.*;
 /** Sends Unicode receipts as monochrome raster, independent of printer code pages. */
 final class ThermalPrinter {
     static final int BLUETOOTH_PERMISSION = 2031;
+    // Raster chunk size also used for Bluetooth pacing; one 180 ms pause per chunk.
+    private static final int CHUNK_BYTES = 4608;
+    private static final long PACING_MILLIS = 180;
+    // A 24 000-pixel receipt is ~1.7 MB ≈ 376 chunks; pacing alone costs ~68 s,
+    // so the transmit budget must scale with the payload instead of staying fixed.
+    private static final long MIN_TRANSMIT_MILLIS = 90000;
+    private static final long TRANSMIT_MARGIN_MILLIS = 30000;
+    // Conservative Bluetooth SPP throughput floor used only for budget sizing.
+    private static final long MIN_BLUETOOTH_BYTES_PER_SECOND = 8192;
     private final Activity activity;
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
@@ -230,13 +239,42 @@ final class ThermalPrinter {
                     if (closed) throw new IOException("Đã dừng in");
                     transmitting[0] = true;
                     sendRaster(socket.getOutputStream());
-                }, timer, 15000, 90000);
+                }, timer, 15000, bluetoothTransmitBudgetMillis());
                 message("Đã gửi dữ liệu in Bluetooth. Vui lòng kiểm tra giấy in.");
             } catch (Exception error) {
                 message((transmitting[0] ? "Gửi phiếu Bluetooth bị gián đoạn: " : "Không kết nối được máy in Bluetooth: ")
                         + error.getMessage() + (transmitting[0] ? ". Kiểm tra phiếu trước khi in lại để tránh trùng." : ". Kiểm tra nguồn, ghép đôi, hỗ trợ SPP và tắt app khác đang giữ máy in."));
             } finally { activeSocket = null; activity.runOnUiThread(() -> busy = false); }
         });
+    }
+
+    /**
+     * Sizes the Bluetooth transmit timeout from the payload: bytes at a conservative
+     * floor rate plus one pacing pause per chunk, with a safety margin. Small jobs keep
+     * the 90 s floor so a dead link still fails fast; only large raster jobs are granted
+     * the minutes they genuinely need. On timeout the socket is still closed and the job
+     * reported as interrupted, exactly as before.
+     */
+    private long bluetoothTransmitBudgetMillis() {
+        long bytes;
+        long pacedChunks;
+        if (renderedRaster != null) {
+            bytes = renderedRaster.length;
+            pacedChunks = (renderedRaster.length + CHUNK_BYTES - 1) / CHUNK_BYTES;
+        } else {
+            // Fallback text path builds its raster only while transmitting, so estimate:
+            // ~13 px per character across (width - 16) px, ~30 px per line, 64-row strips.
+            int characters = text == null ? 0 : text.length();
+            boolean withQr = qrUrl != null && !qrUrl.isEmpty();
+            if (withQr && footer != null) characters += footer.length();
+            int charsPerLine = Math.max(1, (width - 16) / (width == 384 ? 11 : 13));
+            int lines = characters == 0 ? 0 : (characters + charsPerLine - 1) / charsPerLine;
+            int strips = (int) ((lines * 30L + 63) / 64) + (withQr ? 5 : 0); // QR image ≈ 5 strips of 64 rows.
+            bytes = (long) strips * (8 + (width / 8) * 64);
+            pacedChunks = strips;
+        }
+        long needed = bytes * 1000 / MIN_BLUETOOTH_BYTES_PER_SECOND + pacedChunks * PACING_MILLIS + TRANSMIT_MARGIN_MILLIS;
+        return Math.max(MIN_TRANSMIT_MILLIS, needed);
     }
 
     private boolean printable(UsbDevice device) {
@@ -361,8 +399,8 @@ final class ThermalPrinter {
             output.write(new byte[]{27, 64, 27, 97, 0});
             // TCP applies backpressure; RawBT manages its own printer buffers.
             // USB bulkTransfer handles backpressure; only Bluetooth keeps pacing.
-            for (int offset = 0; offset < renderedRaster.length; offset += 4608) {
-                output.write(renderedRaster, offset, Math.min(4608, renderedRaster.length - offset));
+            for (int offset = 0; offset < renderedRaster.length; offset += CHUNK_BYTES) {
+                output.write(renderedRaster, offset, Math.min(CHUNK_BYTES, renderedRaster.length - offset));
                 output.flush();
                 pauseForPrinter();
             }

@@ -22,6 +22,10 @@ lerna-debug.log*
 server/data/apks/
 server/data/product-images/
 
+# Android build artifacts (not tracked in git; build with Gradle when needed)
+android-pos/*.apk
+android-pos/app/release/
+
 # Generated deployment archives and local visual checks
 /deploy-packages/
 

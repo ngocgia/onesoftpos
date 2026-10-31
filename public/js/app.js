@@ -266,6 +266,13 @@ function bindGlobalEvents() {
       const cashVal = parseFloat(document.getElementById('discountCashInput')?.value || 0);
       const percentVal = parseFloat(document.getElementById('discountPercentInput')?.value || 0);
 
+      // Reject invalid input: NaN/negative cash or percent outside 0-100
+      // could otherwise inflate the total instead of discounting it.
+      if (!Number.isFinite(cashVal) || cashVal < 0 || !Number.isFinite(percentVal) || percentVal < 0 || percentVal > 100) {
+        window.api.showToast('Giảm giá tiền phải là số không âm và phần trăm giảm phải từ 0 đến 100', 'error');
+        return;
+      }
+
       window.appState.cart.discountCash = cashVal;
       window.appState.cart.discountPercent = percentVal;
 

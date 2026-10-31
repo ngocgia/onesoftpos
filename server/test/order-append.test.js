@@ -31,7 +31,7 @@ for (const scenario of [
     };
     const db = { isPostgresConnected: () => true, pool: {
       connect: async () => client,
-      query: async sql => ({ rows: sql.includes('ss.workflow_definition') ? [{}] : [] })
+      query: async sql => ({ rows: sql.includes('ss.workflow_definition') ? [{}] : sql.includes('FROM products') ? [{ id: 2, price: 11000 }] : [] })
     } };
     const module = { exports: {} };
     vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../src/controllers/orderController.js'), 'utf8'), {

@@ -15,12 +15,18 @@ import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /** Renders the frozen on-screen receipt, preserving its columns, styles and QR. */
 final class ReceiptRenderer {
     interface Result { void complete(byte[] raster, String error); }
+    private static final int SLICE_ROWS = 128;
+    private static final long CAPTURE_TIMEOUT_MILLIS = 20000;
     private final Activity activity;
     private final Handler handler = new Handler(Looper.getMainLooper());
+    // ESC/POS encoding is pure CPU work; only View.draw must stay on the main thread.
+    private final ExecutorService encoder = Executors.newSingleThreadExecutor();
     private WebView renderer;
     private Runnable timeout;
     private Result pending;
@@ -57,9 +63,14 @@ final class ReceiptRenderer {
                 handler.postDelayed(() -> { if (renderer == view) measure(targetWidth); }, 100);
             }
         });
-        timeout = () -> finish(null, "Dựng hóa đơn quá thời gian. Kiểm tra kết nối tải QR rồi thử lại.");
-        handler.postDelayed(timeout, 20000);
+        armTimeout();
         renderer.loadDataWithBaseURL("https://onesoft.one/", html, "text/html", "UTF-8", null);
+    }
+
+    private void armTimeout() {
+        if (timeout != null) handler.removeCallbacks(timeout);
+        timeout = () -> finish(null, "Dựng hóa đơn quá thời gian. Kiểm tra kết nối tải QR rồi thử lại.");
+        handler.postDelayed(timeout, CAPTURE_TIMEOUT_MILLIS);
     }
 
     private void measure(int width) {
@@ -84,23 +95,51 @@ final class ReceiptRenderer {
 
     private void capture(int width, int height) {
         if (renderer == null || pending == null) return;
-        Bitmap strip = null;
+        final WebView current = renderer;
+        final Bitmap strip;
         try {
             // Only one short bitmap is allocated, even for a long receipt.
-            ByteArrayOutputStream raster = new ByteArrayOutputStream();
-            strip = Bitmap.createBitmap(width, 128, Bitmap.Config.ARGB_8888);
-            Canvas canvas = new Canvas(strip);
-            int[] pixels = new int[width * 128];
-            for (int top = 0; top < height; top += 128) {
-                int rows = Math.min(128, height - top);
-                canvas.drawColor(Color.WHITE);
-                canvas.save(); canvas.translate(0, -top); renderer.draw(canvas); canvas.restore();
-                strip.getPixels(pixels, 0, width, 0, 0, width, rows);
-                raster.write(EscPosRaster.encode(pixels, width, rows));
-            }
-            finish(raster.toByteArray(), null);
-        } catch (Exception error) { finish(null, "Không dựng được ảnh hóa đơn: " + error.getMessage()); }
-        finally { if (strip != null) strip.recycle(); }
+            strip = Bitmap.createBitmap(width, SLICE_ROWS, Bitmap.Config.ARGB_8888);
+        } catch (Exception error) { finish(null, "Không dựng được ảnh hóa đơn: " + error.getMessage()); return; }
+        // Slices are now drawn one at a time on the main thread with encoding off-thread,
+        // so the watchdog is re-armed to cover the capture phase itself.
+        armTimeout();
+        captureSlice(current, strip, new Canvas(strip), new ByteArrayOutputStream(), width, height, 0);
+    }
+
+    /**
+     * Draws one 128-row slice on the main thread (View.draw requires it), hands the
+     * copied pixels to the background encoder, and posts the next slice afterwards so
+     * the UI thread stays responsive while a long receipt is being prepared.
+     */
+    private void captureSlice(final WebView current, final Bitmap strip, final Canvas canvas,
+                              final ByteArrayOutputStream raster, final int width, final int height, final int top) {
+        if (renderer != current || pending == null) { strip.recycle(); return; }
+        final int rows = Math.min(SLICE_ROWS, height - top);
+        final boolean last = top + rows >= height;
+        try {
+            final int[] pixels = new int[width * rows];
+            canvas.drawColor(Color.WHITE);
+            canvas.save(); canvas.translate(0, -top); current.draw(canvas); canvas.restore();
+            // The pixel array is owned by this slice alone; the encoder never shares
+            // memory with the bitmap the UI thread keeps reusing.
+            strip.getPixels(pixels, 0, width, 0, 0, width, rows);
+            encoder.execute(() -> {
+                try { raster.write(EscPosRaster.encode(pixels, width, rows)); }
+                catch (Exception error) {
+                    handler.post(() -> { if (renderer == current && pending != null) finish(null, "Không dựng được ảnh hóa đơn: " + error.getMessage()); });
+                    return;
+                }
+                // A single-thread executor keeps slices ordered; the final toByteArray()
+                // runs only after the last write, on the main thread via this post.
+                if (last) handler.post(() -> { if (renderer == current && pending != null) finish(raster.toByteArray(), null); });
+            });
+            if (last) strip.recycle();
+            else handler.post(() -> captureSlice(current, strip, canvas, raster, width, height, top + SLICE_ROWS));
+        } catch (Exception error) {
+            strip.recycle();
+            finish(null, "Không dựng được ảnh hóa đơn: " + error.getMessage());
+        }
     }
 
     private void finish(byte[] raster, String error) {
@@ -115,5 +154,8 @@ final class ReceiptRenderer {
         }
         if (callback != null) callback.complete(raster, error);
     }
-    void close() { finish(null, "Đã dừng chuẩn bị phiếu in"); }
+    void close() {
+        finish(null, "Đã dừng chuẩn bị phiếu in");
+        encoder.shutdownNow();
+    }
 }

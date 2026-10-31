@@ -169,28 +169,41 @@ async function createItem(req, res) {
     let newItem = null;
 
     if (isPostgresConnected()) {
-      const check = await pool.query(
-        'SELECT id FROM inventory_items WHERE store_id = $1 AND code = $2',
-        [storeId, cleanCode]
-      );
-      if (check.rows.length > 0) {
-        return res.status(400).json({ success: false, message: `Mã mặt hàng "${cleanCode}" đã tồn tại` });
-      }
-
-      const result = await pool.query(
-        `INSERT INTO inventory_items (store_id, code, name, category, unit, cost_price, current_stock, min_stock, is_active)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE) RETURNING *`,
-        [storeId, cleanCode, cleanName, cleanCategory, cleanUnit, numCost, numStock, numMin]
-      );
-      newItem = result.rows[0];
-
-      if (numStock > 0) {
-        const transCode = `PN-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(newItem.id).padStart(4, '0')}`;
-        await pool.query(
-          `INSERT INTO inventory_transactions (transaction_code, store_id, item_id, transaction_type, quantity, price, total_amount, stock_before, stock_after, user_id, note)
-           VALUES ($1, $2, $3, 'IN', $4, $5, $6, 0, $4, $7, 'Khởi tạo tồn kho ban đầu')`,
-          [transCode, storeId, newItem.id, numStock, numCost, Math.round(numStock * numCost), req.user?.id || null]
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const check = await client.query(
+          'SELECT id FROM inventory_items WHERE store_id = $1 AND code = $2',
+          [storeId, cleanCode]
         );
+        if (check.rows.length > 0) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ success: false, message: `Mã mặt hàng "${cleanCode}" đã tồn tại` });
+        }
+
+        // Initial stock is an absolute value on a brand-new row.
+        const result = await client.query(
+          `INSERT INTO inventory_items (store_id, code, name, category, unit, cost_price, current_stock, min_stock, is_active)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE) RETURNING *`,
+          [storeId, cleanCode, cleanName, cleanCategory, cleanUnit, numCost, numStock, numMin]
+        );
+        newItem = result.rows[0];
+
+        // Keep the item and its opening voucher atomic.
+        if (numStock > 0) {
+          const transCode = `PN-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(newItem.id).padStart(4, '0')}`;
+          await client.query(
+            `INSERT INTO inventory_transactions (transaction_code, store_id, item_id, transaction_type, quantity, price, total_amount, stock_before, stock_after, user_id, note)
+             VALUES ($1, $2, $3, 'IN', $4, $5, $6, 0, $4, $7, 'Khởi tạo tồn kho ban đầu')`,
+            [transCode, storeId, newItem.id, numStock, numCost, Math.round(numStock * numCost), req.user?.id || null]
+          );
+        }
+        await client.query('COMMIT');
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
       }
     } else {
       if (!memoryStore.inventory_items) memoryStore.inventory_items = [];
@@ -264,75 +277,93 @@ async function updateItem(req, res) {
     let updatedItem = null;
 
     if (isPostgresConnected()) {
-      const check = await pool.query('SELECT * FROM inventory_items WHERE id = $1 AND store_id = $2', [id, storeId]);
-      if (!check.rows.length) {
-        return res.status(404).json({ success: false, message: 'Không tìm thấy mặt hàng kho' });
-      }
-      const oldItem = check.rows[0];
-      const oldStock = Number(oldItem.current_stock || 0);
-
-      if (code) {
-        const cleanCode = String(code).trim().toUpperCase();
-        const codeCheck = await pool.query(
-          'SELECT id FROM inventory_items WHERE store_id = $1 AND code = $2 AND id <> $3',
-          [storeId, cleanCode, id]
-        );
-        if (codeCheck.rows.length > 0) {
-          return res.status(400).json({ success: false, message: `Mã mặt hàng "${cleanCode}" đã trùng với mặt hàng khác` });
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        // Lock the row so parallel edits cannot overwrite each other's stock changes.
+        const check = await client.query('SELECT * FROM inventory_items WHERE id = $1 AND store_id = $2 FOR UPDATE', [id, storeId]);
+        if (!check.rows.length) {
+          await client.query('ROLLBACK');
+          return res.status(404).json({ success: false, message: 'Không tìm thấy mặt hàng kho' });
         }
-      }
+        const oldItem = check.rows[0];
+        const oldStock = Number(oldItem.current_stock || 0);
 
-      let targetStock = null;
-      let addedImportQty = 0;
-      if (import_qty !== undefined && Number(import_qty) > 0) {
-        addedImportQty = Number(import_qty);
-        targetStock = oldStock + addedImportQty;
-      } else if (current_stock !== undefined) {
-        const parsed = Number(current_stock);
-        if (!isNaN(parsed) && parsed >= 0) {
-          targetStock = parsed;
-          if (targetStock > oldStock) {
-            addedImportQty = targetStock - oldStock;
+        if (code) {
+          const cleanCode = String(code).trim().toUpperCase();
+          const codeCheck = await client.query(
+            'SELECT id FROM inventory_items WHERE store_id = $1 AND code = $2 AND id <> $3',
+            [storeId, cleanCode, id]
+          );
+          if (codeCheck.rows.length > 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ success: false, message: `Mã mặt hàng "${cleanCode}" đã trùng với mặt hàng khác` });
           }
         }
-      }
 
-      const result = await pool.query(
-        `UPDATE inventory_items
-         SET code = COALESCE($1, code),
-             name = COALESCE($2, name),
-             category = COALESCE($3, category),
-             unit = COALESCE($4, unit),
-             cost_price = COALESCE($5, cost_price),
-             min_stock = COALESCE($6, min_stock),
-             is_active = COALESCE($7, is_active),
-             current_stock = COALESCE($8, current_stock),
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = $9 AND store_id = $10
-         RETURNING *`,
-        [
-          code ? String(code).trim().toUpperCase() : null,
-          name ? String(name).trim() : null,
-          category ? String(category).trim() : null,
-          unit ? String(unit).trim() : null,
-          cost_price !== undefined ? Number(cost_price) : null,
-          min_stock !== undefined ? Number(min_stock) : null,
-          is_active !== undefined ? !!is_active : null,
-          targetStock !== null ? targetStock : null,
-          id,
-          storeId
-        ]
-      );
-      updatedItem = result.rows[0];
+        let targetStock = null;
+        let addedImportQty = 0;
+        // import_qty moves stock relatively; current_stock sets an explicit counted value.
+        const useRelativeStock = import_qty !== undefined && Number(import_qty) > 0;
+        if (useRelativeStock) {
+          addedImportQty = Number(import_qty);
+          targetStock = oldStock + addedImportQty;
+        } else if (current_stock !== undefined) {
+          const parsed = Number(current_stock);
+          if (!isNaN(parsed) && parsed >= 0) {
+            targetStock = parsed;
+            if (targetStock > oldStock) {
+              addedImportQty = targetStock - oldStock;
+            }
+          }
+        }
 
-      if (addedImportQty > 0) {
-        const unitCost = cost_price !== undefined ? Number(cost_price) : Number(oldItem.cost_price || 0);
-        const transCode = `PN-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
-        await pool.query(
-          `INSERT INTO inventory_transactions (transaction_code, store_id, item_id, transaction_type, quantity, price, total_amount, stock_before, stock_after, user_id, note)
-           VALUES ($1, $2, $3, 'IN', $4, $5, $6, $7, $8, $9, $10)`,
-          [transCode, storeId, id, addedImportQty, unitCost, Math.round(addedImportQty * unitCost), oldStock, targetStock, req.user?.id || null, 'Cập nhật hàng nhập (Chế độ đơn giản)']
+        const stockAssignment = useRelativeStock
+          ? 'current_stock = current_stock + $8'
+          : 'current_stock = COALESCE($8, current_stock)';
+        const result = await client.query(
+          `UPDATE inventory_items
+           SET code = COALESCE($1, code),
+               name = COALESCE($2, name),
+               category = COALESCE($3, category),
+               unit = COALESCE($4, unit),
+               cost_price = COALESCE($5, cost_price),
+               min_stock = COALESCE($6, min_stock),
+               is_active = COALESCE($7, is_active),
+               ${stockAssignment},
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = $9 AND store_id = $10
+           RETURNING *`,
+          [
+            code ? String(code).trim().toUpperCase() : null,
+            name ? String(name).trim() : null,
+            category ? String(category).trim() : null,
+            unit ? String(unit).trim() : null,
+            cost_price !== undefined ? Number(cost_price) : null,
+            min_stock !== undefined ? Number(min_stock) : null,
+            is_active !== undefined ? !!is_active : null,
+            useRelativeStock ? addedImportQty : (targetStock !== null ? targetStock : null),
+            id,
+            storeId
+          ]
         );
+        updatedItem = result.rows[0];
+
+        if (addedImportQty > 0) {
+          const unitCost = cost_price !== undefined ? Number(cost_price) : Number(oldItem.cost_price || 0);
+          const transCode = `PN-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
+          await client.query(
+            `INSERT INTO inventory_transactions (transaction_code, store_id, item_id, transaction_type, quantity, price, total_amount, stock_before, stock_after, user_id, note)
+             VALUES ($1, $2, $3, 'IN', $4, $5, $6, $7, $8, $9, $10)`,
+            [transCode, storeId, id, addedImportQty, unitCost, Math.round(addedImportQty * unitCost), oldStock, Number(updatedItem.current_stock || 0), req.user?.id || null, 'Cập nhật hàng nhập (Chế độ đơn giản)']
+          );
+        }
+        await client.query('COMMIT');
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
       }
     } else {
       const idx = (memoryStore.inventory_items || []).findIndex(i => i.id === id && i.store_id === storeId);
@@ -470,63 +501,85 @@ async function createTransaction(req, res) {
     let transaction = null;
 
     if (isPostgresConnected()) {
-      const itemRes = await pool.query('SELECT * FROM inventory_items WHERE id = $1 AND store_id = $2', [itemId, storeId]);
-      if (!itemRes.rows.length) {
-        return res.status(404).json({ success: false, message: 'Mặt hàng kho không tồn tại' });
-      }
-      item = itemRes.rows[0];
-
-      const currentStock = Number(item.current_stock || 0);
-      let qty = Number(quantity || 0);
-      let stockAfter = currentStock;
-
-      if (type === 'IN') {
-        if (qty <= 0) return res.status(400).json({ success: false, message: 'Số lượng nhập phải lớn hơn 0' });
-        stockAfter = currentStock + qty;
-      } else if (type === 'OUT') {
-        if (qty <= 0) return res.status(400).json({ success: false, message: 'Số lượng xuất phải lớn hơn 0' });
-        if (!allowNegative && currentStock < qty) {
-          return res.status(400).json({
-            success: false,
-            message: `Không đủ tồn kho để xuất. Hiện còn: ${currentStock} ${item.unit}, yêu cầu xuất: ${qty} ${item.unit}`
-          });
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        // Lock the item row so concurrent vouchers serialize instead of losing stock updates.
+        const itemRes = await client.query('SELECT * FROM inventory_items WHERE id = $1 AND store_id = $2 FOR UPDATE', [itemId, storeId]);
+        if (!itemRes.rows.length) {
+          await client.query('ROLLBACK');
+          return res.status(404).json({ success: false, message: 'Mặt hàng kho không tồn tại' });
         }
-        stockAfter = currentStock - qty;
-      } else if (type === 'ADJUST') {
-        const targetStock = new_stock !== undefined ? Number(new_stock) : Number(quantity);
-        if (isNaN(targetStock) || targetStock < 0) {
-          return res.status(400).json({ success: false, message: 'Số lượng tồn kiểm kê thực tế không hợp lệ' });
+        item = itemRes.rows[0];
+
+        const currentStock = Number(item.current_stock || 0);
+        let qty = Number(quantity || 0);
+        let stockAfter = currentStock;
+
+        if (type === 'IN') {
+          if (qty <= 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ success: false, message: 'Số lượng nhập phải lớn hơn 0' });
+          }
+          stockAfter = currentStock + qty;
+        } else if (type === 'OUT') {
+          if (qty <= 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ success: false, message: 'Số lượng xuất phải lớn hơn 0' });
+          }
+          if (!allowNegative && currentStock < qty) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({
+              success: false,
+              message: `Không đủ tồn kho để xuất. Hiện còn: ${currentStock} ${item.unit}, yêu cầu xuất: ${qty} ${item.unit}`
+            });
+          }
+          stockAfter = currentStock - qty;
+        } else if (type === 'ADJUST') {
+          const targetStock = new_stock !== undefined ? Number(new_stock) : Number(quantity);
+          if (isNaN(targetStock) || targetStock < 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ success: false, message: 'Số lượng tồn kiểm kê thực tế không hợp lệ' });
+          }
+          qty = Math.abs(targetStock - currentStock);
+          stockAfter = targetStock;
         }
-        qty = Math.abs(targetStock - currentStock);
-        stockAfter = targetStock;
+
+        const unitPrice = price !== undefined ? Number(price) : Number(item.cost_price || 0);
+        const totalAmount = Math.round(qty * unitPrice);
+        const datePrefix = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const prefix = type === 'IN' ? 'PN' : (type === 'OUT' ? 'PX' : 'DC');
+        const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+        const transCode = `${prefix}-${datePrefix}-${randomSuffix}`;
+
+        const transRes = await client.query(
+          `INSERT INTO inventory_transactions
+           (transaction_code, store_id, item_id, transaction_type, quantity, price, total_amount, stock_before, stock_after, user_id, note)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+          [transCode, storeId, itemId, type, qty, unitPrice, totalAmount, currentStock, stockAfter, req.user?.id || null, note || '']
+        );
+        transaction = transRes.rows[0];
+
+        // IMPORT/EXPORT move stock relatively; ADJUSTMENT writes the counted value absolutely (row is locked).
+        if (type === 'IN') {
+          if (unitPrice > 0) {
+            await client.query('UPDATE inventory_items SET current_stock = current_stock + $1, cost_price = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3', [qty, unitPrice, itemId]);
+          } else {
+            await client.query('UPDATE inventory_items SET current_stock = current_stock + $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [qty, itemId]);
+          }
+        } else if (type === 'OUT') {
+          await client.query('UPDATE inventory_items SET current_stock = current_stock - $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [qty, itemId]);
+        } else {
+          await client.query('UPDATE inventory_items SET current_stock = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [stockAfter, itemId]);
+        }
+        item.current_stock = stockAfter;
+        await client.query('COMMIT');
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
       }
-
-      const unitPrice = price !== undefined ? Number(price) : Number(item.cost_price || 0);
-      const totalAmount = Math.round(qty * unitPrice);
-      const datePrefix = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      const prefix = type === 'IN' ? 'PN' : (type === 'OUT' ? 'PX' : 'DC');
-      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-      const transCode = `${prefix}-${datePrefix}-${randomSuffix}`;
-
-      const transRes = await pool.query(
-        `INSERT INTO inventory_transactions 
-         (transaction_code, store_id, item_id, transaction_type, quantity, price, total_amount, stock_before, stock_after, user_id, note)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-        [transCode, storeId, itemId, type, qty, unitPrice, totalAmount, currentStock, stockAfter, req.user?.id || null, note || '']
-      );
-      transaction = transRes.rows[0];
-
-      let updateSql = 'UPDATE inventory_items SET current_stock = $1, updated_at = CURRENT_TIMESTAMP';
-      const updateParams = [stockAfter];
-      if (type === 'IN' && unitPrice > 0) {
-        updateSql += ', cost_price = $2 WHERE id = $3';
-        updateParams.push(unitPrice, itemId);
-      } else {
-        updateSql += ' WHERE id = $2';
-        updateParams.push(itemId);
-      }
-      await pool.query(updateSql, updateParams);
-      item.current_stock = stockAfter;
     } else {
       const idx = (memoryStore.inventory_items || []).findIndex(i => i.id === itemId && i.store_id === storeId);
       if (idx === -1) {

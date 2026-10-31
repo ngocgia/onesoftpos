@@ -400,13 +400,13 @@ window.appState = {
 
     if (existingIndex >= 0) {
       this.cart.items[existingIndex].quantity += (item.quantity || 1);
-      this.cart.items[existingIndex].subtotal = this.cart.items[existingIndex].unit_price_with_options * this.cart.items[existingIndex].quantity;
+      this.cart.items[existingIndex].subtotal = Math.round(this.cart.items[existingIndex].unit_price_with_options * this.cart.items[existingIndex].quantity);
     } else {
       const unitWithOptions = item.unit_price + (item.options || []).reduce((s, o) => s + (o.price || 0), 0);
       this.cart.items.push({
         ...item,
         unit_price_with_options: unitWithOptions,
-        subtotal: unitWithOptions * (item.quantity || 1)
+        subtotal: Math.round(unitWithOptions * (item.quantity || 1))
       });
     }
 
@@ -421,7 +421,7 @@ window.appState = {
     if (this.cart.items[index].quantity <= 0) {
       this.cart.items.splice(index, 1);
     } else {
-      this.cart.items[index].subtotal = this.cart.items[index].unit_price_with_options * this.cart.items[index].quantity;
+      this.cart.items[index].subtotal = Math.round(this.cart.items[index].unit_price_with_options * this.cart.items[index].quantity);
     }
     this.notify('cart_updated', this.cart);
     if (this.isTakeawayOnlyStore()) this.notify('takeaway_drafts_updated', this.takeawayDrafts);
@@ -443,7 +443,8 @@ window.appState = {
   },
 
   getCartSubtotal() {
-    return this.cart.items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+    // VND has no minor unit: keep every money figure an integer dong amount.
+    return Math.round(this.cart.items.reduce((sum, item) => sum + (item.subtotal || 0), 0));
   },
 
   getCartDiscount() {
@@ -452,11 +453,13 @@ window.appState = {
     if (this.cart.discountPercent > 0) {
       discount += (subtotal * this.cart.discountPercent) / 100;
     }
-    return Math.min(subtotal, discount);
+    // Defensive clamp: a negative discount must never inflate the total.
+    discount = Math.max(0, discount);
+    return Math.round(Math.min(subtotal, discount));
   },
 
   getCartGrandTotal() {
-    return Math.max(0, this.getCartSubtotal() - this.getCartDiscount());
+    return Math.round(Math.max(0, this.getCartSubtotal() - this.getCartDiscount()));
   },
 
   getCartItemCount() {

@@ -1,0 +1,54 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-ios-app]
+    paths:
+      - 'ios-pos/**'
+      - '.github/workflows/build-ipa.yml'
+
+jobs:
+  build-ipa:
+    name: Build unsigned IPA
+    # Repo public: runner macOS miễn phí, không giới hạn phút.
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build app (unsigned)
+        working-directory: ios-pos
+        run: |
+          xcodebuild -project OnesoftPOS.xcodeproj \
+            -target OnesoftPOS \
+            -configuration Release \
+            -sdk iphoneos \
+            SYMROOT="$(pwd)/build" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            -quiet build
+          APP="build/Release-iphoneos/OnesoftPOS.app"
+          test -d "$APP" || { echo "Không tìm thấy $APP"; exit 1; }
+
+      - name: Package IPA
+        working-directory: ios-pos
+        run: |
+          rm -rf Payload
+          mkdir Payload
+          cp -R build/Release-iphoneos/OnesoftPOS.app Payload/
+          /usr/bin/zip -qry OnesoftPOS-1.0.0-unsigned.ipa Payload
+          shasum -a 256 OnesoftPOS-1.0.0-unsigned.ipa
+          ls -la OnesoftPOS-1.0.0-unsigned.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OnesoftPOS-unsigned-ipa
+          path: ios-pos/OnesoftPOS-1.0.0-unsigned.ipa
+          if-no-files-found: error

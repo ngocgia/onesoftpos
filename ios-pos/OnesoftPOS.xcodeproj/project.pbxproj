@@ -1,0 +1,309 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	objectVersion = 56;
+	classes = {
+	};
+	objects = {
+
+/* Begin PBXBuildFile section */
+		BBBB0000000000000000B001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000A001 /* AppDelegate.swift */; };
+		BBBB0000000000000000B002 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000A002 /* ViewController.swift */; };
+		BBBB0000000000000000B003 /* NativeSpeaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000A003 /* NativeSpeaker.swift */; };
+		BBBB0000000000000000B004 /* EscPosRaster.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000A004 /* EscPosRaster.swift */; };
+		BBBB0000000000000000B005 /* PrinterNetworkAddress.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000A005 /* PrinterNetworkAddress.swift */; };
+		BBBB0000000000000000B006 /* ReceiptRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000A006 /* ReceiptRenderer.swift */; };
+		BBBB0000000000000000B007 /* ThermalPrinter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000A007 /* ThermalPrinter.swift */; };
+		BBBB0000000000000000B008 /* BitmapPixels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000A008 /* BitmapPixels.swift */; };
+		BBBB0000000000000000B009 /* receipt-snapshot.js in Resources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000A009 /* receipt-snapshot.js */; };
+		BBBB0000000000000000B00A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000A00A /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		AAAA0000000000000000A001 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		AAAA0000000000000000A002 /* ViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		AAAA0000000000000000A003 /* NativeSpeaker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NativeSpeaker.swift; sourceTree = "<group>"; };
+		AAAA0000000000000000A004 /* EscPosRaster.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EscPosRaster.swift; sourceTree = "<group>"; };
+		AAAA0000000000000000A005 /* PrinterNetworkAddress.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PrinterNetworkAddress.swift; sourceTree = "<group>"; };
+		AAAA0000000000000000A006 /* ReceiptRenderer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ReceiptRenderer.swift; sourceTree = "<group>"; };
+		AAAA0000000000000000A007 /* ThermalPrinter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ThermalPrinter.swift; sourceTree = "<group>"; };
+		AAAA0000000000000000A008 /* BitmapPixels.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BitmapPixels.swift; sourceTree = "<group>"; };
+		AAAA0000000000000000A009 /* receipt-snapshot.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = receipt-snapshot.js; sourceTree = "<group>"; };
+		AAAA0000000000000000A00A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AAAA0000000000000000A00B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AAAA0000000000000000A00C /* OnesoftPOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OnesoftPOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		CCCC0000000000000000C001 = {
+			isa = PBXGroup;
+			children = (
+				CCCC0000000000000000C002 /* OnesoftPOS */,
+				CCCC0000000000000000C003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CCCC0000000000000000C002 /* OnesoftPOS */ = {
+			isa = PBXGroup;
+			children = (
+				AAAA0000000000000000A001 /* AppDelegate.swift */,
+				AAAA0000000000000000A002 /* ViewController.swift */,
+				AAAA0000000000000000A003 /* NativeSpeaker.swift */,
+				AAAA0000000000000000A004 /* EscPosRaster.swift */,
+				AAAA0000000000000000A005 /* PrinterNetworkAddress.swift */,
+				AAAA0000000000000000A006 /* ReceiptRenderer.swift */,
+				AAAA0000000000000000A007 /* ThermalPrinter.swift */,
+				AAAA0000000000000000A008 /* BitmapPixels.swift */,
+				AAAA0000000000000000A009 /* receipt-snapshot.js */,
+				AAAA0000000000000000A00A /* Assets.xcassets */,
+				AAAA0000000000000000A00B /* Info.plist */,
+			);
+			path = OnesoftPOS;
+			sourceTree = "<group>";
+		};
+		CCCC0000000000000000C003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AAAA0000000000000000A00C /* OnesoftPOS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		DDDD0000000000000000D001 /* OnesoftPOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FFFF0000000000000000F002 /* Build configuration list for PBXNativeTarget "OnesoftPOS" */;
+			buildPhases = (
+				GGGG0000000000000000G001 /* Sources */,
+				GGGG0000000000000000G002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OnesoftPOS;
+			productName = OnesoftPOS;
+			productReference = AAAA0000000000000000A00C /* OnesoftPOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EEEE0000000000000000E001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					DDDD0000000000000000D001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = FFFF0000000000000000F001 /* Build configuration list for PBXProject "OnesoftPOS" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = vi;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				vi,
+				Base,
+			);
+			mainGroup = CCCC0000000000000000C001;
+			productRefGroup = CCCC0000000000000000C003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				DDDD0000000000000000D001 /* OnesoftPOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		GGGG0000000000000000G002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BBBB0000000000000000B009 /* receipt-snapshot.js in Resources */,
+				BBBB0000000000000000B00A /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		GGGG0000000000000000G001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BBBB0000000000000000B001 /* AppDelegate.swift in Sources */,
+				BBBB0000000000000000B002 /* ViewController.swift in Sources */,
+				BBBB0000000000000000B003 /* NativeSpeaker.swift in Sources */,
+				BBBB0000000000000000B004 /* EscPosRaster.swift in Sources */,
+				BBBB0000000000000000B005 /* PrinterNetworkAddress.swift in Sources */,
+				BBBB0000000000000000B006 /* ReceiptRenderer.swift in Sources */,
+				BBBB0000000000000000B007 /* ThermalPrinter.swift in Sources */,
+				BBBB0000000000000000B008 /* BitmapPixels.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		222200000000000000002201 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		222200000000000000002202 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		222200000000000000002203 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OnesoftPOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = vn.pro.giavdn.onesoftpos;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		222200000000000000002204 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_PREVIEWS = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OnesoftPOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = vn.pro.giavdn.onesoftpos;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		FFFF0000000000000000F001 /* Build configuration list for PBXProject "OnesoftPOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				222200000000000000002201 /* Debug */,
+				222200000000000000002202 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FFFF0000000000000000F002 /* Build configuration list for PBXNativeTarget "OnesoftPOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				222200000000000000002203 /* Debug */,
+				222200000000000000002204 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = EEEE0000000000000000E001 /* Project object */;
+}

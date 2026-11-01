@@ -20,6 +20,7 @@ lerna-debug.log*
 
 # Uploaded APK binaries and release metadata (persist separately on the server)
 server/data/apks/
+server/data/ipas/
 server/data/product-images/
 
 # Android build artifacts (not tracked in git; build with Gradle when needed)

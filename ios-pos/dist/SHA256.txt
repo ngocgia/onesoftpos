@@ -1,0 +1,1 @@
+a9938ea994adf877db5aa9de91e4ea6e32ce4558257152911e4f7ff3b33b21c7  dist/OnesoftPOS-1.0.0-unsigned.ipa

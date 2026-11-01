@@ -1,0 +1,105 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-ios-app]
+    paths:
+      - 'ios-pos/**'
+      - '.github/workflows/build-ipa.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-ipa:
+    name: Build unsigned IPA
+    # Repo public: runner macOS miễn phí, không giới hạn phút.
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build app (unsigned)
+        working-directory: ios-pos
+        run: |
+          set +e
+          xcodebuild -project OnesoftPOS.xcodeproj \
+            -target OnesoftPOS \
+            -configuration Release \
+            -sdk iphoneos \
+            SYMROOT="$(pwd)/build" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build > build-output.log 2>&1
+          status=$?
+          echo "xcodebuild exit code: $status"
+          if [ $status -ne 0 ]; then
+            {
+              echo "## Lỗi build (xcodebuild exit $status)"
+              echo ""
+              echo '```'
+              grep -E "error:|xcodebuild: error|fatal error|BUILD FAILED" build-output.log | tail -100 || true
+              echo '```'
+              echo ""
+              echo "## 120 dòng log cuối"
+              echo ""
+              echo '```'
+              tail -120 build-output.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit $status
+          fi
+          APP="build/Release-iphoneos/OnesoftPOS.app"
+          test -d "$APP" || { echo "Không tìm thấy $APP"; exit 1; }
+
+      # GitHub giấu log sau đăng nhập nên bot commit log lỗi vào repo
+      # để đọc được qua raw.githubusercontent.com (repo public).
+      - name: Publish build log on failure
+        if: failure()
+        working-directory: ios-pos
+        run: |
+          test -f build-output.log || exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          { echo "# Log lỗi build lúc $(date -u '+%Y-%m-%d %H:%M UTC')"; echo ""; echo '```'; tail -500 build-output.log; echo '```'; } > BUILD-ERROR.md
+          git add BUILD-ERROR.md
+          git commit -m "bot: log loi build" || true
+          git push origin HEAD:build-ios-app || true
+
+      - name: Package IPA
+        working-directory: ios-pos
+        run: |
+          rm -rf Payload
+          mkdir Payload
+          cp -R build/Release-iphoneos/OnesoftPOS.app Payload/
+          /usr/bin/zip -qry OnesoftPOS-1.0.0-unsigned.ipa Payload
+          shasum -a 256 OnesoftPOS-1.0.0-unsigned.ipa
+          ls -la OnesoftPOS-1.0.0-unsigned.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OnesoftPOS-unsigned-ipa
+          path: ios-pos/OnesoftPOS-1.0.0-unsigned.ipa
+          if-no-files-found: error
+
+      # Commit .ipa vào branch để tải trực tiếp qua raw.githubusercontent.com
+      # (GitHub đòi đăng nhập khi tải artifact; file trong repo thì public).
+      - name: Publish IPA to branch
+        working-directory: ios-pos
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -q BUILD-ERROR.md 2>/dev/null || true
+          mkdir -p dist
+          cp OnesoftPOS-1.0.0-unsigned.ipa dist/
+          shasum -a 256 dist/OnesoftPOS-1.0.0-unsigned.ipa > dist/SHA256.txt
+          git add -f dist/OnesoftPOS-1.0.0-unsigned.ipa dist/SHA256.txt
+          git commit -m "bot: cap nhat ipa build" || true
+          git push origin HEAD:build-ios-app || true

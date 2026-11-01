@@ -9,6 +9,7 @@ const { swaggerSpec, swaggerUiOptions } = require('./docs/swagger');
 
 dotenv.config();
 const apkRoutes = require('./routes/apks');
+const ipaRoutes = require('./routes/ipas');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,7 +43,9 @@ app.use(express.static(publicPath));
 // Mount REST API
 app.use('/api', apiRoutes);
 app.use('/api/admin/apks', apkRoutes.adminRouter);
+app.use('/api/admin/ipas', ipaRoutes.adminRouter);
 app.get('/download', apkRoutes.download);
+app.get(['/download-ipa', '/download/ipa'], ipaRoutes.download);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

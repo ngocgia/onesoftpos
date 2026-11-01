@@ -24,6 +24,8 @@
 .landing-action svg { width: 20px; height: 20px; flex-shrink: 0; }
 .landing-download { background: #2563eb; color: #fff; }
 .landing-download:hover { background: #1d4ed8; }
+.landing-download-ipa { background: #0f172a; color: #fff; }
+.landing-download-ipa:hover { background: #1e293b; }
 .landing-to-top { background: #fff; color: #0f172a; border: 1px solid #cbd5e1; }
 .landing-to-top:hover { background: #f1f5f9; }
 .landing-to-top[hidden] { display: none; }

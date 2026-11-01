@@ -307,6 +307,7 @@ const adminApp = {
   },
   bind() {
     document.getElementById('uploadApkBtn').onclick = () => this.openApkUpload();
+    document.getElementById('uploadIpaBtn').onclick = () => this.openIpaUpload();
     document
       .querySelectorAll("#adminNav button")
       .forEach((btn) => (btn.onclick = () => this.showPage(btn.dataset.page)));
@@ -401,6 +402,9 @@ const adminApp = {
     if (page === "apks") {
       try { await this.loadApks(); } catch (error) { this.toast(error.message, true); }
     }
+    if (page === "ipas") {
+      try { await this.loadIpas(); } catch (error) { this.toast(error.message, true); }
+    }
   },
   async loadApks() {
     const body = document.getElementById('apkReleasesList');
@@ -480,6 +484,86 @@ const adminApp = {
   },
   async copyApkLink(url) {
     try { await navigator.clipboard.writeText(new URL(url, location.origin).href); this.toast('Đã sao chép link tải APK'); }
+    catch { this.toast('Không sao chép được link. Bạn có thể sao chép địa chỉ từ nút Tải.', true); }
+  },
+  async loadIpas() {
+    const body = document.getElementById('ipaReleasesList');
+    body.innerHTML = '<tr><td colspan="6">Đang tải phiên bản IPA...</td></tr>';
+    try {
+      const { releases } = await window.api.get('/admin/ipas');
+      const active = releases.find(item => item.isDefault);
+      document.getElementById('ipaDefaultStatus').textContent = active
+        ? `Link /download-ipa đang tải phiên bản ${active.version}.`
+        : 'Chưa có bản mặc định. Hãy cho phép tải và chọn một phiên bản cho /download-ipa.';
+      body.innerHTML = releases.map(item => `<tr>
+        <td><strong>${this.esc(item.version)}</strong>${item.isDefault ? '<br><span class="badge active">Mặc định</span>' : ''}</td>
+        <td>${this.esc(item.filename)}<br><small class="muted">${(item.size / 1024 / 1024).toFixed(2)} MB</small></td>
+        <td>${this.esc(new Date(item.createdAt).toLocaleString('vi-VN'))}</td>
+        <td><label><input type="checkbox" ${item.enabled ? 'checked' : ''} aria-label="Cho phép tải phiên bản ${this.esc(item.version)}" onchange="adminApp.updateIpa('${item.id}',{enabled:this.checked},this)"> Cho phép tải</label></td>
+        <td>${item.enabled ? `<a href="${this.esc(item.downloadUrl)}">Tải ${this.esc(item.version)}</a><br><button class="btn ghost small" onclick="adminApp.copyIpaLink('${this.esc(item.downloadUrl)}')">Sao chép link</button>` : '<span class="muted">Đã khóa tải</span>'}</td>
+        <td><div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${!item.isDefault && item.enabled ? `<button class="btn ghost small" onclick="adminApp.updateIpa('${item.id}',{isDefault:true},this)">Đặt mặc định</button>` : ''}
+          <button class="btn danger small" onclick="adminApp.deleteIpa('${item.id}',this)">Xóa</button>
+        </div></td>
+      </tr>`).join('') || '<tr><td colspan="6">Chưa có IPA. Nhấn “Tải IPA lên” để thêm phiên bản đầu tiên.</td></tr>';
+    } catch (error) {
+      body.innerHTML = '<tr><td colspan="6">Không tải được danh sách IPA. Vui lòng thử lại.</td></tr>';
+      throw error;
+    }
+  },
+  openIpaUpload() {
+    this.openModal('Tải phiên bản IPA lên', `
+      ${this.field('version', 'Phiên bản (ví dụ 1.0.0)', 'text', '', null, true)}
+      <label class="field full"><span>File IPA (tối đa 150 MB)</span><input name="ipa" type="file" accept=".ipa" required></label>
+      <label class="field full"><span><input name="enabled" type="checkbox" checked> Cho phép người dùng tải phiên bản này</span></label>
+      <label class="field full"><span><input name="isDefault" type="checkbox" checked> Dùng phiên bản này cho link /download-ipa</span></label>
+      <p class="field full" id="ipaUploadStatus" role="status"></p>`, async (data, form) => {
+      const file = form.elements.ipa.files[0];
+      if (!file || !/\.ipa$/i.test(file.name)) throw new Error('Vui lòng chọn file .ipa');
+      if (file.size > 150 * 1024 * 1024) throw new Error('File IPA vượt giới hạn 150 MB');
+      if (data.isDefault && !data.enabled) throw new Error('Bản mặc định phải được cho phép tải');
+      const submit = form.querySelector('button[type="submit"]');
+      submit.disabled = true;
+      document.getElementById('modalClose').disabled = true;
+      document.getElementById('modalCancel').disabled = true;
+      document.getElementById('ipaUploadStatus').textContent = 'Đang tải IPA lên, vui lòng chờ...';
+      try {
+        const response = await fetch('/api/admin/ipas', {
+          method: 'POST', body: file,
+          headers: { Authorization: `Bearer ${window.api.getToken()}`, 'Content-Type': 'application/octet-stream',
+            'X-Ipa-Version': data.version.trim(), 'X-Ipa-Filename': encodeURIComponent(file.name),
+            'X-Ipa-Enabled': String(data.enabled), 'X-Ipa-Default': String(data.isDefault) }
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Không tải được file IPA lên');
+        document.getElementById('ipaUploadStatus').textContent = 'Đã tải IPA lên.';
+        this.toast('Đã lưu phiên bản IPA');
+        try { await this.loadIpas(); } catch { this.toast('Đã lưu IPA. Hãy nhấn Làm mới để tải lại danh sách.', true); }
+      } catch (error) {
+        document.getElementById('ipaUploadStatus').textContent = error.message;
+        throw error;
+      } finally {
+        submit.disabled = false;
+        document.getElementById('modalClose').disabled = false;
+        document.getElementById('modalCancel').disabled = false;
+      }
+    });
+  },
+  async updateIpa(id, patch, control) {
+    control.disabled = true;
+    try { await window.api.put(`/admin/ipas/${id}`, patch); await this.loadIpas(); this.toast('Đã cập nhật phiên bản IPA'); }
+    catch (error) { if (control.type === 'checkbox') control.checked = !control.checked; this.toast(error.message, true); }
+    finally { control.disabled = false; }
+  },
+  async deleteIpa(id, control) {
+    if (!confirm('Xóa file IPA này? Link tải của phiên bản sẽ ngừng hoạt động. Nếu đây là bản mặc định, cần chọn bản khác cho /download-ipa.')) return;
+    control.disabled = true;
+    try { await window.api.del(`/admin/ipas/${id}`); await this.loadIpas(); this.toast('Đã xóa phiên bản IPA'); }
+    catch (error) { this.toast(error.message, true); }
+    finally { control.disabled = false; }
+  },
+  async copyIpaLink(url) {
+    try { await navigator.clipboard.writeText(new URL(url, location.origin).href); this.toast('Đã sao chép link tải IPA'); }
     catch { this.toast('Không sao chép được link. Bạn có thể sao chép địa chỉ từ nút Tải.', true); }
   },
   async loadDashboard() {

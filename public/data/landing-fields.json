@@ -2000,5 +2000,12 @@
     "type": "text",
     "label": "Nhãn nút tải APK",
     "value": "Tải APK Android"
+  },
+  {
+    "key": "action.download_ipa.label",
+    "group": "Tiện ích trang giới thiệu",
+    "type": "text",
+    "label": "Nhãn nút tải IPA",
+    "value": "Tải IPA iOS"
   }
 ]

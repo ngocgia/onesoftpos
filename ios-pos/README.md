@@ -21,7 +21,9 @@ Project build bằng GitHub Actions (repo public → runner macOS miễn phí):
 
 1. Đẩy code lên GitHub (branch bất kỳ, mặc định workflow tự chạy trên branch `build-ios-app`; branch khác bấm tay).
 2. Vào **GitHub → Actions → "Build iOS IPA" → Run workflow** (hoặc chờ push vào `build-ios-app`).
-3. Chờ job xong (~3–6 phút) → mục **Artifacts** → tải `OnesoftPOS-unsigned-ipa` → giải nén ra `OnesoftPOS-1.0.0-unsigned.ipa`.
+3. Chờ job xong (~3–6 phút), tải .ipa bằng một trong hai cách:
+   - **Trực tiếp** (không cần đăng nhập GitHub): [ios-pos/dist/OnesoftPOS-1.0.0-unsigned.ipa](dist/OnesoftPOS-1.0.0-unsigned.ipa) — bot tự commit sau mỗi lần build thành công (kèm `dist/SHA256.txt`).
+   - **Qua Actions**: run mới nhất → mục **Artifacts** → tải `OnesoftPOS-unsigned-ipa` → giải nén.
 
 Build cục bộ (nếu có Mac): mở `ios-pos/OnesoftPOS.xcodeproj` bằng Xcode 14+, chọn target OnesoftPOS, Run.
 

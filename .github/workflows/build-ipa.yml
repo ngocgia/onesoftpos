@@ -88,3 +88,18 @@ jobs:
           name: OnesoftPOS-unsigned-ipa
           path: ios-pos/OnesoftPOS-1.0.0-unsigned.ipa
           if-no-files-found: error
+
+      # Commit .ipa vào branch để tải trực tiếp qua raw.githubusercontent.com
+      # (GitHub đòi đăng nhập khi tải artifact; file trong repo thì public).
+      - name: Publish IPA to branch
+        working-directory: ios-pos
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -q BUILD-ERROR.md 2>/dev/null || true
+          mkdir -p dist
+          cp OnesoftPOS-1.0.0-unsigned.ipa dist/
+          shasum -a 256 dist/OnesoftPOS-1.0.0-unsigned.ipa > dist/SHA256.txt
+          git add -f dist/OnesoftPOS-1.0.0-unsigned.ipa dist/SHA256.txt
+          git commit -m "bot: cap nhat ipa build" || true
+          git push origin HEAD:build-ios-app || true

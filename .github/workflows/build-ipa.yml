@@ -8,6 +8,9 @@ on:
       - 'ios-pos/**'
       - '.github/workflows/build-ipa.yml'
 
+permissions:
+  contents: write
+
 jobs:
   build-ipa:
     name: Build unsigned IPA
@@ -54,6 +57,20 @@ jobs:
           fi
           APP="build/Release-iphoneos/OnesoftPOS.app"
           test -d "$APP" || { echo "Không tìm thấy $APP"; exit 1; }
+
+      # GitHub giấu log sau đăng nhập nên bot commit log lỗi vào repo
+      # để đọc được qua raw.githubusercontent.com (repo public).
+      - name: Publish build log on failure
+        if: failure()
+        working-directory: ios-pos
+        run: |
+          test -f build-output.log || exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          { echo "# Log lỗi build lúc $(date -u '+%Y-%m-%d %H:%M UTC')"; echo ""; echo '```'; tail -500 build-output.log; echo '```'; } > BUILD-ERROR.md
+          git add BUILD-ERROR.md
+          git commit -m "bot: log loi build" || true
+          git push origin HEAD:build-ios-app || true
 
       - name: Package IPA
         working-directory: ios-pos

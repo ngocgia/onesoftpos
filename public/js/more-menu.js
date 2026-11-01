@@ -203,6 +203,9 @@ window.moreMenuModule = {
     document.getElementById('printerAutoPrintOrderSlip').checked = !!saved.autoPrintOrderSlipOnTransfer;
     document.getElementById('printerAutoCut').checked = !!saved.autoCutPaper;
     document.getElementById('printerKitchenSeparate').checked = !!saved.printKitchenSeparate;
+    document.getElementById('printerInvoiceFontSize').value = String(saved.invoiceTypography?.fontSize ?? '');
+    document.getElementById('printerInvoiceLineHeight').value = String(saved.invoiceTypography?.lineHeight ?? '');
+    document.getElementById('printerInvoiceQrSize').value = String(saved.invoiceQrSizeMm ?? '');
 
     this.printerDraft = this.normalizePrinterProfiles(saved);
     this.paymentQrDraft = { source: 'vietqr', image: '', ...saved.paymentQr };
@@ -339,7 +342,19 @@ window.moreMenuModule = {
   },
 
   getPrinterSettingsFromForm() {
+    const readNumber = (id, min, max, label) => {
+      const value = document.getElementById(id).value.trim();
+      if (!value) return null;
+      const number = Number(value);
+      if (!Number.isFinite(number) || number < min || number > max) throw new Error(`${label} phải từ ${min} đến ${max}`);
+      return number;
+    };
     const settings = {
+      invoiceQrSizeMm: readNumber('printerInvoiceQrSize', 20, 80, 'Kích thước mã QR'),
+      invoiceTypography: {
+        fontSize: readNumber('printerInvoiceFontSize', 8, 24, 'Cỡ chữ'),
+        lineHeight: readNumber('printerInvoiceLineHeight', 1, 3, 'Giãn dòng')
+      },
       paperSize: document.getElementById('printerPaperSize').value,
       connectionType: document.getElementById('printerConnectionType').value,
       ipAddress: document.getElementById('printerIpAddress').value,

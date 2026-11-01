@@ -17,6 +17,22 @@ const fields = {
 };
 
 function validate(section, data) {
+  if (section === 'printer' && data && Object.hasOwn(data, 'invoiceQrSizeMm')) {
+    const { invoiceQrSizeMm, ...rest } = data;
+    if (invoiceQrSizeMm !== null && (typeof invoiceQrSizeMm !== 'number' || !Number.isFinite(invoiceQrSizeMm)
+        || invoiceQrSizeMm < 20 || invoiceQrSizeMm > 80)) throw new Error('Kích thước mã QR phải từ 20 đến 80 mm');
+    return { ...validate('printer', rest), invoiceQrSizeMm };
+  }
+  if (section === 'printer' && data && Object.hasOwn(data, 'invoiceTypography')) {
+    const { invoiceTypography, ...rest } = data;
+    if (!invoiceTypography || typeof invoiceTypography !== 'object' || Array.isArray(invoiceTypography)
+        || Object.keys(invoiceTypography).sort().join(',') !== 'fontSize,lineHeight') throw new Error('Cấu hình chữ hóa đơn không hợp lệ');
+    for (const [key, min, max] of [['fontSize', 8, 24], ['lineHeight', 1, 3]]) {
+      const value = invoiceTypography[key];
+      if (value !== null && (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max)) throw new Error(`Giá trị ${key} không hợp lệ`);
+    }
+    return { ...validate('printer', rest), invoiceTypography };
+  }
   if (section === 'printer' && data && Object.hasOwn(data, 'paymentQr')) {
     const { paymentQr, ...rest } = data;
     if (!paymentQr || typeof paymentQr !== 'object' || Array.isArray(paymentQr)

@@ -43,6 +43,100 @@ function harness() {
   return { window, document, settings, toasts, prints: () => prints, switchStore: id => { storeId = id; } };
 }
 
+test('invoice QR size persists per store and applies to preview and refreshed reprints', async () => {
+  const h = harness();
+  const { validate } = require('../src/controllers/menuPreferencesController');
+  await h.window.moreMenuModule.openPrinterModal();
+  assert.equal(h.document.getElementById('printerInvoiceQrSize').value, '');
+  h.document.getElementById('printerInvoiceQrSize').value = '45';
+  await h.window.moreMenuModule.savePrinterSettings();
+  const saved = h.settings.get('11');
+  assert.equal(validate('printer', saved).invoiceQrSizeMm, 45);
+  await h.window.moreMenuModule.openPrinterModal();
+  assert.equal(h.document.getElementById('printerInvoiceQrSize').value, '45');
+  await h.window.invoiceModule.showReceipt({ isDraft: true, items: [] });
+  const css = () => h.document.getElementById('receiptPrintSettings').textContent;
+  assert.match(css(), /#receiptQrImage \{ width: 45mm; max-width: 100%; height: auto;/);
+  h.settings.set('11', { ...saved, invoiceQrSizeMm: 60 });
+  await h.window.invoiceModule.printReceipt();
+  assert.match(css(), /#receiptQrImage \{ width: 60mm/);
+  await h.window.invoiceModule.showReceipt({ id: 1 });
+  assert.match(css(), /#receiptQrImage \{ width: 60mm/);
+  h.document.getElementById('printerInvoiceQrSize').value = '';
+  await h.window.moreMenuModule.savePrinterSettings();
+  assert.equal(validate('printer', h.settings.get('11')).invoiceQrSizeMm, null);
+  await h.window.invoiceModule.printReceipt();
+  assert.match(css(), /#receiptQrImage \{ width: 38mm/);
+  h.switchStore('12');
+  await h.window.moreMenuModule.openPrinterModal();
+  assert.equal(h.document.getElementById('printerInvoiceQrSize').value, '');
+  for (const invalid of [19, 81, '45', NaN, Infinity, {}]) {
+    assert.throws(() => validate('printer', { ...saved, invoiceQrSizeMm: invalid }), /Kích thước mã QR/);
+  }
+  h.document.getElementById('printerInvoiceQrSize').value = '81';
+  assert.throws(() => h.window.moreMenuModule.getPrinterSettingsFromForm(), /Kích thước mã QR/);
+  h.window.invoiceModule.applyPrinterSettings({ paperSize: 'K58', invoiceQrSizeMm: '99mm; color:red' });
+  assert.match(css(), /#receiptQrImage \{ width: 38mm/);
+  assert.doesNotMatch(css(), /color:red/);
+});
+
+test('invoice typography persists per store and applies to preview, print and reprint', async () => {
+  const h = harness();
+  await h.window.moreMenuModule.openPrinterModal();
+  h.document.getElementById('printerInvoiceFontSize').value = '16';
+  h.document.getElementById('printerInvoiceLineHeight').value = '1.8';
+  await h.window.moreMenuModule.savePrinterSettings();
+  const saved = h.settings.get('11');
+  const { validate } = require('../src/controllers/menuPreferencesController');
+  assert.deepEqual({ ...validate('printer', saved).invoiceTypography }, { fontSize: 16, lineHeight: 1.8 });
+  await h.window.moreMenuModule.openPrinterModal();
+  assert.equal(h.document.getElementById('printerInvoiceFontSize').value, '16');
+  assert.equal(h.document.getElementById('printerInvoiceLineHeight').value, '1.8');
+  await h.window.invoiceModule.showReceipt({ isDraft: true, items: [] });
+  const css = () => h.document.getElementById('receiptPrintSettings').textContent;
+  assert.match(css(), /font-size: 16px/);
+  assert.match(css(), /line-height: 1.8/);
+  h.settings.set('11', { ...saved, invoiceTypography: { fontSize: 14, lineHeight: 2 } });
+  await h.window.invoiceModule.printReceipt();
+  assert.match(css(), /font-size: 14px/);
+  assert.match(css(), /line-height: 2;/);
+  await h.window.invoiceModule.showReceipt({ id: 1 });
+  assert.match(css(), /font-size: 14px/);
+  h.window.invoiceModule.receiptKind = 'orderSlip';
+  h.window.invoiceModule.applyPrinterSettings(saved);
+  assert.doesNotMatch(css(), /font-size: 16px|line-height: 1.8/);
+  h.switchStore('12');
+  await h.window.moreMenuModule.openPrinterModal();
+  assert.equal(h.document.getElementById('printerInvoiceFontSize').value, '');
+  assert.equal(h.document.getElementById('printerInvoiceLineHeight').value, '');
+});
+
+test('invoice typography accepts defaults and rejects out-of-range or unsafe values', async () => {
+  const h = harness();
+  await h.window.moreMenuModule.openPrinterModal();
+  const menu = h.window.moreMenuModule;
+  const { validate } = require('../src/controllers/menuPreferencesController');
+  const saved = menu.getPrinterSettingsFromForm();
+  assert.deepEqual({ ...validate('printer', saved).invoiceTypography }, { fontSize: null, lineHeight: null });
+  const { invoiceTypography, ...legacy } = saved;
+  assert.doesNotThrow(() => validate('printer', legacy));
+  for (const typography of [
+    { fontSize: 7, lineHeight: 1.4 }, { fontSize: 25, lineHeight: 1.4 },
+    { fontSize: 12, lineHeight: 0.9 }, { fontSize: 12, lineHeight: 3.1 },
+    { fontSize: '16', lineHeight: 1.4 }, { fontSize: NaN, lineHeight: 1.4 },
+    { fontSize: 12 }, { fontSize: 12, lineHeight: 1.4, extra: true }
+  ]) assert.throws(() => validate('printer', { ...saved, invoiceTypography: typography }));
+  h.document.getElementById('printerInvoiceFontSize').value = '25';
+  assert.throws(() => menu.getPrinterSettingsFromForm(), /Cỡ chữ/);
+  h.document.getElementById('printerInvoiceFontSize').value = '';
+  h.document.getElementById('printerInvoiceLineHeight').value = '0.5';
+  assert.throws(() => menu.getPrinterSettingsFromForm(), /Giãn dòng/);
+  h.window.invoiceModule.applyPrinterSettings({ paperSize: 'K58', invoiceTypography: { fontSize: '12px; color:red', lineHeight: 99 } });
+  const css = h.document.getElementById('receiptPrintSettings').textContent;
+  assert.match(css, /font-size: 11px/);
+  assert.doesNotMatch(css, /color:red|line-height: 99/);
+});
+
 test('four printer profiles persist independently and kitchen slips use their own destination', async () => {
   const h = harness();
   await h.window.moreMenuModule.openPrinterModal();

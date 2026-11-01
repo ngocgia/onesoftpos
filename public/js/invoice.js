@@ -123,6 +123,13 @@ window.invoiceModule = {
 
   applyPrinterSettings(settings) {
     const layout = this.getPrintLayout(settings.paperSize);
+    const typography = this.receiptKind === 'invoice' ? settings.invoiceTypography : null;
+    const fontSize = typography?.fontSize;
+    const lineHeight = typography?.lineHeight;
+    const customFont = typeof fontSize === 'number' && Number.isFinite(fontSize) && fontSize >= 8 && fontSize <= 24;
+    const customLineHeight = typeof lineHeight === 'number' && Number.isFinite(lineHeight) && lineHeight >= 1 && lineHeight <= 3;
+    const qrSize = settings.invoiceQrSizeMm;
+    const qrSizeMm = typeof qrSize === 'number' && Number.isFinite(qrSize) && qrSize >= 20 && qrSize <= 80 ? qrSize : 38;
     const label = document.getElementById('receiptPrintLabel');
     if (label) label.textContent = `In ${this.receiptKind === 'orderSlip' ? 'phiếu đặt đồ' : 'Hóa Đơn'} (${({ K58: '58mm', K80: '80mm', K85: '85mm', A4: 'A4' })[settings.paperSize] || '80mm'})`;
     // The installed Android bridge reads this legacy field when window.print runs.
@@ -138,8 +145,10 @@ window.invoiceModule = {
       document.head.appendChild(style);
     }
     style.textContent = `
-      #receiptPaper { width: ${layout.width}; max-width: 100%; box-sizing: border-box; font-size: ${layout.fontSize}; }
+      #receiptPaper { width: ${layout.width}; max-width: 100%; box-sizing: border-box; font-size: ${customFont ? `${fontSize}px` : layout.fontSize}; }
+      ${customLineHeight ? `#receiptPaper { line-height: ${lineHeight}; } #receiptPaper #receiptInvoiceContent, #receiptPaper #receiptInvoiceContent * { line-height: inherit; }` : ''}
       #receiptPaper { font-family: Arial, sans-serif; color: #000; overflow-wrap: anywhere; }
+      #receiptPaper #receiptQrImage { width: ${qrSizeMm}mm; max-width: 100%; height: auto; }
       #receiptPaper table { width: 100%; table-layout: fixed; font-size: inherit; }
       #receiptPaper #receiptInvoiceContent table { font-size: .85em; }
       #receiptPaper #receiptInvoiceContent th, #receiptPaper #receiptInvoiceContent td { font-size: inherit; }

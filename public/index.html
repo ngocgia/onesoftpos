@@ -1605,6 +1605,9 @@
  <div class="printer-editor" id="printerEditor-invoice" hidden>
  <div class="form-group"><label for="printerName">Tên máy in</label><input class="form-input" id="printerName" maxlength="100"></div>
  <div class="form-group"><label for="printerPaperSize">Khổ giấy</label><select class="form-input" id="printerPaperSize"><option value="K58">K58 (58mm)</option><option value="K80">K80 (80mm)</option><option value="K85">K85 (85mm)</option><option value="A4">A4</option></select></div>
+ <div class="form-group"><label for="printerInvoiceFontSize">Cỡ chữ hóa đơn (px)</label><input type="number" class="form-input" id="printerInvoiceFontSize" min="8" max="24" step="any" placeholder="Tự động theo khổ giấy" aria-describedby="printerInvoiceTypographyHelp"></div>
+ <div class="form-group"><label for="printerInvoiceLineHeight">Giãn dòng hóa đơn (hệ số)</label><input type="number" class="form-input" id="printerInvoiceLineHeight" min="1" max="3" step="any" placeholder="Mặc định (1.4)" aria-describedby="printerInvoiceTypographyHelp"></div>
+ <p class="text-muted printer-help" id="printerInvoiceTypographyHelp">Cỡ chữ từ 8–24 px. Giãn dòng từ 1–3 lần cỡ chữ; số lớn hơn giúp các dòng cách xa hơn. Để trống để dùng mặc định. Bấm In thử để kiểm tra bố cục trên khổ giấy đã chọn.</p>
  <div class="form-group"><label for="printerConnectionType">Kết nối</label><select class="form-input" id="printerConnectionType"><option value="browser">Trình duyệt / Driver máy in</option><option value="lan">Mạng LAN / Wi-Fi</option><option value="usb">USB / OTG (Android)</option><option value="bluetooth">Bluetooth (Android)</option><option value="rawbt">RawBT (Android)</option></select></div>
  <div class="form-group"><label for="printerIpAddress">Địa chỉ IP máy in LAN</label><input class="form-input" id="printerIpAddress" placeholder="192.168.1.27" inputmode="decimal"></div>
  <label class="setting-switch-row" for="printerAutoCut"><span>Tự động cắt giấy</span><input type="checkbox" id="printerAutoCut"></label>
@@ -1613,6 +1616,9 @@
 <label class="setting-switch-row" for="invoiceOption-printCount"><span>In lần</span><input type="checkbox" id="invoiceOption-printCount" checked></label>
 <label class="setting-switch-row" for="invoiceOption-orderCode"><span>In mã hóa đơn</span><input type="checkbox" id="invoiceOption-orderCode" checked></label><label class="setting-switch-row" for="invoiceOption-qr"><span>In mã QR thanh toán</span><input type="checkbox" id="invoiceOption-qr" checked></label>
 <div class="form-group payment-qr-editor">
+ <label for="printerInvoiceQrSize">Kích thước mã QR (mm)</label>
+ <input type="number" class="form-input" id="printerInvoiceQrSize" min="20" max="80" step="any" placeholder="Mặc định (38 mm)" aria-describedby="printerInvoiceQrSizeHelp">
+ <p class="text-muted printer-help" id="printerInvoiceQrSizeHelp">Từ 20–80 mm, áp dụng cho cả VietQR và ảnh QR tải lên. Để trống để dùng 38 mm. Ảnh tự thu nhỏ nếu vượt chiều rộng hóa đơn và giữ nguyên tỷ lệ.</p>
  <label for="paymentQrSource">Nguồn mã QR thanh toán</label>
  <select class="form-input" id="paymentQrSource" onchange="moreMenuModule.updatePaymentQrEditor()">
   <option value="vietqr">Tạo VietQR theo số tiền hóa đơn</option>

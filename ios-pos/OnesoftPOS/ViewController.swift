@@ -320,7 +320,7 @@ final class ViewController: UIViewController {
 
     private func presentPrintDialog(image: UIImage) {
         let controller = UIPrintInteractionController.shared
-        let info = UIPrintInfo(dictionary: nil) ?? UIPrintInfo()
+        let info = UIPrintInfo(dictionary: nil)
         info.outputType = .grayscale
         info.jobName = "Onesoft POS - Hóa đơn"
         info.orientation = .portrait
@@ -357,7 +357,7 @@ final class ViewController: UIViewController {
         guard totalHeight > 0 else { return nil }
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: width, height: totalHeight), format: format)
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: CGFloat(width), height: CGFloat(totalHeight)), format: format)
         return renderer.image { context in
             UIColor.white.setFill()
             context.fill(CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(totalHeight)))

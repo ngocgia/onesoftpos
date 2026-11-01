@@ -4,7 +4,7 @@ import WebKit
 /// Dựng bản in từ hóa đơn đã đóng băng, giữ nguyên cột, kiểu dáng và QR.
 /// Tương đương ReceiptRenderer.java: WKWebView ẩn (chèn dưới WebView chính),
 /// chờ ảnh tải xong, đo chiều cao, rồi chụp từng lát 128 hàng.
-final class ReceiptRenderer {
+final class ReceiptRenderer: NSObject {
     typealias Completion = (_ slices: [CGImage]?, _ width: Int, _ error: String?) -> Void
 
     private static let sliceRows = 128
@@ -36,7 +36,7 @@ final class ReceiptRenderer {
             return
         }
         targetWidth = width
-        let web = WKWebView(frame: CGRect(x: 0, y: 0, width: width, height: width))
+        let web = WKWebView(frame: CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(width)))
         web.backgroundColor = .white
         web.isOpaque = true
         web.navigationDelegate = self
@@ -87,7 +87,7 @@ final class ReceiptRenderer {
                 self.finish(nil, "Kích thước hóa đơn không hợp lệ hoặc phiếu quá dài")
                 return
             }
-            current.frame = CGRect(x: 0, y: 0, width: self.targetWidth, height: height)
+            current.frame = CGRect(x: 0, y: 0, width: CGFloat(self.targetWidth), height: CGFloat(height))
             current.setNeedsLayout()
             current.layoutIfNeeded()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in

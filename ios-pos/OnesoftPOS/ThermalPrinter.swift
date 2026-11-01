@@ -245,7 +245,7 @@ final class ThermalPrinter {
         }
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: width, height: CGFloat(height)), format: format)
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: CGFloat(width), height: CGFloat(height)), format: format)
         let image = renderer.image { context in
             UIColor.white.setFill()
             context.fill(CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)))
@@ -270,7 +270,7 @@ final class ThermalPrinter {
             let rows = min(64, size - top)
             let format = UIGraphicsImageRendererFormat()
             format.scale = 1
-            let renderer = UIGraphicsImageRenderer(size: CGSize(width: width, height: CGFloat(rows)), format: format)
+            let renderer = UIGraphicsImageRenderer(size: CGSize(width: CGFloat(width), height: CGFloat(rows)), format: format)
             let strip = renderer.image { context in
                 UIColor.white.setFill()
                 context.fill(CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(rows)))
@@ -288,7 +288,7 @@ final class ThermalPrinter {
     private func resample(image: CGImage, width: Int, height: Int) throws -> CGImage {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: format)
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: CGFloat(width), height: CGFloat(height)), format: format)
         let output = renderer.image { context in
             UIColor.white.setFill()
             context.fill(CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)))

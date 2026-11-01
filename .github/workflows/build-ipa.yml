@@ -24,6 +24,7 @@ jobs:
       - name: Build app (unsigned)
         working-directory: ios-pos
         run: |
+          set +e
           xcodebuild -project OnesoftPOS.xcodeproj \
             -target OnesoftPOS \
             -configuration Release \
@@ -32,7 +33,25 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            -quiet build
+            build > build-output.log 2>&1
+          status=$?
+          echo "xcodebuild exit code: $status"
+          if [ $status -ne 0 ]; then
+            {
+              echo "## Lỗi build (xcodebuild exit $status)"
+              echo ""
+              echo '```'
+              grep -E "error:|xcodebuild: error|fatal error|BUILD FAILED" build-output.log | tail -100 || true
+              echo '```'
+              echo ""
+              echo "## 120 dòng log cuối"
+              echo ""
+              echo '```'
+              tail -120 build-output.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit $status
+          fi
           APP="build/Release-iphoneos/OnesoftPOS.app"
           test -d "$APP" || { echo "Không tìm thấy $APP"; exit 1; }
 

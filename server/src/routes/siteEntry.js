@@ -2,6 +2,10 @@ const express = require('express');
 const path = require('node:path');
 const router = express.Router();
 const root = path.join(__dirname, '../../../public');
+router.get(['/privacy', '/privacy/'], (req, res) => {
+  res.set('Cache-Control', 'no-cache');
+  res.sendFile(path.join(root, 'privacy.html'));
+});
 router.get(['/', '/index.html'], (req, res) => {
   res.set('Cache-Control', 'no-cache');
   res.sendFile(path.join(root, req.query.mode === 'pos' ? 'index.html' : 'landing.html'));
